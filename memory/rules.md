@@ -74,13 +74,14 @@ development:
 
 - Every reference, not just merge, targets an earlier `--- &` document. Any
   other `&` is an error, so 1.x anchors fail loudly.
-- No references inside a `--- &` document. Without chains there is no billion
-  laughs: output is at most quadratic and no size limit is needed. Layered
-  bases are written at the use site: `<<: [*rails, *base]`.
-  **Proposed change, to be discussed (the user, 2026-11-03):** allow `<<` at the
-  top of an entry, merging earlier entries. The workflow shadow needed it 15 times. By the agent's
-  reasoning it stays safe: such a merge only unions keys already written, so no
-  entry can outgrow the document. Nesting a merge deeper is what doubles.
+- In a `--- &` document the only reference allowed is `<<` at the top of an
+  entry, merging earlier entries (the user, 2026-11-03, which refines "no
+  references inside"; the workflow shadow needed it 15 times). Nothing deeper.
+  A merge there only combines keys already written, so no entry can outgrow the
+  file. A merge nested under a new key is what doubles (billion laughs), and
+  that stays banned, so the spec needs no size limit. Argued, not tested.
+- Data documents can use `<<` anywhere: what it points at holds no nested
+  references, so each use adds at most one entry.
 
 **Path syntax** (the user chose `:`). Fewest clashes (landscape.md): keys
 holding `:` in 1 of 2,995 files, `/` in 19, `.` in 160. It needs no new scanner
