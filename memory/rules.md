@@ -124,6 +124,11 @@ Proposed, left open for the core team unless marked as the user's (see status.md
 - It stays in scope for the rest of the stream, so several documents can share
   it, and prepending one shares definitions across files with no include
   feature.
+- Several `--- &` documents, **open** (the user raised it, 2026-11-04). Three ways: 1
+  combine and refuse a repeated entry, which the draft does and the agent recommends; 2
+  combine and let a repeat replace; 3 each `--- &` replaces the whole table. Only 1 keeps
+  "the app's schema wins" when an app prepends one. It can relax to 2 later, not to 3. Its
+  cost: joining unrelated files that use one entry name is refused.
 - `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
   key, is it." A parser never delivers it. So Rule 1 has no exception here: an
   indicator isn't a scalar, so quoting one changes nothing about any value.
@@ -433,6 +438,8 @@ quoted; more-indented lines inside `>`.
   tools agree (the user, 2026-11-04): a comment at the end of a line belongs to the last
   node on it, and a run of comment lines to the key or item on the next line, with no
   blank line between. Uses: tools that rewrite files, documentation, tool directives.
+- Indentation means nothing inside a flow collection (the user, 2026-11-04: "I think
+  that has to be true"), though 1.2's grammar says otherwise and its parsers don't.
 - Staying: flow (34.5%, and JSON needs it), `>` (8.3%), `|-` and `>-` (5.9%), several
   documents (27.8% of Kubernetes files), trailing commas (they cost nothing), and
   `- - x` (3 files, but `- key:` stays, so cutting it would add a rule, not remove one).

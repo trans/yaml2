@@ -357,3 +357,16 @@ inside block scalars). 158 files (3.4%) hold one a known tool reads: release too
 quoted: 1,530 start with `%`, mostly Rails strings like `%{count}` and `%Y-%m-%d`, 26
 with `@`, 9 with a backtick.
 
+## Flow indentation and reused anchors (2026-11-04)
+
+1.2.2 productions 197 and 69 require lines inside a flow collection to be deeper than
+the parent, but PyYAML and Psych both read `a: [` then `1` then `]` at column 0. In the
+3,544 public files the draft reads, none has content at or left of the parent's indent,
+and at most 17 have a closing bracket there. A forgotten `]` or `}` is still refused.
+
+1.2 lets an anchor be reused, and an alias takes the most recent one. Of 184 public
+files defining anchors, 1 reuses a name in one document, and none defines anchors in
+more than one document, so tables across documents have no real precedent. The core
+team's draft RFC-anchors-unique (target 1.5) would make a reused name an error, and
+calls the overriding "surprising to users".
+
