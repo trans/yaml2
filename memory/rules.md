@@ -273,8 +273,13 @@ Still missing:
   descriptions, 162 titles, 61 defaults, 9 examples, 4 deprecations, so nearly all
   prose. The agent proposes that a comment directly above a key is its
   description, as with RDoc or YARD: parsers still discard comments, and only
-  doc tools keep them. A default stays prose: applying it would make the same
-  bytes give different data. Not answered, and no tool built.
+  doc tools keep them. Not answered, and no tool built.
+- Defaults aren't in the schema language (the user's point, 2026-11-04: merge does
+  it in most cases). An author's default is a `<<` from a `--- &` entry: local keys
+  win and missing ones fill in, visibly in the file, so the same bytes give the
+  same data with or without a schema. A format's own default (GitHub's 360 minutes)
+  is applied by the app, and is only mentioned in a comment. Merge is shallow, so a
+  nested default takes its own `<<` at that level.
 - Links across files: `$ref` to another file or URL. A shadow has one stream.
 - Same-shape alternatives: two sequences, or two scalars, told apart by content.
 
