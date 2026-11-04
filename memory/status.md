@@ -24,17 +24,23 @@ no code on `main`. Background is in
    core team takes proposals. Until they answer, call it a proposal for YAML 2.0.
 3. **Publishing.** `origin` is `trans/yaml2` on GitHub, public. The user added it and
    approved the first push of `main` and `ai` on 2026-11-04, with @oyl's figures in
-   `landscape.md` and with `ai`'s history rewritten first to drop one private sentence.
-   So the `ai` branch is public: write nothing private here. Ask before pushing
-   again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
+   `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
+   and a second push of `ai` the same day. So the `ai` branch is public: write nothing
+   private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.
 
 ## Working with @oyl
 
 Oyl is the user's YAML 1.2 parser and emitter in C, with YAML 1.1 and go-yaml
 v2 dialects, an in-place 1.1 to 1.2 upgrade (`oyl_upgrade`), bindings, and
-measurements on real files. It is the obvious place to test ideas here and
-the likely reference implementation (not decided).
+measurements on real files. It is the obvious place to test ideas here.
+
+**The reference parser** (the user, 2026-11-04): a standalone 2.0 parser, not a dialect
+inside Oyl, and the Oyl project builds it, applying what it learned. The user will set
+that up. The user expects it to beat 1.x parsers on speed, given the simplifications:
+measure speed and size for the proposal. It needs the spec draft, or at least
+[rules.md](rules.md), to build from. The agent suggested the 1.2-to-2.0 converter sit
+in Oyl beside `oyl_upgrade`; not decided.
 
 Oyl's notes are private. Read them in place, and bring only what the user has
 cleared into this repository, which is public.
