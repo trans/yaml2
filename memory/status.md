@@ -8,7 +8,7 @@ ecosystem that has become a minefield.
 **Where things stand.** The user is setting the design rule by rule; the
 rules are in [rules.md](rules.md). The user chose a clean break on
 2026-11-03, so 2.0 need not be readable by existing parsers. No spec text,
-no code on `main`, no git remote. Background is in
+no code on `main`. Background is in
 [landscape.md](landscape.md).
 
 ## Open, for the user
@@ -18,8 +18,10 @@ no code on `main`, no git remote. Background is in
 2. **Whose name it is.** "YAML 2.0" is the next version number of a spec
    the yaml-spec group maintains. Work through that group, or publish
    independently and offer it to them? Can wait for a draft.
-3. **Remote and visibility.** If the repository is public the `ai` branch
-   is too; then also decide on `transcript.encrypt`.
+3. **Publishing.** The user added `origin`, `trans/yaml2` on GitHub, public, on
+   2026-11-04. It was empty then, and nothing has been pushed: ask first. The `ai`
+   branch goes public with it, so write nothing private here. No transcripts are
+   kept in this repository yet, so `transcript.encrypt` can wait.
 
 ## Working with @oyl
 
@@ -29,4 +31,4 @@ measurements on real files. It is the obvious place to test ideas here and
 the likely reference implementation (not decided).
 
 Oyl's notes are private. Read them in place, and bring only what the user has
-cleared into this repository.
+cleared into this repository, which is public.
