@@ -1,18 +1,20 @@
-# Typed shadow experiment
+# Typed shadow experiments
 
 *Updated 2026-11-03*
 
 Does a typed shadow carry a full real format? `github-workflow.shadow` is
-GitHub's workflow format, written from SchemaStore's `github-workflow.json`.
-`shadow.py` types a document with a shadow. `compare.py` runs both on real files
-and on damaged copies. PyYAML's BaseLoader stands in for a 2.0 parser, since it
-reads every scalar as a string; nothing here parses real 2.0 syntax.
+GitHub's workflow format, written from SchemaStore's `github-workflow.json`, and
+`compose.shadow` is Compose, written blind from `compose-spec.json`. `shadow.py`
+types a document with a shadow. `compare.py` runs both on real files and on
+damaged copies. PyYAML's BaseLoader stands in for a 2.0 parser, since it reads
+every scalar as a string; nothing here parses real 2.0 syntax.
 
 To repeat it, with jsonschema installed:
 
-    python3 compare.py github-workflow.json ~/Projects ~/.config
+    python3 compare.py workflows github-workflow.json ~/Projects ~/.config
+    python3 compare.py compose compose-spec.json DIR
 
-## Results (2026-11-03)
+## Results: GitHub workflows (2026-11-03)
 
 - **Real files:** 131 unique workflows (580 before removing copies). Shadow and
   schema agree on all of them: 128 accepted, 3 rejected.
@@ -28,13 +30,30 @@ To repeat it, with jsonschema installed:
   The shadow drops the lists of activity names, which accounts for part of that.
 - **Keys:** 74 optional, 21 required.
 
-## Caveats
+Caveats: mostly the user's own files. Three fixes came from these runs, so the
+agreement is partly fitted: `type` on an input is optional, `secrets` takes
+`inherit`, and matrix `include` items are mappings.
 
-One format. Mostly the user's own files. Three fixes came from these runs, so
-the agreement is partly fitted: `type` on an input is optional, `secrets` takes
-`inherit`, and matrix `include` items are mappings. A format written blind would
-be a fairer test.
+## Results: Compose, written blind (2026-11-03)
 
-## What the test changed
+No Compose file was looked at before the run, and the shadow wasn't changed
+after it. Reading the schema forced two additions first: prefix keys (`x-*`) and
+any key with an empty value (`!str?`).
+
+- **Real files:** 313 unique, 311 of them public, from GitHub code search (not
+  committed; a search sample, not a random one). 310 agree with the schema: 308
+  accepted, 2 rejected. All 3 others are `pgdata: null`, which the schema takes
+  and the shadow doesn't, since `null` is text under Rule 1.
+- **Damaged copies:** 10,500 mutations, 6,962 rejected by the schema, 99.6%
+  caught. All 26 misses are inside `x-` blocks, probably a harness quirk:
+  aliases are shared in one tree and copied in the other. Not checked.
+- **Typing:** 26,083 strings, 500 empty, 4 booleans. The schema allows a string
+  wherever it allows a number, so agreeing with it is easier than for workflows.
+- **Mines:** YAML 1.1 changes 22 values in these files: `0755` to 493, `OFF` to
+  false, `0.50` to 0.5. All stay as written under Rule 1.
+- **Size:** 9.4 KB against 22.0 KB of compact schema without its documentation.
+- **Merge:** 63 uses of `<<` across both shadows, all at the top of an entry.
+
+## What the tests changed
 
 See rules.md, YAML Schema.

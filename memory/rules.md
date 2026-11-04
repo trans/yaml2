@@ -159,10 +159,11 @@ b: !str
 c: ![int*]
 ```
 
-Tested on GitHub workflows, 2026-11-03: see [shadow/](shadow/README.md). It
-agreed with the JSON Schema on all 131 real files, and caught 91.9% of the
-damage the schema catches, 99.3% with three small app bindings. Notation below
-is what that test settled on, all the agent's proposals, not yet answered:
+Tested 2026-11-03: see [shadow/](shadow/README.md). On GitHub workflows it
+agreed with the JSON Schema on all 131 real files and caught 91.9% of the damage
+the schema catches, 99.3% with three small app bindings. On Compose, written
+blind, it agreed on 310 of 313 and caught 99.6%. Notation below is what those
+tests settled on, all the agent's proposals, not yet answered:
 
 - **It types; it doesn't validate.** Real JSON Schemas are 86% shape and 6%
   validation (landscape.md). Ranges, patterns, minimums and "not both of these
@@ -177,9 +178,13 @@ is what that test settled on, all the agent's proposals, not yet answered:
   "might be ok", 2026-11-03). It can't go
   on the value, since an inline mapping has nowhere to put it (changed by the
   test). An empty value types as None, so null exists only through a schema: this
-  mostly answers the null question.
-- **Arbitrary keys:** a type as the key, `!str: !int`. Mappings are otherwise
-  closed.
+  mostly answers the null question. Spelled `null` is text under Rule 1, which
+  failed 3 of 313 Compose files (`pgdata: null`); an upgrade rewrites it to
+  `pgdata:`. Still no sign that a null value is needed.
+- **Arbitrary keys:** a type as the key, `!str: !int`, or `!str?: !int` if values
+  may be empty. A key ending in `*` takes a prefix, `x-*: !any`, needed to type
+  today's Compose files; 2.0 files would use `--- &` instead of `x-` keys. Mappings
+  are otherwise closed.
 - **Named types** live in the schema's `--- &` document. The schema layer resolves
   them, not the parser, so recursive types work.
 - **Alternatives** are chosen by shape, never by how text looks: at most one
@@ -188,8 +193,8 @@ is what that test settled on, all the agent's proposals, not yet answered:
 - **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
   `flag`. That recovered nearly all of what patterns check, with no regex in the
-  schema. An unbound name stays a string. The user didn't follow this at first
-  (2026-11-03), so it may need a clearer form.
+  schema. An unbound name stays a string. It needs no rule of its own: it's just a
+  named type. The user hasn't followed this yet (2026-11-03).
 - **Schemas name types; app code binds them to classes.** A schema must never
   name a class to build, or `!ruby/object` comes back by another door.
 - **Delivery:** `--- !` carries a shadow for the documents after it, and an app

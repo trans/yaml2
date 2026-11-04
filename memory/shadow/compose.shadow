@@ -1,0 +1,519 @@
+%YAML 2.0
+# A typed shadow of a Compose file, written blind from compose-spec.json: no
+# Compose file was looked at, and nothing here was changed after the first run.
+--- &
+# Compose substitutes ${VAR} anywhere, so its schema takes a string wherever it
+# takes a number or a boolean. These are named strings an app could bind.
+flag: !str
+number: !str
+
+# Every mapping in the format allows x- keys.
+ext:
+  x-*: !any
+
+str-map:
+  !str?: !str
+any-map:
+  !str?: !any
+list-or-dict: !str-map | [str*]
+str-or-list: !str | [str*]
+command: !str | [str*]
+
+extra-hosts-map:
+  !str: !str | [str*]
+extra-hosts: !extra-hosts-map | [str*]
+
+blkio-limit:
+  path?: !str
+  rate?: !number
+blkio-weight:
+  path?: !str
+  weight?: !number
+blkio-config:
+  device_read_bps?: ![blkio-limit*]
+  device_read_iops?: ![blkio-limit*]
+  device_write_bps?: ![blkio-limit*]
+  device_write_iops?: ![blkio-limit*]
+  weight?: !number
+  weight_device?: ![blkio-weight*]
+
+credential-spec:
+  <<: *ext
+  config?: !str
+  file?: !str
+  registry?: !str
+
+device-map:
+  <<: *ext
+  source: !str
+  target?: !str
+  permissions?: !str
+device: !str | device-map
+
+logging:
+  <<: *ext
+  driver?: !str
+  options?: !str-map
+
+service-model:
+  <<: *ext
+  endpoint_var?: !str
+  model_var?: !str
+service-models-map:
+  !str?: !service-model
+
+service-network:
+  <<: *ext
+  aliases?: ![str*]
+  interface_name?: !str
+  ipv4_address?: !str
+  ipv6_address?: !str
+  link_local_ips?: ![str*]
+  mac_address?: !str
+  driver_opts?: !str-map
+  priority?: !number
+  gw_priority?: !number
+  use_service_name_alias?: !flag
+service-networks-map:
+  !str?: !service-network
+
+volume-bind:
+  <<: *ext
+  propagation?: !str
+  create_host_path?: !flag
+  recursive?: !'enabled' | 'disabled' | 'writable' | 'readonly'
+  selinux?: !'z' | 'Z'
+volume-volume:
+  <<: *ext
+  labels?: !list-or-dict
+  nocopy?: !flag
+  subpath?: !str
+volume-tmpfs:
+  <<: *ext
+  size?: !number
+  mode?: !number
+volume-image:
+  <<: *ext
+  subpath?: !str
+service-volume-map:
+  <<: *ext
+  type: !'bind' | 'volume' | 'tmpfs' | 'cluster' | 'npipe' | 'image'
+  source?: !str
+  target?: !str
+  read_only?: !flag
+  consistency?: !str
+  bind?: !volume-bind
+  volume?: !volume-volume
+  tmpfs?: !volume-tmpfs
+  image?: !volume-image
+service-volume: !str | service-volume-map
+
+config-ref-map:
+  <<: *ext
+  source?: !str
+  target?: !str
+  uid?: !str
+  gid?: !str
+  mode?: !number
+config-ref: !str | config-ref-map
+
+ulimit:
+  <<: *ext
+  hard: !number
+  soft: !number
+ulimits:
+  !str: !number | ulimit
+
+env-file-map:
+  path: !str
+  format?: !str
+  required?: !flag
+env-file-item: !str | env-file-map
+env-file: !str | [env-file-item*]
+
+device-request:
+  <<: *ext
+  capabilities?: ![str*]
+  count?: !number
+  device_ids?: ![str*]
+  driver?: !str
+  options?: !list-or-dict
+gpus: !'all' | [device-request*]
+
+container-spec:
+  <<: *ext
+  annotations?: !list-or-dict
+  blkio_config?: !blkio-config
+  cap_add?: ![str*]
+  cap_drop?: ![str*]
+  cgroup?: !'host' | 'private'
+  cgroup_parent?: !str
+  command?: !command
+  configs?: ![config-ref*]
+  cpu_count?: !number
+  cpu_percent?: !number
+  cpu_shares?: !number
+  cpu_quota?: !number
+  cpu_period?: !number
+  cpu_rt_period?: !number
+  cpu_rt_runtime?: !number
+  cpus?: !number
+  cpuset?: !str
+  credential_spec?: !credential-spec
+  device_cgroup_rules?: ![str*]
+  devices?: ![device*]
+  dns?: !str-or-list
+  dns_opt?: ![str*]
+  dns_search?: !str-or-list
+  domainname?: !str
+  entrypoint?: !command
+  env_file?: !env-file
+  label_file?: !str | [str*]
+  environment?: !list-or-dict
+  extra_hosts?: !extra-hosts
+  gpus?: !gpus
+  group_add?: ![str*]
+  hostname?: !str
+  image?: !str
+  init?: !flag
+  ipc?: !str
+  isolation?: !str
+  labels?: !list-or-dict
+  logging?: !logging
+  mac_address?: !str
+  mem_limit?: !number
+  mem_reservation?: !number
+  mem_swappiness?: !number
+  memswap_limit?: !number
+  network_mode?: !str
+  models?: ![str*] | service-models-map
+  networks?: ![str*] | service-networks-map
+  oom_kill_disable?: !flag
+  oom_score_adj?: !number
+  pid?: !str
+  pids_limit?: !number
+  platform?: !str
+  privileged?: !flag
+  pull_policy?: !str
+  pull_refresh_after?: !str
+  read_only?: !flag
+  runtime?: !str
+  security_opt?: ![str*]
+  shm_size?: !number
+  secrets?: ![config-ref*]
+  sysctls?: !list-or-dict
+  stop_grace_period?: !str
+  stop_signal?: !str
+  storage_opt?: !any-map
+  tmpfs?: !str-or-list
+  ulimits?: !ulimits
+  umask?: !str
+  use_api_socket?: !bool
+  user?: !str
+  uts?: !str
+  userns_mode?: !str
+  volumes?: ![service-volume*]
+  volumes_from?: ![str*]
+  working_dir?: !str
+
+build-map:
+  <<: *ext
+  context?: !str
+  dockerfile?: !str
+  dockerfile_inline?: !str
+  entitlements?: ![str*]
+  args?: !list-or-dict
+  ssh?: !list-or-dict
+  labels?: !list-or-dict
+  cache_from?: ![str*]
+  cache_to?: ![str*]
+  no_cache?: !flag
+  no_cache_filter?: !str-or-list
+  additional_contexts?: !list-or-dict
+  network?: !str
+  provenance?: !str
+  sbom?: !str
+  pull?: !flag
+  target?: !str
+  shm_size?: !number
+  extra_hosts?: !extra-hosts
+  isolation?: !str
+  privileged?: !flag
+  secrets?: ![config-ref*]
+  tags?: ![str*]
+  ulimits?: !ulimits
+  platforms?: ![str*]
+
+depends-condition:
+  <<: *ext
+  restart?: !flag
+  required?: !bool
+  condition: !'service_started' | 'service_healthy' | 'service_completed_successfully'
+depends-map:
+  !str: !depends-condition
+
+healthcheck:
+  <<: *ext
+  disable?: !flag
+  interval?: !str
+  retries?: !number
+  test?: !str | [str*]
+  timeout?: !str
+  start_period?: !str
+  start_interval?: !str
+
+port-map:
+  <<: *ext
+  name?: !str
+  mode?: !str
+  host_ip?: !str
+  target?: !number
+  published?: !str
+  protocol?: !str
+  app_protocol?: !str
+port: !str | port-map
+
+workload-spec:
+  <<: *ext
+  build?: !str | build-map
+  depends_on?: ![str*] | depends-map
+  healthcheck?: !healthcheck
+  ports?: ![port*]
+  expose?: ![str*]
+  stdin_open?: !flag
+  tty?: !flag
+
+update-config:
+  <<: *ext
+  parallelism?: !number
+  delay?: !str
+  failure_action?: !str
+  monitor?: !str
+  max_failure_ratio?: !number
+  order?: !'start-first' | 'stop-first'
+
+resource-limits:
+  <<: *ext
+  cpus?: !number
+  memory?: !str
+  pids?: !number
+
+generic-spec:
+  <<: *ext
+  kind?: !str
+  value?: !number
+generic-resource:
+  <<: *ext
+  discrete_resource_spec?: !generic-spec
+
+device-resource:
+  <<: *ext
+  capabilities: ![str*]
+  count?: !number
+  device_ids?: ![str*]
+  driver?: !str
+  options?: !list-or-dict
+
+resource-reservations:
+  <<: *ext
+  cpus?: !number
+  memory?: !str
+  generic_resources?: ![generic-resource*]
+  devices?: ![device-resource*]
+
+resources:
+  <<: *ext
+  limits?: !resource-limits
+  reservations?: !resource-reservations
+
+restart-policy:
+  <<: *ext
+  condition?: !str
+  delay?: !str
+  max_attempts?: !number
+  window?: !str
+
+preference:
+  <<: *ext
+  spread?: !str
+
+placement:
+  <<: *ext
+  constraints?: ![str*]
+  preferences?: ![preference*]
+  max_replicas_per_node?: !number
+
+deployment:
+  <<: *ext
+  mode?: !str
+  endpoint_mode?: !str
+  replicas?: !number
+  labels?: !list-or-dict
+  rollback_config?: !update-config
+  update_config?: !update-config
+  resources?: !resources
+  restart_policy?: !restart-policy
+  placement?: !placement
+
+service-hook:
+  <<: *ext
+  command: !command
+  user?: !str
+  privileged?: !flag
+  working_dir?: !str
+  environment?: !list-or-dict
+
+pre-start-hook:
+  <<: *container-spec
+  per_replica?: !flag
+
+watch:
+  <<: *ext
+  ignore?: !str-or-list
+  include?: !str-or-list
+  path: !str
+  action: !'rebuild' | 'sync' | 'restart' | 'sync+restart' | 'sync+exec'
+  target?: !str
+  exec?: !service-hook
+  initial_sync?: !bool
+
+development:
+  <<: *ext
+  watch?: ![watch*]
+
+provider-map:
+  <<: *ext
+  type: !str
+  options?: !any-map
+
+extends-map:
+  service: !str
+  file?: !str
+
+service:
+  <<: [*container-spec, *workload-spec]
+  deploy?: !deployment
+  develop?: !development
+  profiles?: ![str*]
+  restart?: !str
+  scale?: !number
+  attach?: !flag
+  container_name?: !str
+  provider?: !provider-map
+  extends?: !str | extends-map
+  links?: ![str*]
+  external_links?: ![str*]
+  pre_start?: ![pre-start-hook*]
+  post_start?: ![service-hook*]
+  pre_stop?: ![service-hook*]
+
+schedule-map:
+  <<: *ext
+  cron: !str
+  timezone?: !str
+  concurrency?: !'forbid' | 'queue'
+  missed_fires?: !'one' | 'skip'
+schedule-item: !str | schedule-map
+
+triggers:
+  <<: *ext
+  manual?: !flag
+  schedule?: ![schedule-item*]
+
+job:
+  <<: [*container-spec, *workload-spec]
+  profiles?: ![str*]
+  extends?: !str | extends-map
+  triggers: !triggers
+
+external-map:
+  <<: *ext
+  name?: !str
+external: !str | external-map
+
+ipam-config:
+  <<: *ext
+  subnet?: !str
+  ip_range?: !str
+  gateway?: !str
+  aux_addresses?: !str-map
+
+ipam:
+  <<: *ext
+  driver?: !str
+  config?: ![ipam-config*]
+  options?: !str-map
+
+network:
+  <<: *ext
+  name?: !str
+  driver?: !str
+  driver_opts?: !str-map
+  ipam?: !ipam
+  external?: !external
+  internal?: !flag
+  enable_ipv4?: !flag
+  enable_ipv6?: !flag
+  attachable?: !flag
+  labels?: !list-or-dict
+
+volume:
+  <<: *ext
+  name?: !str
+  driver?: !str
+  driver_opts?: !str-map
+  external?: !external
+  labels?: !list-or-dict
+
+secret:
+  <<: *ext
+  name?: !str
+  environment?: !str
+  file?: !str
+  external?: !external
+  labels?: !list-or-dict
+  driver?: !str
+  driver_opts?: !str-map
+  template_driver?: !str
+
+config:
+  <<: *ext
+  name?: !str
+  content?: !str
+  environment?: !str
+  file?: !str
+  external?: !external
+  labels?: !list-or-dict
+  template_driver?: !str
+
+model:
+  <<: *ext
+  name?: !str
+  model: !str
+  context_size?: !int
+  runtime_flags?: ![str*]
+
+include-map:
+  path?: !str | [str*]
+  env_file?: !str | [str*]
+  project_directory?: !str
+include: !str | include-map
+---
+<<: *ext
+version?: !str
+name?: !str
+include?: ![include*]
+services?:
+  !str: !service
+models?:
+  !str: !model
+networks?:
+  !str?: !network
+volumes?:
+  !str?: !volume
+secrets?:
+  !str: !secret
+configs?:
+  !str: !config
+jobs?:
+  !str: !job

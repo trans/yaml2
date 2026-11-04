@@ -1,5 +1,5 @@
-"""Run the shadow on real GitHub workflows, against the JSON Schema it was
-written from. Usage: compare.py SCHEMA.json ROOT... (needs jsonschema)"""
+"""Run a shadow on real files, against the JSON Schema it was written from.
+Usage: compare.py workflows|compose SCHEMA.json ROOT... (needs jsonschema)"""
 import collections, copy, hashlib, json, os, random, re, sys
 import yaml, jsonschema
 import shadow
@@ -34,20 +34,41 @@ def _number(v):
 BINDINGS = {'expr': _expr, 'flag': _flag, 'number': _number}
 
 
-def corpus(roots):
+def corpus(roots, kind):
     seen = set()
     for root in roots:
         for d, ds, fs in os.walk(root, followlinks=False):
             ds[:] = [x for x in ds if x not in ('node_modules', '.git') or d.endswith('/.github')]
-            if not d.endswith('/.github/workflows'):
-                continue
             for f in fs:
-                if f.endswith(('.yml', '.yaml')):
+                if kind == 'workflows':
+                    wanted = d.endswith('/.github/workflows') and f.endswith(('.yml', '.yaml'))
+                else:
+                    wanted = re.fullmatch(r'(docker-)?compose([._-][\w.-]*)?\.ya?ml', f)
+                if wanted:
                     b = open(os.path.join(d, f), 'rb').read()
                     h = hashlib.sha256(b).digest()
                     if h not in seen:
                         seen.add(h)
                         yield os.path.join(d, f), b
+
+
+def flatten(node):
+    """BaseLoader leaves `<<` as a key; apply it, as a 2.0 parser would."""
+    if isinstance(node, list):
+        return [flatten(x) for x in node]
+    if not isinstance(node, dict):
+        return node
+    out = {}
+    src = node.get('<<')
+    for m in ([src] if isinstance(src, dict) else src if isinstance(src, list) else []):
+        if isinstance(m, dict):
+            for k, v in flatten(m).items():
+                out.setdefault(k, v)
+    if src is not None and not isinstance(src, (dict, list)):
+        out['<<'] = src
+    local = {k: flatten(v) for k, v in node.items() if k != '<<'}
+    out.update(local)
+    return out
 
 
 def norm(path):
@@ -95,19 +116,21 @@ def mutate(rng, s, c):
 
 
 def main():
-    schema = json.load(open(sys.argv[1]))
-    validator = jsonschema.Draft7Validator(schema)
+    kind = sys.argv[1]
+    schema = json.load(open(sys.argv[2]))
+    validator = jsonschema.validators.validator_for(schema, default=jsonschema.Draft7Validator)(schema)
     here = os.path.dirname(os.path.abspath(__file__))
-    sh = shadow.load(os.path.join(here, 'github-workflow.shadow'))
-    bound = shadow.load(os.path.join(here, 'github-workflow.shadow'), BINDINGS)
+    file = 'github-workflow.shadow' if kind == 'workflows' else 'compose.shadow'
+    sh = shadow.load(os.path.join(here, file))
+    bound = shadow.load(os.path.join(here, file), BINDINGS if kind == 'workflows' else None)
     tally = collections.Counter()
     reasons = {'shadow_only': collections.Counter(), 'schema_only': collections.Counter()}
     good = []
     mines = collections.Counter()
     typed_leaves = collections.Counter()
-    for path, b in corpus(sys.argv[2:]):
+    for path, b in corpus(sys.argv[3:], kind):
         try:
-            s = yaml.load(b, Loader=yaml.BaseLoader)
+            s = flatten(yaml.load(b, Loader=yaml.BaseLoader))
             c = yaml.load(b, Loader=Core)
             old = yaml.load(b, Loader=yaml.SafeLoader)
         except Exception:
@@ -125,7 +148,6 @@ def main():
             bound.check(s)
         except shadow.Bad as e:
             tally['bound shadow rejects'] += 1
-            print('bound rejects', os.path.relpath(path, os.path.expanduser('~')), e)
         try:
             typed = sh.check(s)
             sh_ok, why = True, ''
@@ -160,6 +182,19 @@ def main():
             elif isinstance(raw, str) and isinstance(val, int) and not isinstance(val, bool) and str(val) != raw:
                 mines['core: int loses its text'] += 1
         walk(s, c)
+        def walk11(raw, val):
+            if isinstance(raw, dict) and isinstance(val, dict):
+                for k, v in raw.items():
+                    if k in val:
+                        walk11(v, val[k])
+            elif isinstance(raw, list) and isinstance(val, list):
+                for a, b2 in zip(raw, val):
+                    walk11(a, b2)
+            elif isinstance(raw, str) and raw != '' and not isinstance(val, (str, type(None))):
+                if not (isinstance(val, bool) and raw in ('true', 'false')) and str(val) != raw:
+                    mines['1.1 changes a value'] += 1
+                    mines['1.1 example ' + raw[:24] + ' -> ' + str(val)[:24]] += 1
+        walk11(s, old)
         if True in old:
             mines['1.1: the key on reads as true'] += 1
 
@@ -167,7 +202,7 @@ def main():
     print('--- schema accepts, shadow rejects'); [print(f'{v:5} {k}') for k, v in reasons['shadow_only'].most_common(12)]
     print('--- shadow accepts, schema rejects'); [print(f'{v:5} {k}') for k, v in reasons['schema_only'].most_common(12)]
     print('--- typed leaves', dict(typed_leaves))
-    print('--- mines avoided', [f'{k}: {v}' for k, v in mines.most_common(10)])
+    print('--- mines avoided', [f'{k}: {v}' for k, v in mines.most_common(14)])
 
     # Mutations: the same damage in both trees. Does the shadow see what the
     # JSON Schema sees?

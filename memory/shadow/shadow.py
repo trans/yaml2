@@ -11,7 +11,8 @@ A value starting with `!` is a type expression, any other value a literal:
     alt   := name | '[' expr '*' ']' | '[' expr (',' expr)* ']' | 'literal'
 
 A key ending in `?` may be absent or empty (empty types as None). A key that is
-a type expression (`!str`) takes every key not named. Mappings are closed
+a type expression (`!str`, or `!str?` if values may be empty) takes every key
+not named. A key ending in `*` takes keys with that prefix. Mappings are closed
 otherwise. Alternatives are chosen by shape, never by how text looks: at most
 one scalar type, at most one sequence, and mappings told apart by their
 required keys and literals.
@@ -96,15 +97,17 @@ def parse_expr(s):
 
 def to_type(value):
     if isinstance(value, dict):
-        fields, any_key = {}, None
+        fields, any_key, any_opt, prefixes = {}, None, False, []
         for k, v in value.items():
             if k.startswith('!'):
-                any_key = to_type(v)
+                any_key, any_opt = to_type(v), k.endswith('?')
+            elif k.endswith('*'):
+                prefixes.append((k[:-1], to_type(v)))
             elif k.endswith('?'):
                 fields[k[:-1]] = (to_type(v), True)
             else:
                 fields[k] = (to_type(v), False)
-        return ('map', fields, any_key)
+        return ('map', fields, any_key, any_opt, prefixes)
     if isinstance(value, list):
         raise SchemaError('a sequence in a schema is written as a type expression')
     if value.startswith('!'):
@@ -139,21 +142,25 @@ class Schema:
             for name, entry in data.items():
                 if name in BUILTIN:
                     raise SchemaError(f'{name} is a built-in type')
-                if isinstance(entry, dict) and '<<' in entry:
-                    # A merge at the top of an entry, of earlier entries only.
-                    merged = {}
-                    for ref in re.findall(r'\*([\w-]+)', entry['<<']):
-                        if ref not in raw:
-                            raise SchemaError(f'{name}: no earlier entry {ref}')
-                        merged.update(raw[ref])
-                    merged.update({k: v for k, v in entry.items() if k != '<<'})
-                    entry = merged
-                raw[name] = entry
+                raw[name] = self._merge(entry, raw, name)
         self.defs = {k: to_type(v) for k, v in raw.items()}
-        self.root = to_type(root)
+        self.root = to_type(self._merge(root, raw, 'root'))
         for name, t in self.defs.items():
             self._check_alts(t, name)
         self._check_alts(self.root, 'root')
+
+    @staticmethod
+    def _merge(entry, raw, name):
+        """A `<<` at the top of an entry, of earlier entries only."""
+        if not (isinstance(entry, dict) and '<<' in entry):
+            return entry
+        merged = {}
+        for ref in re.findall(r'\*([\w-]+)', entry['<<']):
+            if ref not in raw:
+                raise SchemaError(f'{name}: no earlier entry {ref}')
+            merged.update(raw[ref])
+        merged.update({k: v for k, v in entry.items() if k != '<<'})
+        return merged
 
     def flat(self, t, seen=()):
         """The alternatives of t, with names resolved."""
@@ -256,9 +263,17 @@ class Schema:
         for key in v:
             if key in t[1]:
                 continue
-            if t[2] is None:
-                raise Bad(path, f'unknown key {key}')
-            out[key] = self.conv(t[2], v[key], f'{path}/{key}')
+            for prefix, pt in t[4]:
+                if key.startswith(prefix):
+                    out[key] = self.conv(pt, v[key], f'{path}/{key}')
+                    break
+            else:
+                if t[2] is None:
+                    raise Bad(path, f'unknown key {key}')
+                if t[3] and v[key] == '':
+                    out[key] = None
+                else:
+                    out[key] = self.conv(t[2], v[key], f'{path}/{key}')
         return out
 
     def conv_alt(self, alts, v, path):
