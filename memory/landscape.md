@@ -325,3 +325,24 @@ it onto ECMAScript, PCRE, RE2, Ruby and XSD, enveloped so the whole string must 
 In its grammar `^` and `$` are ordinary characters. Its security section says a
 dedicated implementation can run in linear time, and existing engines may not.
 
+## The draft against real files (2026-11-04)
+
+[draftcheck.py](draftcheck.py) is a throwaway parser written from the grammar in
+`spec/yaml-2.0.md`, not a reference. It passes all the draft's examples and its edge
+cases; the size limit isn't implemented. Run on the 4,651 public files with `%YAML 2.0`
+added, skipping files over 200 KB:
+
+- PyYAML reads 4,164. The draft reads 3,544 of those as written, 85.1%.
+- Every one of the other 620 traces to something decided: anchors 179, multi-line plain
+  154 (by a rough heuristic), template text like `{{ x }}`, which is a mapping as a key,
+  126, duplicate keys 59, more-indented lines in `>` 39, multi-line quoted 31, escapes
+  10, `{a}` 8, tabs 7, block indicators 2, one-pair 1, and 4 others (a collection as a
+  key, `!!python` tags, a file's own `%YAML 1.2`).
+- Of the 3,544, compared with PyYAML reading all scalars as strings: 3,390 are identical,
+  137 differ because a tag became text, and 17 because `|` always ends in one newline.
+
+So the grammar reads real files as 1.x does, apart from what was cut on purpose.
+Reading "as written" means all values are strings. It says nothing about what an app
+does with them. `{ description: Queue full, or queue limit }` is a real bug the draft
+catches: 1.x silently makes a second key with a null value.
+

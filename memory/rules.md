@@ -25,7 +25,7 @@ document's name, `--- !name`, under YAML Schema. `%TAG` goes with them. Apps tha
 use tags as syntax (CloudFormation `!Ref`, GitLab `!reference`, Home
 Assistant `!include`) would have to use ordinary mappings instead.
 
-Follows from it (the agent's reading, not yet confirmed):
+Follows from it (proposed, left open for the core team):
 
 - No implicit typing. `no`, `on`, `0755`, `22:22`, `1E-12`, `2001-12-14`,
   `~` and `null` are all text.
@@ -108,10 +108,11 @@ rule, since a plain scalar already ends at `:` plus a space. The user's
 refinement: only a single `:` separates, so `Fn::Sub` is one key and only
 `foo:bar` needs quoting or escaping.
 
-Not confirmed (the agent's terms):
+Proposed, left open for the core team unless marked as the user's (see status.md):
 
-- Verbatim keys, **proposed** 2026-11-04, the user's idea after 1.x's `!<...>`:
-  `<...>` holds one key, taken literally, anywhere in a path. `*<a:foo:bar>` is one key,
+- Verbatim keys, the user's idea after 1.x's `!<...>` (confirmed 2026-11-04: "works much
+  better and rids us of the potential ambiguity"): `<...>` holds one key, taken
+  literally, anywhere in a path. `*<a:foo:bar>` is one key,
   `*<a:foo>:bar` that key then `bar`, and `*a:<foo:bar>` `a` then that key. It replaces
   the agent's `*a:"foo:bar"`, which the user found made no sense, and doubling
   (`.deps::rocm`), which would make `*a:Fn::Sub` mean `Fn:Sub`. A ban on `:` in entry
@@ -172,7 +173,7 @@ and wrongly. Tested 2026-11-03 on PyYAML, libyaml and Psych: `country: NO` with
 no directive reads as false in all three, and `%YAML 2.0` is refused in all
 three.
 
-Not confirmed (the agent's terms): it goes on the first line, `---` isn't needed
+Proposed, left open for the core team: it goes on the first line, `---` isn't needed
 after it, and a 2.0 parser treats a file without it as not 2.0, refusing it or
 handing it to a 1.x mode.
 
@@ -195,7 +196,7 @@ Evidence is in landscape.md.
 
 Key order, agreed by the user, 2026-11-04 ("if it is common then why bother" with
 `!omap`): 2.0 guarantees it. A parser keeps mappings in document order and an
-emitter never sorts them. Proposed consequences, not yet answered:
+emitter never sorts them. Proposed consequences, left open for the core team:
 
 - A native map can still lose it: a JS object moves number-like keys first, and Go
   maps are random. So the guarantee is on the parser's API (events, tree, an ordered
@@ -241,7 +242,7 @@ Tested 2026-11-03: see [shadow/](shadow/README.md). On GitHub workflows it
 agreed with the JSON Schema on all 131 real files and caught 91.9% of the damage
 the schema catches, 99.3% with three small app bindings. On Compose, written
 blind, it agreed on 310 of 313 and caught 99.6%. Notation below is what those
-tests settled on, all the agent's proposals, not yet answered:
+tests settled on, all proposals, left open for the core team:
 
 - **It types, and a scalar type can carry a limit.** The agent first left all
   checks to the app; the user pushed back (2026-11-04, `!int[0,100]` "or whatever")
