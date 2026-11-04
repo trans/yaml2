@@ -241,6 +241,9 @@ OpenAPI files `openapi` or `swagger` (369 of 419), and 116 of 311 Compose files 
 key in none. In the five JSON Schemas, `format` is 25 of 3,567 keyword uses: `uri-reference`
 14, `uri` 7, `email` 2, `date-time` 1, `regex` 1.
 
+Tag notation in the same 4,026 public files: no `tag:` URI written out, no `%TAG`. `!!`
+appears in 153 files, 332 of its uses being `!!python/...`, as MkDocs configs use it.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,

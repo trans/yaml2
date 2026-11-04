@@ -313,7 +313,9 @@ tests settled on, all the agent's proposals, not yet answered:
   the network. The app's schema wins, so a hostile file can't pick a laxer one, and an
   app may refuse a name it didn't expect. Node tags stay out. A name with a `/` is
   global, domain first (`github.com/actions/workflow`); one without is local to the
-  stream or app. If the stream's table has that name, it types the document; otherwise
+  stream or app. No `tag:` form and no year: that date only shows who held the domain
+  (RFC 4151), and a name is advisory, so a domain changing hands does no harm. A format
+  with versions puts one in the path (`.../workflow/v1`). If the stream's table has that name, it types the document; otherwise
   it is only a name for the app. Then the bare `--- !` goes: a shadow's root is a table
   entry, so the markers are `--- &`, `--- !name` and `---`. Moving both shadows' roots
   into named entries changed no result. A table and data in one stream isn't tested.
