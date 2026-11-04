@@ -13,7 +13,8 @@ no code on `main`, no git remote. Background is in
 
 ## Open, for the user
 
-1. **The design's open points:** marked as such in [rules.md](rules.md).
+1. **The design's open points:** marked as such in [rules.md](rules.md). YAML
+   Schema is the main one now; the rules so far depend on it.
 2. **Whose name it is.** "YAML 2.0" is the next version number of a spec
    the yaml-spec group maintains. Work through that group, or publish
    independently and offer it to them? Can wait for a draft.

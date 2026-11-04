@@ -123,26 +123,45 @@ handing it to a 1.x mode.
 
 ## Keys
 
-**`?` goes** (the user, 2026-11-03). Non-scalar keys are almost never used.
+Agreed by the user, 2026-11-03:
 
-Open, for the user:
+- Keys are strings only, and `?` goes.
+- A duplicate key is an error, including `1` and `"1"` in one mapping.
+- A Hash with non-string keys is written as a sequence of pairs, and a schema
+  brings it back: `- [[1, 2], origin]`.
+- A reference key (`*foo:`, the user's idea) stays an error for now. Allowing it
+  later breaks no file.
 
-- **Non-scalar keys.** The user raised serialization (Ruby Hashes with array or
-  hash keys) and floated reference keys: `*foo:`, where `foo` is a complex entry
-  in a `--- &` document. It parses unambiguously. The agent recommends strings
-  only, with such a Hash written as a sequence of pairs, because keys then fit
-  every language's map, and only Ruby gained from the old form: tested
-  2026-11-03, Psych round trips them, PyYAML refuses them, a JS object flattens
-  `[1,2]` to `"1,2"`, and a JS `Map` can't find an equal array. Rule 1 and no
-  tags already end faithful object serialization: a key `1` returns as `"1"`.
-  A reference key stays an error for now, and allowing it later breaks no file.
-- **Duplicate keys.** Proposed: an error. Includes `1` and `"1"` in one mapping.
-
-Evidence is in landscape.md. Strings only also makes a stray `{{ x }}` an error
-instead of a mapping with a mapping for a key.
+Why: keys then fit every language's map. Only Ruby gained from the old form.
+Tested 2026-11-03: Psych round trips such keys, PyYAML refuses them, a JS object
+flattens `[1,2]` to `"1,2"`, and a JS `Map` can't find an equal array. A stray
+`{{ x }}` also becomes an error instead of a mapping with a mapping for a key.
+Evidence is in landscape.md.
 
 ## YAML Schema
 
-The user's term, 2026-11-03: the optional layer that types the data. Nothing
-is designed yet. Open: its own language or JSON Schema's vocabulary, and how
-a document or app says which schema applies now that tags are out.
+The user's term, 2026-11-03: the optional layer that types the data. The user
+calls it the real trick: Ruby and others still serialize, through schemas.
+Nothing is designed yet.
+
+What the decisions above leave it to do (the agent's list):
+
+- Type scalars: integer, float, boolean, date, each with one exact spelling.
+- Say when `key:` means null.
+- Carry what 1.x types did: set, ordered map, binary.
+- Turn a sequence of pairs back into a map.
+- Do what tags did in polymorphic places: which kind of thing is this mapping?
+
+The agent's proposals, not yet answered:
+
+- **Schemas name types; app code binds them to classes.** A schema must never
+  name a class to build, or `!ruby/object` comes back by another door. This
+  matters most if a document can choose its own schema.
+- **Reuse JSON Schema's vocabulary, with `type` meaning convert.** As written
+  it can't apply: every scalar is a string, so `type: integer` always fails.
+  Reading it as "convert to integer" makes SchemaStore's existing schemas type
+  2.0 files with nobody writing new ones.
+- **No guessing between scalar types.** `type: [number, string]` applied to
+  `1.10` gives 1.1: implicit typing again, now in the schema.
+
+Open: how a document or app says which schema applies now that tags are out.
