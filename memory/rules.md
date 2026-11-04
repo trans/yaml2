@@ -121,21 +121,16 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   `*<.deps:rocm>:before_script`.
 - A `--- &` document is a mapping and is never delivered as data, which replaces
   Compose's `x-` keys and GitLab's hidden jobs.
-- It stays in scope for the rest of the stream, so several documents can share
-  it, and prepending one shares definitions across files with no include
-  feature.
-- Several `--- &` documents, **open** (the user raised it, 2026-11-04, and finds a
-  refusal "a bit rough", and "we may need options"). Three ways: 1 combine and refuse a
-  repeated entry; 2 combine and let a later document's entry replace, as a later `<<:`
-  line does; 3 each `--- &` replaces the whole table. The agent first recommended 1, then
-  changed to 2 the same day: the case for 1 rested on an app prepending its schema, which
-  an app needn't do, since it can pass a schema separately. A repeat inside one `--- &`
-  stays refused. References copy as they are read, so a replacement never changes an
-  earlier document. A parser setting would break "same bytes, same data", so any choice
-  has to be written in the file.
-  The user then wondered about per-document tables, and proposed a compromise: `...`
-  replaces the whole table (2026-11-04). The agent recommends that, with option 2 between
-  `...` lines: `---` shares, `...` then `---` starts fresh, and no new syntax. Not settled.
+- It stays in scope until the next `...`, so several documents can share it, and
+  prepending one shares definitions across files with no include feature.
+- Several `--- &` documents: the user chose, 2026-11-04. A stream's table starts empty,
+  and `...` empties it (the user's idea, instead of per-document tables). Between `...`
+  lines a later `--- &` replaces an entry it repeats, as a later `<<:` line does, and a
+  repeat inside one `--- &` is refused, as in any mapping. References copy as they are
+  read, so a replacement never changes an earlier document or entry. An entry may name
+  the one it replaces, which extends it (filled in by the agent, listed in section 14).
+  Two other ways were dropped: refusing every repeat, and each `--- &` replacing the
+  whole table. `read_stream` in the prototype still gathers one table per stream.
 - `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
   key, is it." A parser never delivers it. So Rule 1 has no exception here: an
   indicator isn't a scalar, so quoting one changes nothing about any value.
@@ -199,7 +194,9 @@ Agreed by the user, 2026-11-03:
 - A duplicate key is an error, including `1` and `"1"` in one mapping.
   The user asked on 2026-11-04 whether the cost of checking argues for replacing instead.
   It doesn't: replacing needs the same lookup, and merges need it anyway. Of 4,163 public
-  files, 64 repeat a key, and 51 of those silently lose a different value.
+  files, 64 repeat a key, 51 of those with different values, one of them on purpose: see
+  [landscape.md](landscape.md). PyYAML and Psych keep the last and go-yaml refuses, and
+  that disagreement is the reason.
 - A Hash with non-string keys is written as a sequence of pairs, and a schema
   brings it back: `- [[1, 2], origin]`.
 - A reference key (`*foo:`, the user's idea) stays an error for now. Allowing it

@@ -67,6 +67,7 @@ class P:
                 if s.eof(): return s
                 if not (s.marker() or s.directive_then_marker()):
                     s.stopped = after; return s
+                s.table = {}
             if s.directive_then_marker():
                 s.i += 9; s.eol(); s.gap()
             if not s.marker(): s.bad('expected a marker')
@@ -87,14 +88,15 @@ class P:
         else:
             s.i = j; s.eol(); s.gap(); s.docs.append((name, s.node(-1, top=True)))
     def tablemap(s):
-        s.td = 0
+        s.td = 0; here = set()
         while True:
             s.gap()
             if s.eof() or s.marker() or s.dots() or s.ch() == '%': break
             if s.ch() == ' ': s.bad('table entries are at column 0')
             if s.t.startswith('<<:', s.i): s.bad('merge outside an entry')
             k = s.key(); s.colon()
-            if k in s.table: s.bad('entry already in the table')
+            if k in here: s.bad('key repeated in one table document')
+            here.add(k)
             s.table[k] = s.value(0, True)
             s.gap()
         s.td = None
@@ -429,6 +431,12 @@ good = [
  ('---\na: 1\n...\n\n---\nb: 2\n', [{"a": "1"}, {"b": "2"}]),
  ('--- &\na: 1\n%YAML 2.0\n---\nb: *a\n', [{"b": "1"}]),
  ('--- &\na: 1\n--- &\nb: 2\n---\n[*a, *b]\n', [["1", "2"]]),
+ ('--- &\na: 1\n--- &\na: 2\n---\nb: *a\n', [{"b": "2"}]),
+ ('--- &\na: 1\n---\nb: *a\n--- &\na: 2\n---\nb: *a\n', [{"b": "1"}, {"b": "2"}]),
+ ('--- &\na: {p: 1}\n--- &\na:\n  <<: *a\n  q: 2\n---\nb: *a\n', [{"b": {"p": "1", "q": "2"}}]),
+ ('--- &\na: {p: 1}\nb:\n  <<: *a\n--- &\na: {p: 2}\n---\n[*a:p, *b:p]\n', [["2", "1"]]),
+ ('--- &\na: 1\n...\n--- &\na: 2\n---\nb: *a\n', [{"b": "2"}]),
+ ('--- &\na: 1\n...\n--- &\n---\nb: 2\n', [{"b": "2"}]),
  ('--- &\nFn::Sub: {x: 1}\n---\na: *Fn::Sub:x\n', [{"a": "1"}]),
  ('--- &\n"my key": {x: 1}\n---\na: *<my key>:x\nb: [*<my key>:x, 1]\n', [{"a": "1", "b": ["1", "1"]}]),
  ('a: !Ref foo\n', [{"a": "!Ref foo"}]),
@@ -448,9 +456,9 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', 'a: 1\t\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', 'a: 1\t\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
- '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '--- &\na: 1\n--- &\na: 2\n', '<< : x\n', '<<:\n',
+ '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
  'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', '--- &\na: 1\nb:\n  - *a\n', '--- &\ns: [x]\nt:\n  u:\n    -<< *s\n',
  '--- &\na: {p: 1}\nb: {c: {<<: *a}}\n', 'a: "\\ud83d"\n', 'a: "x\n', "a: 'x\n", 'a: *nope\n', '[1, 2\n---\n', '{a: 1, a: 2}\n', '{"a": 1 "b": 2}\n', '[,]\n', '{,}\n', ': x\n', '- x\ny: 1\n', 'a: 1\n- x\n', 'a: 1\n  b: 2\n']
 f = 0

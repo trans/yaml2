@@ -359,10 +359,31 @@ with `@`, 9 with a backtick.
 
 ## Repeated keys (2026-11-04)
 
-Of 4,163 public files PyYAML can compose, 64 repeat a key in a mapping: rails 39, jekyll
-11, mkdocs 5, openapi 4, others 5. 51 of them lose a different value, 116 keys in all
-(97 more repeat the same value). The commonest key is `422`, an OpenAPI response written
-twice. Last-wins readers drop the earlier one with no warning.
+Each file was read on its own and composed to PyYAML's node tree, before a dict can drop
+anything, skipping files over 200 KB. In each mapping, entries are grouped by key text.
+The files are GitHub search results, so this isn't a random sample.
+
+Of 4,163 files, 64 repeat a key in a mapping: rails 39, jekyll 11, mkdocs 5, openapi 4,
+others 5. In 51 the repeats have different values, 116 keys in all (97 more repeat the
+same value). PyYAML and Psych keep only the last, so the earlier value never reaches the
+app, and go-yaml v3 refuses the file. That's all "lose" means here: it says what a reader
+does, not that the author wanted otherwise, and no app was run.
+
+Read closer on 2026-11-04, which corrected an earlier reading:
+
+- Three files hold 50 of the 116 keys. Every `422` is in one OpenAPI file, 12 times, each
+  an inline `description` followed by a `$ref`. It isn't a common pattern.
+- One mkdocs file, 15 keys, is deliberate: comment markers (`# nav.ent.begin`,
+  `# nav.comm.begin`) wrap one edition's lines each, presumably for a build step to cut
+  before any parser reads it. 12 of its 15 repeats sit beside a marker, and no other file
+  has any. So 50 files is the fairer count.
+- 12 others at random, judged from the two values and their lines: 2 differ only in
+  capitals, 2 are rewordings, 4 mean different things, 2 lose a whole block or a scalar to
+  a mapping, 1 keeps the misspelt value (`annnotation`), and the last was that mkdocs file.
+  One Kubernetes file has `hostname: mdr-workers` then `hostname: mdr-web` in one pod spec.
+
+The case for refusing rests on readers disagreeing about the same bytes. This count only
+shows that repeats occur.
 
 ## Flow indentation and reused anchors (2026-11-04)
 
