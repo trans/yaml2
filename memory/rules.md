@@ -64,13 +64,30 @@ The agent's proposal, not yet answered:
 - Keys only in references, no sequence indices. `*steps/0` still resolves
   after someone inserts a step, to the wrong one: silent wrong data, a new
   mine. A renamed key fails loudly. So anything reused sits under a key.
-- Backward only: a reference gets the finished value of an earlier node, as
-  a copy. Cycles can't happen, and the data stays a tree.
+- A reference is a copy of a finished node, so the data stays a tree. Either
+  direction below rules out cycles: pointing at an ancestor is an error.
 - Billion laughs survives. Nested copies still double, even with merge alone,
   so the spec needs a mandatory limit on expanded size.
-- Cost: parsers must be able to find any earlier node, not just anchored
-  ones. A parser holding the whole input can pay that only when a file uses a
-  reference; a true streaming parser can't.
+
+**Which direction references point. Open.** The user's framing, 2026-11-03:
+backward means being able to reference anything on demand; forward means
+knowing what to look for, but filling in the data has to be queued until it
+shows up.
+
+The agent recommends backward only:
+
+- The consumer never waits. Forward holds back everything after the first
+  open reference, and a merge hides its mapping's keys until the target comes.
+- A bad reference fails at its own line. Forward finds it at end of input,
+  after the consumer may have acted on what came before.
+- Define, then use, is how anchored files are already ordered, so the upgrade
+  stays "delete `&name`".
+- It can be loosened to allow forward references later without breaking any
+  file. Tightening later would break files.
+- Cost: anchors also told the parser what to keep, and dropping them gives
+  that up. With the input in memory that costs nothing extra; on a pipe it
+  means keeping the current document's bytes. A parser option refusing
+  references would remove that for huge data documents.
 
 ## YAML Schema
 
