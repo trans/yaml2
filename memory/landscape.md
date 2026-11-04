@@ -116,6 +116,11 @@ two sources, a thin sample for "who wins". No mapping has two `<<` lines, which 
 little, as 1.x forbids duplicate keys. With no list, the two-line result (`p, q` from
 b, `r`) is also what JS spread, Ruby `Hash#merge` and Python `{**a, **b}` give.
 
+Is `<<` ever data? In 4,347 unique files (the same sample plus `~/.config`): no quoted
+`"<<"` key, no plain key starting `<< `, and one plain value starting `<< `,
+CircleCI's `<< parameters.executor >>`. So `<< *a` without a colon would have to be
+told apart from that template syntax, and `<<:` needs nothing new.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,

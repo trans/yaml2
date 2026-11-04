@@ -40,7 +40,7 @@ def _quote(text):
 
 
 def _prepare(doc):
-    """Quote `!` keys and values, and `<<: *x`, for PyYAML's sake."""
+    """Quote `!` keys and values, and `<<: *x` lines, for PyYAML's sake."""
     out = []
     for line in doc.splitlines():
         code = re.sub(r'\s+#.*$', '', line)
@@ -54,6 +54,10 @@ def _prepare(doc):
             out.append(ind + (_quote(rest) if rest[0] in '!*[{' else rest))
             continue
         key, val = m.group(1), m.group(2)
+        if key == '<<' and out and out[-1].startswith(f'{ind}{_quote(key)}: '):
+            # A repeated `<<` line: PyYAML would keep only the last, so join them.
+            out[-1] = out[-1][:-1] + f" {val}'"
+            continue
         if key.startswith('!') or key == '<<':
             key = _quote(key)
         if val and val[0] in '!*[{':

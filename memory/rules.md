@@ -102,8 +102,10 @@ Not confirmed (the agent's terms):
 - It stays in scope for the rest of the stream, so several documents can share
   it, and prepending one shares definitions across files with no include
   feature.
-- `<<` becomes an indicator like `-`, since in 1.1 it is an implicit type, which
-  Rule 1 ends. `"<<"` is the literal key.
+- `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
+  key, is it." A parser never delivers it, and `"<<"` is the literal key. So Rule 1
+  has no exception here: an indicator isn't a scalar, so quoting one changes nothing
+  about any value. Proposed: it keeps its colon, `<<: *a`, see landscape.md.
 - A reference names exactly one node, as a copy, so the data stays a tree. A
   query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
   later question.
@@ -162,16 +164,13 @@ emitter never sorts them. Proposed consequences, not yet answered:
     merged keys were pasted at the top and each local key then assigned. So merged
     keys always come before local ones, and a file can't say "name, then the
     defaults". Around it: merge a `head` entry first, or no merge.
-  - Several sources. The user asked why `<<: *a` then `<<: *b` isn't allowed
-    (2026-11-04). No good reason: 1.x forbids it because `<<` is a key and keys are
-    unique, which is why the list form exists, and an indicator doesn't have that
-    limit. Proposed: repeated `<<` lines, one reference each, before any other key,
-    and no list form. Read top to bottom: a later line replaces a key in place, as a
-    local key does. With a (p, q) and b (q, r) that gives `p, q` from b, `r`. **Open.**
-    This replaces three proposals of the same day: one `<<` with a list, "the earlier
-    source wins", and "a key in two sources is an error". It depends on `<<` being an
-    indicator, still unconfirmed. Layering needs no entry of its own now: `<<: *base`
-    then `<<: *prod`.
+  - Several sources: repeated `<<` lines, the user's choice (2026-11-04, "I think it
+    makes more sense"). One reference each, all before any other key, no list form.
+    Read top to bottom: a later line replaces a key in place, as a local key does.
+    With a (p, q) and b (q, r) that gives `p, q` from b, `r`. Layering is `<<: *base`
+    then `<<: *prod`. Two written keys that are the same are still an error; only a
+    merged key can be replaced. This replaces `<<: [*a, *b]`, "the earlier source
+    wins" and "a key in two sources is an error", all dropped the same day.
 
 ## YAML Schema
 

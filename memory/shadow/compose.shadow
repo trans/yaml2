@@ -392,7 +392,8 @@ extends-map:
   file?: !str
 
 service:
-  <<: [*container-spec, *workload-spec]
+  <<: *container-spec
+  <<: *workload-spec
   deploy?: !deployment
   develop?: !development
   profiles?: [!str, ...]
@@ -422,7 +423,8 @@ triggers:
   schedule?: [!schedule-item, ...]
 
 job:
-  <<: [*container-spec, *workload-spec]
+  <<: *container-spec
+  <<: *workload-spec
   profiles?: [!str, ...]
   extends?: !str | !extends-map
   triggers: !triggers

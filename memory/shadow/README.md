@@ -48,6 +48,9 @@ any key with an empty value (`!str?`). The second was later replaced by
 - **Damaged copies:** 10,500 mutations, 6,962 rejected by the schema, 99.6%
   caught. All 26 misses are inside `x-` blocks, probably a harness quirk:
   aliases are shared in one tree and copied in the other. Not checked.
+- **Repeated `<<`:** the two list merges became two lines each on 2026-11-04, and
+  the prototype joins repeated lines. Over the 311 public files the output is
+  identical before and after.
 - **Typing:** 26,083 strings, 500 empty, 4 booleans. The schema allows a string
   wherever it allows a number, so agreeing with it is easier than for workflows.
 - **Mines:** YAML 1.1 changes 22 values in these files: `0755` to 493, `OFF` to
