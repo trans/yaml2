@@ -108,9 +108,21 @@ Not confirmed (the agent's terms):
 - It has no colon: `<< *a` (the user, 2026-11-04). Like `-` it needs a space, and a
   reference must follow, so CircleCI's `<< parameters.x >>` and `<<*a` stay text. It
   counts only where a mapping entry can start.
-- Proposed: a plain `<<:` key is an error, and `"<<":` is the literal key. Otherwise
-  the 1.x habit, `<<: *a`, silently gives a key holding the mapping, not a merge.
-  No real file needs the key (landscape.md), and an error can be relaxed later.
+- The key form works too: the user, 2026-11-04, "we should just also support the key
+  form", in place of the error proposed that day. Read here as `<<: *a` merging just
+  as `<< *a` does, under the same rules; the other reading, an ordinary key, is
+  **not ruled out**. `<<: [*a, *b]` stays an error. `"<<":` is the literal key.
+- Sequence merge, raised by the user 2026-11-04 as `-<< *s`. **Proposed:** it replaces
+  itself with the items of `s`, which must be a sequence. One token, a space, then a
+  reference, so anything else stays text. Any position, any number: nothing can
+  clash, and position is the point. Plain concatenation, no dedupe. `- << *a` is
+  different, an item that is a mapping with merged keys; a shape check tells them
+  apart, as `<<` needs a mapping and `-<<` a sequence.
+  In data documents only for now. A `--- &` entry with two `-<<` of the entry before
+  it doubles each time, so 30 entries in under 1 KB make 2^30 items. `<<` can't do
+  that, because keys collapse. The rule above already keeps it out of `--- &`. Cost:
+  lists can't be built from lists in the table, which GitLab's docs show doing.
+  Revisit with the size limit.
 - A reference names exactly one node, as a copy, so the data stays a tree. A
   query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
   later question.

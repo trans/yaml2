@@ -121,6 +121,21 @@ Is `<<` ever data? In 4,347 unique files (the same sample plus `~/.config`): no 
 CircleCI's `<< parameters.executor >>`. No scalar starts `<< *`, so `<< *a` is safe
 from that template syntax.
 
+## Sequence merge (2026-11-04)
+
+An old request, refused because `<<` was a string key and new syntax would touch
+plain scalars, neither of which binds a clean break. yaml/yaml-spec#28 (2018, closed
+2021) proposed `-<<` itself. yaml/yaml#35 (2017, closed) proposed `<< *x`. yaml/yaml#48
+(2019, open, 45 comments) carries it on, with `<`, `+` and `-*x` among the spellings.
+The discussion there ends up at concatenation, not set union.
+
+Reuse of a list inside a list: 18 of 369 public `.gitlab-ci.yml` files (a search
+sample, not random): `!reference` 66 uses in 10 files, `- *x` with x a sequence 57
+uses in 8. None in the 311 Compose files or the 3,975 local files. GitLab flattens
+these itself; its docs allow `!reference` nested 10 levels in `script`, and their
+example builds lists from lists. 55 of the 369 use `<<`. No scalar in any of these
+files starts `-<<`.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,
