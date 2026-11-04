@@ -83,6 +83,15 @@ development:
   limit needed" was wrong. A 1 MB file with a 500 KB entry and 100,000 `- *a` lines
   expands to about 50 GB. A limit on expanded size, or nodes shared in memory,
   is probably still needed. The user is concerned about this and wants to revisit.
+- Size limit, **proposed** 2026-11-04. A parser keeps two counters per stream: `written`,
+  the size spelled out so far, and `cost`, the full size of what each reference names,
+  with no dedupe. Size is 1 per node plus the bytes of each scalar. If `cost` passes
+  100 times `written` at any reference, the stream is refused. The number is in the
+  spec, not a parser setting, so every parser accepts the same files; an app may
+  refuse more for its own reasons. Growth becomes linear, and a refused file can spell
+  its data out. Shared nodes aren't the answer: a merge copies its key list anyway, see
+  landscape.md. They stay a parser's choice. If this is adopted, `-<<` can go at the
+  top of a `--- &` entry too, since the limit stops doubling.
 - Data documents can use `<<` at any depth: what it points at holds no nested
   references, so each use adds at most one entry.
 

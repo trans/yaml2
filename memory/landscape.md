@@ -151,6 +151,27 @@ these itself; its docs allow `!reference` nested 10 levels in `script`, and thei
 example builds lists from lists. 55 of the 369 use `<<`. No scalar in any of these
 files starts `-<<`.
 
+## How far references expand (2026-11-04)
+
+Measured with [growth.py](growth.py): 4,656 unique files, 118 with references (GitLab
+74, Compose 39, local 5). Expanded size over written size: median 1.32, 99% 8.71, max
+11.64, a GitLab file. `cost <= 20 * written` holds at every reference in every file.
+Few files at the high end, and search samples, so this is a guide.
+
+Parsers today, on a 3,000-key entry used 3,000 times. A 47 KB file of `- *a`: PyYAML
+and Psych load it at 17 MB peak, every item the same object. A 59 KB file of
+`- <<: *a`: PyYAML 391 MB, Psych 306 MB, since each merge copies the key list.
+go-yaml v3 refuses both, "excessive aliasing". So whether a file loads depends on the
+parser, and sharing nodes doesn't cover merges.
+
+A limit of 100 (`growth.py --check 100 FILE`): the 1 MB, 500 KB entry, 100,000 `- *a`
+file is refused at reference 101 with cost 50.5 MB. 30 levels of doubling in 667
+bytes, the same cost as `-<<` twice per entry, is refused at reference 20 with cost
+12 KB. Both 3,000-key files are refused by reference 103.
+
+GitLab list reuse: 38 of the 123 uses, in 10 of the 18 files, sit inside a definition
+(a `.hidden` job or an anchored node), so a table ban on `-<<` would cost those files.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,

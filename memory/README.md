@@ -18,6 +18,7 @@ working on the code needs belongs in the project's own docs, not here.
 | [rules.md](rules.md) | The design so far: the clean break, each rule as the user set it, what follows, what's open |
 | [shadow/](shadow/README.md) | The typed shadow tested on GitHub workflows and Compose: the shadows, the checker, the results |
 | [landscape.md](landscape.md) | The spec's state, what is deployed (@oyl's measurements), partial fixes so far |
+| [growth.py](growth.py) | Measures how far references expand files, and checks a size limit against a file |
 
 Keep each note short and dated (`*Updated YYYY-MM-DD*`), with absolute
 dates and commit hashes. Check the code or `git log` before acting on
