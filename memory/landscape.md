@@ -359,8 +359,10 @@ with `@`, 9 with a backtick. 60 start with `!`, in 36 of the 4,241 files PyYAML 
 scan: mostly mkdocs filters like `!^_`, and path and branch exclusions in workflows.
 
 In the draft, a tag with its content on the same line reads as text, in block and flow
-alike, and in a table entry a reference then delivers it. A tag with its content on the
-lines below is refused (`expected a marker`), like any other nested block under a scalar.
+alike, and in a table entry a reference then delivers it. So does a tag with no content.
+A tag with its content on the lines below is refused (`expected a marker`), only because
+a plain scalar can't continue onto the next line. With multi-line plain back, `a: !join`
+over an indented `- x` would read as the text `!join - x`.
 
 ## Repeated keys (2026-11-04)
 
