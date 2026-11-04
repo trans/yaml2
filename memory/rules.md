@@ -90,14 +90,14 @@ development:
   reads, 1 per node plus the bytes of each scalar, and a reference adds the full size
   of what it names, with no dedupe. Past the limit it stops with an error. It counts
   and refuses before allocating, since a real out-of-memory usually kills the process
-  with nothing to catch; so the unit is this size, not RAM. **Proposed:** the spec gives
-  a default of 64 MiB, and an app may set it higher or lower. A refusal is loud, not
+  with nothing to catch; so the unit is this size, not RAM. The spec gives a default
+  of 64 MiB, and an app may set it higher or lower (the user, 2026-11-04, "yes"). A refusal is loud, not
   different data, so a setting doesn't break "same bytes, same data". A big plain file
   counts too, and needs the app to raise it. A small file can reach the limit, so a
   service reading untrusted input should lower it. Shared nodes aren't the answer: a
   merge copies its key list anyway, see landscape.md. They stay a parser's choice.
-  **Proposed:** `-<<` can go at the top of a `--- &` entry too, since this stops
-  doubling.
+  `-<<` can go at the top of a `--- &` entry too, since this stops doubling (the user,
+  2026-11-04, "yes"), and nothing deeper.
 - Data documents can use `<<` at any depth: what it points at holds no nested
   references, so each use adds at most one entry.
 
@@ -125,17 +125,16 @@ Not confirmed (the agent's terms):
   spelling. A plain `<<:` always merges and takes one reference, `<<: [*a, *b]` is an
   error, and `"<<":` is the literal key. CircleCI's `<< parameters.x >>` stays text.
 - Sequence merge: `-<< *s`, raised by the user, accepted 2026-11-04 ("perfect", then
-  "yes"), in data documents only for now. It replaces itself with the items of `s`,
+  "yes"). It replaces itself with the items of `s`,
   which must be a sequence. One token, a space, then a reference, so anything else
   stays text. Any position, any number: nothing can clash, and position is the point.
   Plain concatenation, no dedupe. **Proposed:** no colon, since items have none, and
   `- <<: *a` (an item that is a mapping with merged keys) then differs from `-<< *a`
   by more than a space. A shape check also tells them apart: `<<:` needs a mapping,
   `-<<` a sequence.
-  Why not in `--- &`: an entry with two `-<<` of the entry before it doubles each
-  time, so 30 entries in under 1 KB make 2^30 items. `<<:` can't, because keys
-  collapse. Cost: lists can't be built from lists in the table, which GitLab's docs
-  show doing. Revisit with the size limit.
+  In a `--- &` entry it goes at the top of the entry, as `<<:` does. Two `-<<` of the
+  entry before double each time, unlike `<<:`, whose keys collapse, so the size limit
+  above is what stops that.
 - Flow collections, **proposed** (the user asked, 2026-11-04): both work, by the same
   rules, if flow survives the syntax cuts. `{<<: *a, x: 1}` with `<<:` first, and
   `[-<< *s, x]` at any position. A reference ends at `,`, `]` or `}`, so a path key
