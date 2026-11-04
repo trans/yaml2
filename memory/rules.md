@@ -83,15 +83,21 @@ development:
   limit needed" was wrong. A 1 MB file with a 500 KB entry and 100,000 `- *a` lines
   expands to about 50 GB. A limit on expanded size, or nodes shared in memory,
   is probably still needed. The user is concerned about this and wants to revisit.
-- Size limit, **proposed** 2026-11-04. A parser keeps two counters per stream: `written`,
-  the size spelled out so far, and `cost`, the full size of what each reference names,
-  with no dedupe. Size is 1 per node plus the bytes of each scalar. If `cost` passes
-  100 times `written` at any reference, the stream is refused. The number is in the
-  spec, not a parser setting, so every parser accepts the same files; an app may
-  refuse more for its own reasons. Growth becomes linear, and a refused file can spell
-  its data out. Shared nodes aren't the answer: a merge copies its key list anyway, see
-  landscape.md. They stay a parser's choice. If this is adopted, `-<<` can go at the
-  top of a `--- &` entry too, since the limit stops doubling.
+- Size limit: one total, the user's choice (2026-11-04, "set a total upper limit, and
+  no matter what one stream has or is, if it passes that mem limit it errors out"),
+  replacing the proposed 100 times `written`, which bounded growth but not memory: a
+  1 GB file could add 100 GB. A parser counts the size of what it will deliver as it
+  reads, 1 per node plus the bytes of each scalar, and a reference adds the full size
+  of what it names, with no dedupe. Past the limit it stops with an error. It counts
+  and refuses before allocating, since a real out-of-memory usually kills the process
+  with nothing to catch; so the unit is this size, not RAM. **Proposed:** the spec gives
+  a default of 64 MiB, and an app may set it higher or lower. A refusal is loud, not
+  different data, so a setting doesn't break "same bytes, same data". A big plain file
+  counts too, and needs the app to raise it. A small file can reach the limit, so a
+  service reading untrusted input should lower it. Shared nodes aren't the answer: a
+  merge copies its key list anyway, see landscape.md. They stay a parser's choice.
+  **Proposed:** `-<<` can go at the top of a `--- &` entry too, since this stops
+  doubling.
 - Data documents can use `<<` at any depth: what it points at holds no nested
   references, so each use adds at most one entry.
 

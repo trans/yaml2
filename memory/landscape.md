@@ -164,10 +164,15 @@ and Psych load it at 17 MB peak, every item the same object. A 59 KB file of
 go-yaml v3 refuses both, "excessive aliasing". So whether a file loads depends on the
 parser, and sharing nodes doesn't cover merges.
 
-A limit of 100 (`growth.py --check 100 FILE`): the 1 MB, 500 KB entry, 100,000 `- *a`
-file is refused at reference 101 with cost 50.5 MB. 30 levels of doubling in 667
-bytes, the same cost as `-<<` twice per entry, is refused at reference 20 with cost
-12 KB. Both 3,000-key files are refused by reference 103.
+A ratio of 100 (`growth.py --check 100 FILE`), dropped: the 1 MB, 500 KB entry,
+100,000 `- *a` file is refused at reference 101, 30 levels of doubling in 667 bytes at
+reference 20. But it has no ceiling.
+
+A total of 64 MiB (`growth.py --total 67108864 FILE`): the 1 MB file is refused at
+reference 134, the doubling file at 45, the 59 KB merge file at 2,930 of 3,000. That
+last one is the worst case near this limit: 391 MB in PyYAML run in full. About 40 KB
+is enough to reach it. Largest real total in the 4,656 files: 233,872, median 988.
+Nothing large in these samples; generated files elsewhere may be, not measured.
 
 GitLab list reuse: 38 of the 123 uses, in 10 of the 18 files, sit inside a definition
 (a `.hidden` job or an anchored node), so a table ban on `-<<` would cost those files.

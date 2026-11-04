@@ -2,7 +2,8 @@
 """How far references expand real YAML, and what limit that leaves room for.
 
     python3 -I growth.py ROOT...
-    python3 -I growth.py --check K FILE...    # where a limit of K would refuse
+    python3 -I growth.py --check K FILE...    # where cost > K * written refuses
+    python3 -I growth.py --total N FILE...    # where written + cost > N refuses
 
 Size: 1 per node, plus the bytes of each scalar. A reference costs the full size of
 what it names, with no dedupe, so `<<` over a shared key still counts. `written` is
@@ -91,6 +92,18 @@ def scan(root):
     return rows
 
 
+def total(path, limit):
+    """Print the reference at which `written + cost > limit` first holds."""
+    uses = 0
+    for written, cost in steps(yaml.parse(open(path, 'rb').read(), Loader=LOADER)):
+        uses += 1
+        if written + cost > limit:
+            print(f'{os.path.basename(path)}: refused at reference {uses}, '
+                  f'written {written:,}, cost {cost:,}')
+            return
+    print(f'{os.path.basename(path)}: accepted, total {written + cost:,}')
+
+
 def report(name, rows):
     used = [r for r in rows if r[2]]
     print(f'{name}: {len(rows)} files, {len(used)} with references')
@@ -101,14 +114,17 @@ def report(name, rows):
     print(f'  expanded / written: median {statistics.median(ratio):.2f}, '
           f'90% {pick(.9):.2f}, 99% {pick(.99):.2f}, max {ratio[-1]:.2f}')
     print(f'  largest cost {max(r[2] for r in used):,}')
+    sizes = sorted(w + c for _, w, c, _ in rows)
+    print(f'  total size, all {len(sizes)} files: median {sizes[len(sizes) // 2]:,}, '
+          f'99.9% {sizes[int(.999 * len(sizes))]:,}, top {sizes[-3:]}')
     print('  floor needed: ' + ', '.join(
         f'k={k}: {max(r[3][k] for r in used):,}' for k in KS))
 
 
 if __name__ == '__main__':
-    if sys.argv[1] == '--check':
+    if sys.argv[1] in ('--check', '--total'):
         for path in sys.argv[3:]:
-            check(path, int(sys.argv[2]))
+            (check if sys.argv[1] == '--check' else total)(path, int(sys.argv[2]))
         sys.exit()
     everything = []
     for root in sys.argv[1:]:
