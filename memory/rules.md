@@ -358,14 +358,15 @@ Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
   would still be swallowed. Cutting makes both an error.
 - `|` always ends in exactly one newline, whether or not the file does. Blank lines
   after it are layout. Otherwise an editor's final newline changes the value.
-- `--- |` as a text document: everything after that line, byte for byte, is one
-  string. No indentation, no chomping, and a `---` inside is text, so it must be the
-  last document. This grew from the user's flush-left string in YAML2#5, and it covers
-  front matter. Whether the retraction above covers it too is **not yet asked**.
+- `...` ends the YAML, raised by the user's "what about `...`?" (2026-11-04). A parser
+  stops there, whatever follows isn't YAML, and it reports where it stopped so an app
+  can take the rest. That covers front matter, the user's case in YAML2#5, and it
+  replaces `--- |`, a text document proposed the same day, which needed a new string
+  type and a rule that it comes last. Cost: `...` then `---` silently loses what
+  follows, so an upgrade has to remove those. **Open.**
 - Rare forms go, each under 0.5% of 4,026 public files, each a loud error with an
   easy fix: `|+` and `>+`; indentation indicators (`|2`); UTF-16, UTF-32 and a BOM, so
-  UTF-8 only; tabs outside strings; one-pair `[a: b]`; the `...` marker, since `---`
-  and the end of the stream do its work; escapes JSON doesn't have.
+  UTF-8 only; tabs outside strings; one-pair `[a: b]`; escapes JSON doesn't have.
 - Multi-line quoted scalars go too: an unclosed quote then fails on its own line, not
   at the next quote. `\`-newline and `\ ` go with them.
 - A more-indented line inside `>` becomes an error. Its special folding rule is hard to
