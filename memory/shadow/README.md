@@ -38,7 +38,8 @@ agreement is partly fitted: `type` on an input is optional, `secrets` takes
 
 No Compose file was looked at before the run, and the shadow wasn't changed
 after it. Reading the schema forced two additions first: prefix keys (`x-*`) and
-any key with an empty value (`!str?`).
+any key with an empty value (`!str?`). The second was later replaced by
+`!str: !x | ''`, with the same results.
 
 - **Real files:** 313 unique, 311 of them public, from GitHub code search (not
   committed; a search sample, not a random one). 310 agree with the schema: 308

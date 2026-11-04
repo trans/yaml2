@@ -181,10 +181,15 @@ tests settled on, all the agent's proposals, not yet answered:
   mostly answers the null question. Spelled `null` is text under Rule 1, which
   failed 3 of 313 Compose files (`pgdata: null`); an upgrade rewrites it to
   `pgdata:`. Still no sign that a null value is needed.
-- **Arbitrary keys:** a type as the key, `!str: !int`, or `!str?: !int` if values
-  may be empty. A key ending in `*` takes a prefix, `x-*: !any`, needed to type
-  today's Compose files; 2.0 files would use `--- &` instead of `x-` keys. Mappings
-  are otherwise closed.
+- **Arbitrary keys:** a type as the key, `!str: !int`, with `| ''` if a value may
+  be empty: `!str: !volume | ''`. Mappings are otherwise closed. `!str?:` was
+  tried in the Compose run and dropped: `| ''` gave the same results on all 313
+  files with no new syntax.
+- **No prefix keys, proposed.** `x-*: !any` was added for Compose, whose schema
+  allows `x-` keys in every mapping. In 311 public files, 30 use them, always at
+  the top level, never nested, and that is what `--- &` replaces. Most of the 48
+  `<<` uses in `compose.shadow` exist only to carry `x-*`. The prototype still
+  takes `x-*` until this is decided.
 - **Named types** live in the schema's `--- &` document, which is a lookup table,
   as in a data file. `!flag` looks up the key `flag` there. `*flag` would paste the
   value in, and the parser would do it; `!flag` is a plain string to the parser,
@@ -205,9 +210,16 @@ tests settled on, all the agent's proposals, not yet answered:
   named type.
 - **Schemas name types; app code binds them to classes.** A schema must never
   name a class to build, or `!ruby/object` comes back by another door.
-- **Delivery:** `--- !` carries a shadow for the documents after it, and an app
-  supplies one by prepending it, as with `--- &`. The app's schema wins. Not
-  tested.
+- **`--- !` marks a shadow** (the user asked how a schema is identified,
+  2026-11-03). `--- &` is the lookup table, `--- !` a shadow, `---` data, and only
+  data is delivered. A schema file is a table and a shadow; a stream can carry both
+  before its data, and a shadow types the `---` documents after it. One table per
+  stream: `!job` and `*defaults` look in the same place. An app can supply a schema
+  directly or by prepending it, and the app's schema wins. It also eases the "above
+  or below the line" wart. The prototype reads `--- !` in a schema file; a shadow
+  and data in one stream isn't tested.
+- **Open:** how a data file on its own points at its schema, for editors and
+  generic tools. Today that's a comment or file name matching.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

@@ -11,9 +11,8 @@ A value starting with `!` is a type expression, any other value a literal:
     alt   := name | '[' expr '*' ']' | '[' expr (',' expr)* ']' | 'literal'
 
 A key ending in `?` may be absent or empty (empty types as None). A key that is
-a type expression (`!str`, or `!str?` if values may be empty) takes every key
-not named. A key ending in `*` takes keys with that prefix. Mappings are closed
-otherwise. Alternatives are chosen by shape, never by how text looks: at most
+a type expression (`!str`) takes every key not named. A key ending in `*` takes
+keys with that prefix. Mappings are closed otherwise. Alternatives are chosen by shape, never by how text looks: at most
 one scalar type, at most one sequence, and mappings told apart by their
 required keys and literals.
 """
@@ -97,17 +96,17 @@ def parse_expr(s):
 
 def to_type(value):
     if isinstance(value, dict):
-        fields, any_key, any_opt, prefixes = {}, None, False, []
+        fields, any_key, prefixes = {}, None, []
         for k, v in value.items():
             if k.startswith('!'):
-                any_key, any_opt = to_type(v), k.endswith('?')
+                any_key = to_type(v)
             elif k.endswith('*'):
                 prefixes.append((k[:-1], to_type(v)))
             elif k.endswith('?'):
                 fields[k[:-1]] = (to_type(v), True)
             else:
                 fields[k] = (to_type(v), False)
-        return ('map', fields, any_key, any_opt, prefixes)
+        return ('map', fields, any_key, prefixes)
     if isinstance(value, list):
         raise SchemaError('a sequence in a schema is written as a type expression')
     if value.startswith('!'):
@@ -264,17 +263,14 @@ class Schema:
         for key in v:
             if key in t[1]:
                 continue
-            for prefix, pt in t[4]:
+            for prefix, pt in t[3]:
                 if key.startswith(prefix):
                     out[key] = self.conv(pt, v[key], f'{path}/{key}')
                     break
             else:
                 if t[2] is None:
                     raise Bad(path, f'unknown key {key}')
-                if t[3] and v[key] == '':
-                    out[key] = None
-                else:
-                    out[key] = self.conv(t[2], v[key], f'{path}/{key}')
+                out[key] = self.conv(t[2], v[key], f'{path}/{key}')
         return out
 
     def bound(self, t, value, path):
