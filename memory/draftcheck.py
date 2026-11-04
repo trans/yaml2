@@ -11,6 +11,7 @@ IND = ",[]{}#&*|>'\""
 class P:
     def __init__(s, t):
         if '\r' in t.replace('\r\n', ''): raise No('lone CR')
+        if re.search('[^\t\n\r\x20-\x7e\x85\xa0-\ud7ff\ue000-\ufefe\uff00-\ufffd\U00010000-\U0010ffff]', t): raise No('character not allowed')
         s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.td = None; s.stopped = None
     def ch(s, k=0): return s.t[s.i + k] if s.i + k < len(s.t) else ''
     def eof(s): return s.i >= len(s.t)
@@ -23,8 +24,12 @@ class P:
         n = 0
         while s.ch() == ' ': s.i += 1; n += 1
         return n
+    def white(s):
+        n = 0
+        while s.ch() in (' ', '\t') and s.ch(): s.i += 1; n += 1
+        return n
     def eol(s):
-        j = s.i; n = s.spaces()
+        j = s.i; n = s.white()
         if n and s.ch() == '#':
             while s.ch() not in ('\n', ''): s.i += 1
         if s.ch() == '\n': s.i += 1
@@ -40,7 +45,7 @@ class P:
     def line_is(s, m):
         if not s.bol() or not s.t.startswith(m, s.i): return False
         k = s.i + 3
-        return k >= len(s.t) or s.t[k] in ' \n'
+        return k >= len(s.t) or s.t[k] in ' \t\n'
     def marker(s): return s.line_is('---')
     def dots(s): return s.line_is('...')
     def directive_then_marker(s):
@@ -104,14 +109,14 @@ class P:
         c = s.ch()
         if c != '-': return False
         n = s.ch(1)
-        if n in (' ', '\n', ''): return True
+        if n in (' ', '\t', '\n', ''): return True
         return bool(re.match(r'-<< +\*', s.t[s.i:s.i + 40]))
     def is_map(s):
         j = s.i
         try:
             if s.t.startswith('<<:', s.i) and s.ch(3) in (' ', '\n', ''): return True
             s.key(); s.spaces()
-            return s.ch() == ':' and s.ch(1) in (' ', '\n', '')
+            return s.ch() == ':' and s.ch(1) in (' ', '\t', '\n', '')
         except No: return False
         finally: s.i = j
     def indent_here(s):
@@ -225,8 +230,7 @@ class P:
             if c == ':' and (n in ('', ' ', '\t', '\n') or (flow and n in FLOWI)): break
             if flow and c in FLOWI: break
             s.i += 1
-        v = s.t[b:s.i]; w = v.rstrip(' ')
-        if w.endswith('\t'): s.bad('tab at end of a plain scalar')
+        v = s.t[b:s.i]; w = v.rstrip(' \t')
         s.i -= len(v) - len(w)
         return w
     def double(s):
@@ -290,6 +294,12 @@ class P:
         else: v = '\n'.join(lines)
         return v if chomp else v + '\n'
     def fs(s):
+        j = s.i
+        if s.white():
+            if s.ch() == '#':
+                while s.ch() not in ('\n', ''): s.i += 1
+            if s.ch() == '\n': s.i += 1
+            else: s.i = j
         while True:
             c = s.ch()
             if c in (' ', '\n'): s.i += 1
@@ -333,7 +343,7 @@ class P:
                 if not q and k == '<<': s.bad('plain << key')
                 s.colon()
                 if k in w: s.bad('duplicate key')
-                if not q and s.ch() not in (' ', '\n', ',', '}'): s.bad('space needed after :')
+                if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
                 w.add(k); started = True; s.fs()
                 o[k] = '' if s.ch() in (',', '}') else s.fnode()
             s.fs()
@@ -447,6 +457,19 @@ good = [
  ('a: x:y:z\nb: http://x.y/z\n', [{"a": "x:y:z", "b": "http://x.y/z"}]),
  ('a: "\\ud83d\\ude00"\n', [{"a": "\U0001F600"}]),
  ('a: x\ty\n', [{"a": "x\ty"}]),
+ ('a: foo\t\n', [{"a": "foo"}]),
+ ('a: foo \t \n', [{"a": "foo"}]),
+ ('a: foo\t# c\n', [{"a": "foo"}]),
+ ('a: "x"\t\n', [{"a": "x"}]),
+ ('a:\t\n', [{"a": ""}]),
+ ('- x\t\n', [["x"]]),
+ ('-\t\n', [[""]]),
+ ('---\t\na: 1\n', [{"a": "1"}]),
+ ('---\na: 1\n...\t\n---\nb: 2\n', [{"a": "1"}, {"b": "2"}]),
+ ('[a,\t\n b\t\n]\n', [["a", "b"]]),
+ ('[a,\t# c\n b]\n', [["a", "b"]]),
+ ('{a:\t\n  b}\n', [{"a": "b"}]),
+ ('"\\uFEFF"\n', [chr(0xfeff)]),
  ('-<<x\n', ['-<<x']),
  ('[1,\n 2,  # c\n]\n', [["1", "2"]]),
  ('a:\n  - x\n# c\n  - y\n', [{"a": ["x", "y"]}]),
@@ -456,7 +479,7 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', 'a: 1\t\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['a:\tb\n', '-\tb\n', 'a: \tfoo\n', '[a\t, b]\n', '[a, b\t]\n', '{a:\tb}\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '"a\ufeffb"\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
  '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
  'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', '--- &\na: 1\nb:\n  - *a\n', '--- &\ns: [x]\nt:\n  u:\n    -<< *s\n',

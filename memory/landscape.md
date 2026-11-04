@@ -405,3 +405,22 @@ more than one document, so tables across documents have no real precedent. The c
 team's draft RFC-anchors-unique (target 1.5) would make a reused name an error, and
 calls the overriding "surprising to users".
 
+## Details against 1.2 and real parsers (2026-11-04)
+
+Parsers: libyaml, pure PyYAML, Psych, go-yaml v3. Files: the 4,651 public ones.
+
+- Lone CR: 1.2 and every parser read a line break. 0 files have one, 61 use CR LF.
+- U+FEFF: 1.2 allows it at the start of any document and inside quoted scalars, and
+  every parser accepts both. 3 files start with one, and 1 holds one later.
+- Tab after content: 1.2 makes it white space. libyaml, Psych and go-yaml drop it, and
+  pure PyYAML refuses. 2 files have one.
+- Tab on a line with no content: 1.2 allows it, every parser refuses, 0 files.
+- `{a}`: every parser gives `{"a": null}`. Leaving out `{{ x }}`, 50 entries in 9 files,
+  and those sampled are unquoted placeholders like `{KAFKA_URL}`.
+- `%YAML 1.3`: 1.2 says warn and carry on. libyaml, Psych and go-yaml refuse, and pure
+  PyYAML reads it. `%YAML 2.0`: all four refuse, so an old parser can't misread a 2.0 file.
+- `~`: 986 values in 24 files. An empty value turns up in 877 files.
+- Names: 989 of 990 SchemaStore ids fit `[A-Za-z0-9._/-]+` once the scheme and a final `#`
+  are dropped (the other has `@`). None of the 4,163 files that compose tags a whole
+  document. Of 721 node tags, 304 add only `:`, the commonest being `!!python/name:`, 179
+  are a bare `!`, and 238 fit.

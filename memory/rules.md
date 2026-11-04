@@ -414,6 +414,14 @@ much agree with those"): `|+` and `>+`; `|1` to `|9`; everything but UTF-8; tabs
 strings; one-pair `[a: b]`; escapes JSON doesn't have; multi-line plain; multi-line
 quoted; more-indented lines inside `>`.
 
+The user settled these details on 2026-11-04, reading section 14. A tab after the last
+content on a line is ignored, as a space is (their point; the draft had refused it), and
+a tab on a line with no content stays refused. `%YAML 2.0` may repeat before a marker.
+Another version on the first line counts as no directive: refuse, or pass it to that
+version's parser if the caller asked ("it can switch parsers, dealer choice"). A block
+scalar with no text is the empty string. A key and its `:` stay on one line in flow.
+`{a}` is refused. Still in section 14: lone CR, U+FEFF, and the characters of a name.
+
 - Multi-line plain scalars go: a plain scalar is one line. The user's earlier idea
   (yaml/YAML2#5, 2016) was to keep their line breaks, since an app can remove lines
   but can't get them back. The user retracted it on 2026-11-04. Real files rely on
