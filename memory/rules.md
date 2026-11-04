@@ -178,7 +178,8 @@ tests settled on, all the agent's proposals, not yet answered:
 - **Regex is the risky part.** Dialects differ, so one pattern can match differently
   by language, and a slow pattern in a document's own `--- !` is an attack. The
   agent proposes a defined linear-time subset. Most real patterns are simple
-  (`\.ya?ml$` is the commonest). Subset not tested.
+  (`\.ya?ml$` is the commonest). The user, 2026-11-04: regex may not be needed at
+  all; something simpler like PIC, or glob-like, may be enough. To explore.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string and the parser knows nothing about schemas. A value starting with
   `!` is a type expression; any other value is a literal that must match.
