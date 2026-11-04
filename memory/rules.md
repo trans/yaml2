@@ -326,10 +326,11 @@ tests settled on, all the agent's proposals, not yet answered:
   take JSON's spellings, so `0755` is refused; that changed no result in either
   comparison. `!date`, `!datetime` and `!binary` are added (RFC 3339 and base64). Not
   `!uri`, which is a pattern question, nor `!set`, which an app can bind.
-- **Patterns:** the user wants to revisit them. **Open.** Measured 2026-11-04 (see
-  landscape.md, Patterns in real schemas): PIC and glob write 15% of real patterns, and
-  neither can say one or more of a class. The agent proposes I-Regexp (RFC 9485), with
-  the whole string always matched and `^` and `$` refused outside a class. Not answered.
+- **Patterns: I-Regexp (RFC 9485) is the proposed scheme** (the user, 2026-11-04: "the
+  proposed pattern matching scheme", not settled in stone). Measured (see landscape.md,
+  Patterns in real schemas): PIC and glob write 15% of real patterns, and neither can
+  say one or more of a class. Proposed with it: the whole string always matches, and
+  `^` and `$` are refused outside a class. The rest goes to a named type and app code.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

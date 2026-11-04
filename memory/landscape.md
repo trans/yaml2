@@ -22,6 +22,29 @@
   `%YAML 1.3` is read with a warning, and a document with no directive is
   assumed to be 1.2.
 
+## How the core team takes proposals (checked 2026-11-04)
+
+- The written process is `rfc/ReadMe.md` on yaml-spec's `rfc-staging` branch: anyone may
+  open a PR from the RFC template, filing an issue first "might make sense", and the
+  core team (5 members on GitHub) reviews it. Future versions are meant to be several
+  parts: grammar, test suite, guide, DOM, schemas, implementers' guide, change log.
+- That process looks stalled: `rfc-staging` last changed 2021-09-20, and PR #85, which
+  publishes the RFCs, has been open since 2021 with no team comment since. The 26 RFC
+  files are mostly status new or 0. Public activity isn't the whole picture: the site
+  says the team met weekly, and it has Slack and a mailing list.
+- 1.3's stated aim (yaml.io/spec/1-3): "(mostly) _respecify_ YAML 1.2", "No significant
+  features will be added", "Almost all production YAML should continue to work as-is".
+  A clean break can't be 1.3. Major versions are free for one: 1.x processors should
+  reject `%YAML 2.0`. Some RFCs target later 1.x versions, such as 1.5.
+- AdaYaml, the 1.3 feature experiment, was archived on 2026-03-05. Its README says its
+  ideas "have proven to be too difficult to propose" and calls it "the YAML 1.3 version
+  that didn't come to be". Treat that as one signal, not a decision by the team.
+- A search listing shows a 2026 Open Source Summit Europe talk on a YAML plugin system;
+  the page itself wouldn't load, so this is unconfirmed. Look before presenting.
+- Their RFCs already lean our way: unique anchors, no empty keys, a start marker on
+  later documents and on top-level scalars, single-line top-level plain scalars, and
+  visible indent on top-level literals. Cite them when presenting.
+
 ## What is deployed (@oyl's measurements, its ideas.md and dialects-design.md)
 
 - Most YAML is written for libyaml-based loaders (PyYAML, Psych) or go-yaml

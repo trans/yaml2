@@ -15,11 +15,13 @@ no code on `main`. Background is in
 
 1. **The design's open points:** marked as such in [rules.md](rules.md). Merge, the
    size limit, the syntax cuts and how schemas are named were settled on 2026-11-04,
-   and margin strings are parked for later. Left: patterns (the user wants to revisit
-   them), then quote versus escape for `:` in paths and keys-only references.
-2. **Whose name it is.** "YAML 2.0" is the next version number of a spec
-   the yaml-spec group maintains. Work through that group, or publish
-   independently and offer it to them? Can wait for a draft.
+   and margin strings are parked for later. Patterns are proposed as I-Regexp. Left:
+   quote versus escape for `:` in paths, and keys-only references.
+2. **Whose name it is.** The user's plan (2026-11-04): make this as complete as
+   possible, then present it to the YAML core team. If they reject it whole, decide
+   where to take it then. If they take it up, they'll hammer out the final details.
+   So I-Regexp and other proposals needn't be settled first. See landscape.md, How the
+   core team takes proposals. Until they answer, call it a proposal for YAML 2.0.
 3. **Publishing.** `origin` is `trans/yaml2` on GitHub, public. The user added it and
    approved the first push of `main` and `ai` on 2026-11-04, with @oyl's figures in
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence.
