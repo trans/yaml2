@@ -128,7 +128,7 @@ Not confirmed (the agent's terms):
   "yes"). It replaces itself with the items of `s`,
   which must be a sequence. One token, a space, then a reference, so anything else
   stays text. Any position, any number: nothing can clash, and position is the point.
-  Plain concatenation, no dedupe. **Proposed:** no colon, since items have none, and
+  Plain concatenation, no dedupe. No colon (the user, 2026-11-04), since items have none, and
   `- <<: *a` (an item that is a mapping with merged keys) then differs from `-<< *a`
   by more than a space. A shape check also tells them apart: `<<:` needs a mapping,
   `-<<` a sequence.
@@ -385,13 +385,14 @@ quoted; more-indented lines inside `>`.
 - Staying: flow (34.5%, and JSON needs it), `>` (8.3%), `|-` and `>-` (5.9%), several
   documents (27.8% of Kubernetes files), trailing commas (they cost nothing), and
   `- - x` (3 files, but `- key:` stays, so cutting it would add a rule, not remove one).
-- Margin strings, the user's idea from a Ruby literal (2026-11-04), **open**:
+- Margin strings, the user's idea from a Ruby literal (2026-11-04). **Parked** as a
+  proposal to work out later: not in 2.0 for now, so `|text` stays an error (the user,
+  2026-11-04, on the agent's recommendation). The idea:
   `a: |this is the text` then `   |  more`. The first `|` sets a column, each later line
   has `|` there, and all after it is literal, so a `|` in the text or a leading space is
   fine, and `#` isn't a comment. Line breaks fall between lines, so an empty last `|`
   line gives a final newline. What you see is the exact value, with no chomping or
   indent detection. `|` followed by the end of the line, or by spaces and `#`, stays the
   ordinary header (103 of 4,213 real blocks have that comment). A key rename shifts the
-  column unless the string starts on its own line. Agent's view: leave `|text` an error
-  in 2.0, which keeps it open for later. It would be an addition, it can't replace
-  `|-` (real ones run to 594 lines), and pasted text needs every line touched.
+  column unless the string starts on its own line. It would be an addition, it can't
+  replace `|-` (real ones run to 594 lines), and pasted text needs every line touched.

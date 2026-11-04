@@ -13,8 +13,9 @@ no code on `main`. Background is in
 
 ## Open, for the user
 
-1. **The design's open points:** marked as such in [rules.md](rules.md). The size
-   limit is the one in hand. YAML Schema is the largest; the rules so far depend on it.
+1. **The design's open points:** marked as such in [rules.md](rules.md). Merge, the
+   size limit and the syntax cuts were settled on 2026-11-04, and margin strings are
+   parked for later. YAML Schema is the largest left; the rules so far depend on it.
 2. **Whose name it is.** "YAML 2.0" is the next version number of a spec
    the yaml-spec group maintains. Work through that group, or publish
    independently and offer it to them? Can wait for a draft.
