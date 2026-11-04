@@ -6,7 +6,13 @@
 
 - Latest published: 1.2.2 (October 2021), no normative changes from 1.2.
 - yaml/yaml-spec: `main` last changed 2023-05-23, `main-1.3` 2022-02-06
-  (status: draft), `rfc-staging` 2021-09-20. No YAML 2.0 proposal found.
+  (status: draft), `rfc-staging` 2021-09-20. No YAML 2.0 proposal there.
+- yaml/YAML2 (2011) is an earlier 2.0 effort: a README, last pushed 2011-11-03, with
+  issues from 2012 to 2021. Several are the user's and foreshadow rules here: #1 (type
+  tags), #2 (a tagless YAML), #5 (front matter, literal plain scalars, flush-left
+  strings), #6 (no `?`). So does yaml/yaml#4 (2014), which asks about a data document
+  with a separate typed one of the same shape. The replies there: failsafe already
+  allows it, and how a document binds to its schema doesn't belong in the document.
 - yaml/yaml-test-suite is still maintained (last commit 2025-12-25).
 - Open yaml-spec issues worth reading: #283 (choose features from usage
   data), #272 (security considerations), #33 (naming a schema in a file),
@@ -176,6 +182,19 @@ Nothing large in these samples; generated files elsewhere may be, not measured.
 
 GitLab list reuse: 38 of the 123 uses, in 10 of the 18 files, sit inside a definition
 (a `.hidden` job or an anchored node), so a table ban on `-<<` would cost those files.
+
+## Block strings and text documents (2026-11-04)
+
+In PyYAML and Psych: `a: |` with `text` gives `text\n` if the file ends in a newline
+and `text` if not. Blank lines after a `|` are dropped; after a `|+` they are content,
+so a blank line between keys changes the value. A flush-left `--- |` string is refused
+by both, though 1.2 allows it (spec example 9.3), and the test suite tags that example
+`1.3-err`. Of 474 Markdown files with front matter under `~/Projects`, 27 (5.7%) have
+a `---` line in the body, which would end such a document.
+
+Multi-line plain scalars: in 40 of 369 GitLab files and 4 of 311 Compose files. The
+GitLab ones sampled are mostly shell commands that rely on folding into one line
+(`docker build` / `--pull` / ...). Measured with [syntax.py](syntax.py).
 
 ## Partial fixes so far
 
