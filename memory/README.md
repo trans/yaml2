@@ -14,6 +14,8 @@ working on the code needs belongs in the project's own docs, not here.
 
 | File | What it holds |
 |---|---|
+| [status.md](status.md) | The goal, where things stand, decisions open for the user, working with @oyl |
+| [landscape.md](landscape.md) | The spec's state, what is deployed (@oyl's measurements), partial fixes so far |
 
 Keep each note short and dated (`*Updated YYYY-MM-DD*`), with absolute
 dates and commit hashes. Check the code or `git log` before acting on
