@@ -20,7 +20,8 @@ Confirmed by the user, 2026-11-03: types come from the app or a YAML Schema,
 never from the document.
 
 Tags: the user doubts they're needed, since the schema handles typing
-(2026-11-03). Out unless a need turns up. `%TAG` goes with them. Apps that
+(2026-11-03). Node tags are out. The one need that turned up is a whole
+document's name, `--- !name`, under YAML Schema. `%TAG` goes with them. Apps that
 use tags as syntax (CloudFormation `!Ref`, GitLab `!reference`, Home
 Assistant `!include`) would have to use ordinary mappings instead.
 
@@ -241,10 +242,9 @@ tests settled on, all the agent's proposals, not yet answered:
   brackets: `[int[0,100], ...]` won't parse, and `[int(0,100), ...]` silently
   splits into two items. Not all checks belong here: see the gaps below.
 - **Regex is the risky part.** Dialects differ, so one pattern can match differently
-  by language, and a slow pattern in a document's own `--- !` is an attack. The
-  agent proposes a defined linear-time subset. Most real patterns are simple
-  (`\.ya?ml$` is the commonest). The user, 2026-11-04: regex may not be needed at
-  all; something simpler like PIC, or glob-like, may be enough. To explore.
+  by language, and a slow pattern in a document's own table is an attack. The user,
+  2026-11-04: regex may not be needed at all; something simpler like PIC, or
+  glob-like, may be enough. See **Patterns** below.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string and the parser knows nothing about schemas. A value starting with
   `!` is a type expression; any other value is a literal that must match.
@@ -326,7 +326,10 @@ tests settled on, all the agent's proposals, not yet answered:
   take JSON's spellings, so `0755` is refused; that changed no result in either
   comparison. `!date`, `!datetime` and `!binary` are added (RFC 3339 and base64). Not
   `!uri`, which is a pattern question, nor `!set`, which an app can bind.
-- **Patterns:** the user wants to revisit them.
+- **Patterns:** the user wants to revisit them. **Open.** Measured 2026-11-04 (see
+  landscape.md, Patterns in real schemas): PIC and glob write 15% of real patterns, and
+  neither can say one or more of a class. The agent proposes I-Regexp (RFC 9485), with
+  the whole string always matched and `^` and `$` refused outside a class. Not answered.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

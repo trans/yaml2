@@ -20,6 +20,7 @@ working on the code needs belongs in the project's own docs, not here.
 | [landscape.md](landscape.md) | The spec's state, what is deployed (@oyl's measurements), partial fixes so far |
 | [growth.py](growth.py) | Measures how far references expand files, and checks a size limit against a file |
 | [syntax.py](syntax.py) | Measures how much real YAML uses each piece of syntax, as a basis for cuts |
+| [patterns.py](patterns.py) | Sorts real schema patterns by the simplest notation that could write them |
 
 Keep each note short and dated (`*Updated YYYY-MM-DD*`), with absolute
 dates and commit hashes. Check the code or `git log` before acting on

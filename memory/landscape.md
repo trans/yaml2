@@ -252,3 +252,43 @@ appears in 153 files, 332 of its uses being `!!python/...`, as MkDocs configs us
 - Fixers: yamllint flags, `oyl_upgrade` rewrites in place, others re-emit
   the file (survey in @oyl's upgrade-design.md).
 - Still to review: StrictYAML and other restricted subsets.
+
+## Patterns in real schemas (2026-11-04)
+
+The user asked whether regex is needed at all, or whether PIC or glob would do.
+[patterns.py](patterns.py) sorts every `pattern` value and `patternProperties` key in
+all 1,015 SchemaStore schemas (downloaded 2026-11-04) by the simplest notation that can
+write it. 494 schemas have patterns: 8,229 uses, 1,271 unique. Of those, 38 are plain
+literals and 460 are enums with case spelled out (`[Aa][Ll][Ll]`, 6 schemas, mostly
+generated). That leaves 773 that need a pattern, cumulatively:
+
+| Notation | Unique | Cumulative |
+|---|---|---|
+| Glob: literals, `*`, `?` | 111 | 14.4% |
+| PIC: fixed shape of digit, letter, any | 5 | 15.0% |
+| Fixed shape with its own class (hex) | 34 | 19.4% |
+| One sequence of class plus count (`[a-z0-9._-]+`) | 296 | 57.7% |
+| Union of up to 8 such sequences (`8` is a choice) | 146 | 76.6% |
+| Union of more | 15 | 78.5% |
+| Repeated group, 79 of 107 a separated list (`x(,x)*`) | 107 | 92.4% |
+| Lookaround or backreference, 29 of 31 a negative lookahead | 31 | 96.4% |
+| Python's parser refuses (.NET named groups, `\p{..}`) | 24 | 99.5% |
+| Other | 4 | 100% |
+
+So PIC and glob fall short for one reason: neither can say one or more of these
+characters, the commonest shape there is.
+
+Dialects differ on small things, run here: `^abc$` matches `"abc\n"` in Python, not in
+JavaScript; in Ruby it matches any line of `"x\nabc\ny"`; `\d` matches an Arabic digit
+in Python, not in Ruby or JavaScript. 201 unique patterns use `\d`, `\w` or `\s`. 240
+aren't anchored at both ends. Double-escaping is a real trap in YAML: in the 4,026
+public files 2 of 57 unique patterns reach the app as `\\d`, which asks for a
+backslash, so they can't match what they meant.
+
+**I-Regexp (RFC 9485, 2023)** is an existing answer: a regex subset for interchange,
+used by JSONPath (RFC 9535). It has literals, `.`, classes, counts, groups and `|`, and
+`\p{..}`. It has no lookaround, backreferences, captures or `\d \w \s`. Section 5 maps
+it onto ECMAScript, PCRE, RE2, Ruby and XSD, enveloped so the whole string must match.
+In its grammar `^` and `$` are ordinary characters. Its security section says a
+dedicated implementation can run in linear time, and existing engines may not.
+
