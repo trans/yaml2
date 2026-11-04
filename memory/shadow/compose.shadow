@@ -10,7 +10,7 @@ number: !str
 
 # Every mapping in the format allows x- keys.
 ext:
-  x-*: !any
+  !str(/^x-/): !any
 
 str-map:
   !str: !str

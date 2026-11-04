@@ -57,7 +57,8 @@ any key with an empty value (`!str?`). The second was later replaced by
 
 ## Notation since (2026-11-04)
 
-Both shadows were converted to `!a | !b`, bare literals and `[!x, ...]`. Every
+Both shadows were converted to `!a | !b`, bare literals and `[!x, ...]`, and
+limits (`!int(0..100)`) were added, with `x-*` replaced by `!str(/^x-/)`. Every
 result above came out the same. The schema language in `rules.md` is current;
 results above were first produced with the older notation.
 

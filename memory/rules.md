@@ -168,9 +168,17 @@ the schema catches, 99.3% with three small app bindings. On Compose, written
 blind, it agreed on 310 of 313 and caught 99.6%. Notation below is what those
 tests settled on, all the agent's proposals, not yet answered:
 
-- **It types; it doesn't validate.** Real JSON Schemas are 86% shape and 6%
-  validation (landscape.md). Ranges, patterns, minimums and "not both of these
-  keys" stay the app's job.
+- **It types, and a scalar type can carry a limit.** The agent first left all
+  checks to the app; the user pushed back (2026-11-04, `!int[0,100]` "or whatever")
+  and was right, since an app binding works in one language and a limit in the
+  schema works in all of them. Spelling, tested: `!int(0..100)`, `!float(0..1)`,
+  `!str(1..)` for length, `!str(/regex/)`. It must be `..`, not a comma or
+  brackets: `[int[0,100], ...]` won't parse, and `[int(0,100), ...]` silently
+  splits into two items. Not all checks belong here: see the gaps below.
+- **Regex is the risky part.** Dialects differ, so one pattern can match differently
+  by language, and a slow pattern in a document's own `--- !` is an attack. The
+  agent proposes a defined linear-time subset. Most real patterns are simple
+  (`\.ya?ml$` is the commonest). Subset not tested.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string and the parser knows nothing about schemas. A value starting with
   `!` is a type expression; any other value is a literal that must match.
@@ -196,11 +204,9 @@ tests settled on, all the agent's proposals, not yet answered:
   be empty: `!str: !volume | ''`. Mappings are otherwise closed. `!str?:` was
   tried in the Compose run and dropped: `| ''` gave the same results on all 313
   files with no new syntax.
-- **No prefix keys, proposed.** `x-*: !any` was added for Compose, whose schema
-  allows `x-` keys in every mapping. In 311 public files, 30 use them, always at
-  the top level, never nested, and that is what `--- &` replaces. Most of the 48
-  `<<` uses in `compose.shadow` exist only to carry `x-*`. The prototype still
-  takes `x-*` until this is decided.
+- **No prefix keys.** A limit on the key type does it: `!str(/^x-/): !any`. In 311
+  public Compose files `x-` keys are always top level, which `--- &` replaces, so
+  few 2.0 shadows should need even that.
 - **An unknown type is an error in the schema**, reported when it is loaded, so
   `!stirng` is caught even if no document reaches that field. Every name is built
   in (`str`, `int`, `float`, `bool`, `any`) or in the table, so an app's own type
@@ -248,17 +254,22 @@ a date, binary, and a map with tuple keys from pairs. Unbound, the same document
 stays plain data. This is how a language serializes through a schema.
 
 **What JSON Schema can do that this can't** (2026-11-04; counts are keyword uses in
-the five schemas in landscape.md):
+the five schemas in landscape.md).
 
-- Check values: `pattern` 48, `minItems`/`maxItems` 47, `minLength`/`maxLength` 47,
-  `format` 25, `uniqueItems` 25, `minimum`/`maximum` 12. Left to the app on purpose.
-- Rules across keys: `not` 26, `if` 12, `dependencies` 3. "Not both", "at least
-  one of" and "if this then that" can't be written, except a literal choosing
-  between alternatives.
+Of its 214 value checks, 197 now have a spelling: ranges and non-empty scalars 59
+(`!str(1..)`, all 35 `minLength` are 1), non-empty sequences 40 (`[!x, !x, ...]`,
+no new syntax, all 40 `minItems` are 1), patterns 48, and formats and
+`uniqueItems` 50, which need standard names (`!uri`, `!set`). Not covered, 17:
+`maxItems` 7, `minProperties` 6, `dependencies` 3, `maxProperties` 1.
+
+Still missing:
+
+- Rules across keys: `not` 26, `if` 12. "Not both", "at least one of" and "if this
+  then that" can't be written, except a literal choosing between alternatives.
 - Documentation: descriptions, defaults, examples. 75% of the workflow schema is
   this, and editors use it for hover text and completion. A shadow has only
-  comments, which aren't data. This is the biggest practical gap, and is open.
-- Key name rules: `patternProperties` 97, many of which only say "any key".
+  comments, which aren't data. The biggest practical gap. The agent proposes that
+  a comment directly above a key is its description; not answered.
 - Links across files: `$ref` to another file or URL. A shadow has one stream.
 - Same-shape alternatives: two sequences, or two scalars, told apart by content.
 

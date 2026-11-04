@@ -13,8 +13,9 @@ take for a tag.
 `...` repeats the item before it, any number of times, none included.
 
 A key ending in `?` may be absent or empty (empty types as None). A key that is
-a type expression (`!str`) takes every key not named. A key ending in `*` takes
-keys with that prefix. Mappings are closed otherwise. Alternatives are chosen by shape, never by how text looks: at most
+a type (`!str`, `!str(/^x-/)`) takes every key it fits and that isn't named. A
+scalar type may carry a limit: `!int(0..100)`, `!str(1..)`, `!str(/regex/)`.
+Mappings are closed otherwise. Alternatives are chosen by shape, never by how text looks: at most
 one scalar type, at most one sequence, and mappings told apart by their
 required keys and literals.
 """
@@ -64,14 +65,25 @@ def _prepare(doc):
 def split_top(s, sep):
     parts, depth, cur = [], 0, ''
     for c in s:
-        depth += c in '[{'
-        depth -= c in ']}'
+        depth += c in '[{('
+        depth -= c in ']})'
         if c == sep and depth == 0:
             parts.append(cur)
             cur = ''
         else:
             cur += c
     return parts + [cur]
+
+
+def parse_limit(text, whole):
+    """`0..100`, `1..`, `..64`, or `/regex/`."""
+    if len(text) > 1 and text.startswith('/') and text.endswith('/'):
+        return ('re', re.compile(text[1:-1]))
+    m = re.fullmatch(r'(-?[0-9.]*?)\.\.(-?[0-9.]*)', text)
+    if not m:
+        raise SchemaError(f'bad limit: {whole}')
+    lo, hi = (float(x) if x else None for x in m.groups())
+    return ('range', lo, hi)
 
 
 def parse_expr(s):
@@ -82,9 +94,14 @@ def parse_expr(s):
     if s == "''":
         return ('lit', '')
     if s.startswith('!'):
-        if not re.fullmatch(r'[A-Za-z_][\w-]*', s[1:]):
+        m = re.fullmatch(r'!([A-Za-z_][\w-]*)(?:\((.*)\))?', s, re.S)
+        if not m:
             raise SchemaError(f'bad type: {s}')
-        return ('name', s[1:])
+        if m.group(2) is None:
+            return ('name', m.group(1))
+        if m.group(1) not in ('str', 'int', 'float'):
+            raise SchemaError(f'{s}: only str, int and float take a limit')
+        return ('name', m.group(1), parse_limit(m.group(2), s))
     if s.startswith('[') and s.endswith(']'):
         items = [i.strip() for i in split_top(s[1:-1], ',')]
         rest = None
@@ -100,17 +117,15 @@ def parse_expr(s):
 
 def to_type(value):
     if isinstance(value, dict):
-        fields, any_key, prefixes = {}, None, []
+        fields, rows = {}, []
         for k, v in value.items():
             if k.startswith('!'):
-                any_key = to_type(v)
-            elif k.endswith('*'):
-                prefixes.append((k[:-1], to_type(v)))
+                rows.append((parse_expr(k), to_type(v)))
             elif k.endswith('?'):
                 fields[k[:-1]] = (to_type(v), True)
             else:
                 fields[k] = (to_type(v), False)
-        return ('map', fields, any_key, prefixes)
+        return ('map', fields, rows)
     if isinstance(value, list):
         items, rest = list(value), None
         if items and items[-1] == '...':
@@ -200,8 +215,8 @@ class Schema:
         elif t[0] == 'map':
             for k, (ft, _) in t[1].items():
                 self._check_alts(ft, f'{where}.{k}')
-            if t[2]:
-                self._check_alts(t[2], where)
+            for _, vt in t[2]:
+                self._check_alts(vt, where)
         elif t[0] == 'seq':
             for x in t[1] + ([t[2]] if t[2] else []):
                 self._check_alts(x, where)
@@ -219,10 +234,9 @@ class Schema:
         elif t[0] == 'map':
             for k, (ft, _) in t[1].items():
                 self._check_names(ft, f'{where}.{k}')
-            if t[2]:
-                self._check_names(t[2], where)
-            for _, pt in t[3]:
-                self._check_names(pt, where)
+            for kt, vt in t[2]:
+                self._check_names(kt, where)
+                self._check_names(vt, where)
 
     def check(self, value):
         return self.conv(self.root, value, '')
@@ -233,7 +247,7 @@ class Schema:
             return self.conv_alt(self.flat(t), v, path)
         if kind == 'name':
             if t[1] in BUILTIN:
-                return self.conv_scalar(t[1], v, path)
+                return self.conv_scalar(t[1], v, path, t[2] if len(t) > 2 else None)
             out = self.conv(self.defs[t[1]], v, path)
             if t[1] in self.bind:
                 try:
@@ -257,20 +271,29 @@ class Schema:
             return self.conv_map(t, v, path)
         raise SchemaError(kind)
 
-    def conv_scalar(self, name, v, path):
+    def conv_scalar(self, name, v, path, limit=None):
         if name == 'any':
             return v
         if not isinstance(v, str):
             raise Bad(path, f'expected {name}')
         if name == 'str':
-            return v
-        if name == 'bool' and v in ('true', 'false'):
-            return v == 'true'
-        if name == 'int' and re.fullmatch(r'-?[0-9]+', v):
-            return int(v)
-        if name == 'float' and re.fullmatch(r'-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?', v):
-            return float(v)
-        raise Bad(path, f'expected {name}, got {v[:40]!r}')
+            out = v
+        elif name == 'bool' and v in ('true', 'false'):
+            out = v == 'true'
+        elif name == 'int' and re.fullmatch(r'-?[0-9]+', v):
+            out = int(v)
+        elif name == 'float' and re.fullmatch(r'-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?', v):
+            out = float(v)
+        else:
+            raise Bad(path, f'expected {name}, got {v[:40]!r}')
+        if limit and limit[0] == 're':
+            if not limit[1].search(v):
+                raise Bad(path, f'{v[:40]!r} does not match')
+        elif limit:
+            size = len(out) if name == 'str' else out
+            if (limit[1] is not None and size < limit[1]) or (limit[2] is not None and size > limit[2]):
+                raise Bad(path, f'{v[:40]!r} is out of range')
+        return out
 
     def conv_map(self, t, v, path):
         if not isinstance(v, dict):
@@ -288,14 +311,15 @@ class Schema:
         for key in v:
             if key in t[1]:
                 continue
-            for prefix, pt in t[3]:
-                if key.startswith(prefix):
-                    out[key] = self.conv(pt, v[key], f'{path}/{key}')
-                    break
+            for kt, vt in t[2]:
+                try:
+                    self.conv(kt, key, path)
+                except Bad:
+                    continue
+                out[key] = self.conv(vt, v[key], f'{path}/{key}')
+                break
             else:
-                if t[2] is None:
-                    raise Bad(path, f'unknown key {key}')
-                out[key] = self.conv(t[2], v[key], f'{path}/{key}')
+                raise Bad(path, f'unknown key {key}')
         return out
 
     def bound(self, t, value, path):
