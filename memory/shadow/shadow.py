@@ -40,7 +40,7 @@ def _quote(text):
 
 
 def _prepare(doc):
-    """Quote `!` keys and values, and `<<: *x` lines, for PyYAML's sake."""
+    """Quote `!` keys and values, and turn `<< *x` into a key, for PyYAML's sake."""
     out = []
     for line in doc.splitlines():
         code = re.sub(r'\s+#.*$', '', line)
@@ -48,17 +48,23 @@ def _prepare(doc):
             continue
         m = re.match(r'^(\s*(?:- )*)(.*)$', code)
         ind, rest = m.group(1), m.group(2)
+        m = re.match(r'^<< +(\*\S+)$', rest)
+        if m:
+            # PyYAML would keep only the last of a repeated key, so join them.
+            if out and out[-1].startswith(f"{ind}'<<': "):
+                out[-1] = out[-1][:-1] + f" {m.group(1)}'"
+            else:
+                out.append(f"{ind}'<<': {_quote(m.group(1))}")
+            continue
         m = re.match(r'^([^\s:\[{]+):(?:\s+(.*))?$', rest)
         if not m:
             # A sequence item that is a value, not a key: `- !str`, `- ...`.
             out.append(ind + (_quote(rest) if rest[0] in '!*[{' else rest))
             continue
         key, val = m.group(1), m.group(2)
-        if key == '<<' and out and out[-1].startswith(f'{ind}{_quote(key)}: '):
-            # A repeated `<<` line: PyYAML would keep only the last, so join them.
-            out[-1] = out[-1][:-1] + f" {val}'"
-            continue
-        if key.startswith('!') or key == '<<':
+        if key == '<<':
+            raise SchemaError('`<<:` is an error: merge with `<< *a`, or quote the key')
+        if key.startswith('!'):
             key = _quote(key)
         if val and val[0] in '!*[{':
             val = _quote(val)
@@ -182,6 +188,8 @@ class Schema:
         """A `<<` at the top of an entry, of earlier entries only."""
         if not (isinstance(entry, dict) and '<<' in entry):
             return entry
+        if next(iter(entry)) != '<<':
+            raise SchemaError(f'{name}: `<<` must come first')
         merged = {}
         for ref in re.findall(r'\*([\w-]+)', entry['<<']):
             if ref not in raw:

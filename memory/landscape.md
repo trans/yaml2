@@ -118,8 +118,8 @@ b, `r`) is also what JS spread, Ruby `Hash#merge` and Python `{**a, **b}` give.
 
 Is `<<` ever data? In 4,347 unique files (the same sample plus `~/.config`): no quoted
 `"<<"` key, no plain key starting `<< `, and one plain value starting `<< `,
-CircleCI's `<< parameters.executor >>`. So `<< *a` without a colon would have to be
-told apart from that template syntax, and `<<:` needs nothing new.
+CircleCI's `<< parameters.executor >>`. No scalar starts `<< *`, so `<< *a` is safe
+from that template syntax.
 
 ## Partial fixes so far
 

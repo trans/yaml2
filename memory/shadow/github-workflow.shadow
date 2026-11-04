@@ -61,7 +61,7 @@ job-container:
   options?: !str
 
 service-container:
-  <<: *job-container
+  << *job-container
   command?: !str
   entrypoint?: !str
 
@@ -104,22 +104,22 @@ step-base:
   background?: !bool
 
 uses-step:
-  <<: *step-base
+  << *step-base
   uses: !str
 run-step:
-  <<: *step-base
+  << *step-base
   run: !str
 wait-step:
-  <<: *step-base
+  << *step-base
   wait: !str | [!str, ...]
 wait-all-step:
-  <<: *step-base
+  << *step-base
   wait-all: !str
 cancel-step:
-  <<: *step-base
+  << *step-base
   cancel: !str
 parallel-step:
-  <<: *step-base
+  << *step-base
   parallel: [!step, ...]
 step: !uses-step | !run-step | !wait-step | !wait-all-step | !cancel-step | !parallel-step
 
@@ -133,7 +133,7 @@ job-base:
   concurrency?: !str | !concurrency
 
 normal-job:
-  <<: *job-base
+  << *job-base
   runs-on: !str | !runner-group | [!str, ...]
   snapshot?: !str | !snapshot
   environment?: !str | !environment
@@ -148,7 +148,7 @@ normal-job:
     !str: !service-container
 
 reusable-job:
-  <<: *job-base
+  << *job-base
   uses: !str
   with?: !str-map | !expr
   secrets?: !str-map | !expr | inherit
@@ -168,7 +168,7 @@ push-config:
   paths-ignore?: [!str, ...]
 
 pull-request-config:
-  <<: *push-config
+  << *push-config
   types?: !str | [!str, ...]
 
 call-input:
@@ -201,19 +201,19 @@ input-base:
   default?: !any
 
 string-input:
-  <<: *input-base
+  << *input-base
   type?: string
 boolean-input:
-  <<: *input-base
+  << *input-base
   type: boolean
 number-input:
-  <<: *input-base
+  << *input-base
   type: number
 environment-input:
-  <<: *input-base
+  << *input-base
   type: environment
 choice-input:
-  <<: *input-base
+  << *input-base
   type: choice
   options: [!str, ...]
 input: !string-input | !boolean-input | !number-input | !environment-input | !choice-input

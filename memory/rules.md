@@ -68,7 +68,7 @@ versions:
   app: 1.4
 ---
 development:
-  <<: *defaults
+  << *defaults
   image: *versions:app
 ```
 
@@ -103,9 +103,14 @@ Not confirmed (the agent's terms):
   it, and prepending one shares definitions across files with no include
   feature.
 - `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
-  key, is it." A parser never delivers it, and `"<<"` is the literal key. So Rule 1
-  has no exception here: an indicator isn't a scalar, so quoting one changes nothing
-  about any value. Proposed: it keeps its colon, `<<: *a`, see landscape.md.
+  key, is it." A parser never delivers it. So Rule 1 has no exception here: an
+  indicator isn't a scalar, so quoting one changes nothing about any value.
+- It has no colon: `<< *a` (the user, 2026-11-04). Like `-` it needs a space, and a
+  reference must follow, so CircleCI's `<< parameters.x >>` and `<<*a` stay text. It
+  counts only where a mapping entry can start.
+- Proposed: a plain `<<:` key is an error, and `"<<":` is the literal key. Otherwise
+  the 1.x habit, `<<: *a`, silently gives a key holding the mapping, not a merge.
+  No real file needs the key (landscape.md), and an error can be relaxed later.
 - A reference names exactly one node, as a copy, so the data stays a tree. A
   query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
   later question.
@@ -159,7 +164,7 @@ emitter never sorts them. Proposed consequences, not yet answered:
   (2026-11-04), replacing "where it is written". "Top" had two meanings: depth (the
   `--- &` rule) and position (this one). Why: a late `<<` already gives different
   values, see landscape.md.
-  - Override in place: the user's "I am good with it" (2026-11-04). `<<: *base` (x,
+  - Override in place: the user's "I am good with it" (2026-11-04). `<< *base` (x,
     y), `name: a`, `y: 3` gives `x, y, name`. A mapping with `<<` is ordered as if the
     merged keys were pasted at the top and each local key then assigned. So merged
     keys always come before local ones, and a file can't say "name, then the
@@ -167,8 +172,8 @@ emitter never sorts them. Proposed consequences, not yet answered:
   - Several sources: repeated `<<` lines, the user's choice (2026-11-04, "I think it
     makes more sense"). One reference each, all before any other key, no list form.
     Read top to bottom: a later line replaces a key in place, as a local key does.
-    With a (p, q) and b (q, r) that gives `p, q` from b, `r`. Layering is `<<: *base`
-    then `<<: *prod`. Two written keys that are the same are still an error; only a
+    With a (p, q) and b (q, r) that gives `p, q` from b, `r`. Layering is `<< *base`
+    then `<< *prod`. Two written keys that are the same are still an error; only a
     merged key can be replaced. This replaces `<<: [*a, *b]`, "the earlier source
     wins" and "a key in two sources is an error", all dropped the same day.
 
