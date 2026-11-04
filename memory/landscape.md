@@ -106,6 +106,13 @@ Same sample: 92 of the 299 mappings override a merged key. `<<: *base` (x, y),
 `Hash#merge` and JS spread. Putting overrides where they are written instead would
 change the order of 91 of the 299, in 17 files.
 
+More than one merge, with a (p, q) and b (q, r). `<<: [*a, *b]` gives q from a in
+PyYAML, Psych and go-yaml v3. Their keys come out `q, r, p` in PyYAML and Psych, the
+sources reversed. Two `<<` lines give q from b in PyYAML and Psych, the opposite
+winner, and an error in go-yaml v3. Same sample: 260 of the 299 uses name one source,
+39 are lists, 33 of those with two or more sources, in 5 files. No mapping has two
+`<<` lines, and no list has a key in two sources. A thin sample for "who wins".
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,

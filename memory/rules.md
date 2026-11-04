@@ -154,18 +154,24 @@ emitter never sorts them. Proposed consequences, not yet answered:
   maps are random. So the guarantee is on the parser's API (events, tree, an ordered
   map), and a conversion to a native map is the caller's choice.
 - Merge order. The user on `<<` as the first key of a mapping: "I think so"
-  (2026-11-04), replacing "where it is written", and raised the effect on order.
-  "Top" had two meanings: depth (the `--- &` rule) and position (this one). In
-  `<<: [*a, *b]` the earlier source wins. A second `<<` can't be first, so it needs
-  no rule of its own. Why: a late `<<` already gives different values, see
-  landscape.md. Two effects on the order guarantee, **open**:
-  - Merged keys always come before local ones, so a file can't say "name, then the
+  (2026-11-04), replacing "where it is written". "Top" had two meanings: depth (the
+  `--- &` rule) and position (this one). Why: a late `<<` already gives different
+  values, see landscape.md.
+  - Override in place: the user's "I am good with it" (2026-11-04). `<<: *base` (x,
+    y), `name: a`, `y: 3` gives `x, y, name`. A mapping with `<<` is ordered as if the
+    merged keys were pasted at the top and each local key then assigned. So merged
+    keys always come before local ones, and a file can't say "name, then the
     defaults". Around it: `<<: [*head, *base]`, or no merge.
-  - Where an override goes. Proposed: it stays in the merged key's place, so
-    `<<: *base` (x, y), `name: a`, `y: 3` gives `x, y, name`. The other choice,
-    moving it to where it is written, gives `x, name, y`: local keys are then always
-    in written order, and restating a key moves it. In-place is what every parser and
-    language merge tested does; the other would reorder 91 of 299 merge mappings.
+  - One `<<` per mapping; more than one source goes in a list, `<<: [*a, *b]`
+    (proposed, answering the user's "can there be more than one merge?"). Two `<<`
+    lines is an error, which first-key-only already gives.
+  - Sources paste in list order, a's keys then b's (proposed). This corrects
+    "source order" as a claim about parsers: PyYAML and Psych reverse the sources.
+    `<<: [*head, *base]` only works in list order.
+  - A key in two sources: proposed an error, as a duplicate key is. This replaces the
+    earlier proposal, "the earlier source wins", which is 1.1's rule. **Open.**
+    Layering still works: a `--- &` entry takes `<<: *base` and overrides it, and that
+    entry is what gets merged. An error can be relaxed later; a winner can't be undone.
 
 ## YAML Schema
 
