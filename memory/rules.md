@@ -185,8 +185,12 @@ tests settled on, all the agent's proposals, not yet answered:
   may be empty. A key ending in `*` takes a prefix, `x-*: !any`, needed to type
   today's Compose files; 2.0 files would use `--- &` instead of `x-` keys. Mappings
   are otherwise closed.
-- **Named types** live in the schema's `--- &` document. The schema layer resolves
-  them, not the parser, so recursive types work.
+- **Named types** live in the schema's `--- &` document, which is a lookup table,
+  as in a data file. `!flag` looks up the key `flag` there, as `*flag` would, but
+  keeps the name. The schema layer resolves it, not the parser, so recursive types
+  work. A key above the `---` is a name; below it, a key in the document. That
+  takes reading with care: the user read `flag: !str` as a key with a string value
+  (2026-11-03), which is what it literally is.
 - **Alternatives** are chosen by shape, never by how text looks: at most one
   scalar type, at most one sequence, and mappings told apart by required keys and
   literals. All 117 scalar unions in the sample include string.
@@ -194,7 +198,7 @@ tests settled on, all the agent's proposals, not yet answered:
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
   `flag`. That recovered nearly all of what patterns check, with no regex in the
   schema. An unbound name stays a string. It needs no rule of its own: it's just a
-  named type. The user hasn't followed this yet (2026-11-03).
+  named type.
 - **Schemas name types; app code binds them to classes.** A schema must never
   name a class to build, or `!ruby/object` comes back by another door.
 - **Delivery:** `--- !` carries a shadow for the documents after it, and an app
