@@ -370,6 +370,9 @@ Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
 - Rare forms go, each under 0.5% of 4,026 public files, each a loud error with an
   easy fix: `|+` and `>+`; indentation indicators (`|2`); UTF-16, UTF-32 and a BOM, so
   UTF-8 only; tabs outside strings; one-pair `[a: b]`; escapes JSON doesn't have.
+- Without `|2` the first non-blank line sets a block's indent, as it does in all but 3
+  of 4,213 real block scalars. Text whose first line starts with spaces has to be
+  written double-quoted; in a block, a shorter later line is an error, as it is today.
 - Multi-line quoted scalars go too: an unclosed quote then fails on its own line, not
   at the next quote. `\`-newline and `\ ` go with them.
 - A more-indented line inside `>` becomes an error. Its special folding rule is hard to
