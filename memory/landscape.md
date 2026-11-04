@@ -196,6 +196,30 @@ Multi-line plain scalars: in 40 of 369 GitLab files and 4 of 311 Compose files. 
 GitLab ones sampled are mostly shell commands that rely on folding into one line
 (`docker build` / `--pull` / ...). Measured with [syntax.py](syntax.py).
 
+## Syntax use in public files (2026-11-04)
+
+`syntax.py` on GitHub search samples of ten formats: Helm values, Kubernetes, Ansible,
+OpenAPI, Rails locales, Jekyll, MkDocs, workflows, GitLab CI, Compose. 4,026 files
+parsed; 474 didn't, mostly Helm templates. Not random samples, and libyaml's reading.
+
+Share of files: flow 34.5, block scalars 23.2, `--- ` 19.2, `|` 16.8, `>` 8.3, `|-` and
+`>-` 5.9, multi-line plain 4.7 (Ansible 17.9, GitLab 10.8), several documents 2.6
+(Kubernetes 27.8), multi-line quoted 2.4 (Ansible 7.2), multi-line flow 1.6, `>` with
+more-indented lines 1.4, trailing commas 0.8, `...` 0.45, tabs outside strings 0.25
+(Jekyll 2.1), one-pair `[a: b]` 0.15, `- - x` 0.07, `|2` 0.05, BOM 0.05. `|+` has no
+parsed use, and grep finds 1 in a file libyaml can't read. No UTF-16.
+
+Escapes in double quotes are nearly all JSON's. The only others are `\ ` (213 uses, 9
+files, the mark of an emitter wrapping lines) and `\_` (48 uses, 1 file).
+
+Traps in the numbers. 37 whole-document scalars look like 0.9%, but those seen are
+symlink targets and other files that aren't YAML. Locally 44% of files have multi-line
+plain scalars, but 1,243 of those 1,256 are one generated dataset, so local shares
+aren't used here.
+
+Tabs split parsers: `key:\tvalue` loads in libyaml, Psych and go-yaml v3, and pure
+Python PyYAML refuses it. `-\tvalue` is refused by all of them.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,

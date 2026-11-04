@@ -136,10 +136,11 @@ Not confirmed (the agent's terms):
   entry before double each time, unlike `<<:`, whose keys collapse, so the size limit
   above is what stops that.
 - Flow collections, **proposed** (the user asked, 2026-11-04): both work, by the same
-  rules, if flow survives the syntax cuts. `{<<: *a, x: 1}` with `<<:` first, and
+  rules, if flow stays, as proposed below. `{<<: *a, x: 1}` with `<<:` first, and
   `[-<< *s, x]` at any position. A reference ends at `,`, `]` or `}`, so a path key
   holding those needs quotes inside flow, as any plain scalar does. `[<<: *a, x]` is
-  a one-pair mapping item, as in 1.x. Real use of either in flow: none (landscape.md).
+  a one-pair mapping item, as in 1.x, unless that form is cut below. Real use of either
+  in flow: none (landscape.md).
 - A reference names exactly one node, as a copy, so the data stays a tree. A
   query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
   later question.
@@ -361,3 +362,14 @@ Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
   string. No indentation, no chomping, and a `---` inside is text, so it must be the
   last document. This is the user's flush-left string from YAML2#5, and it covers
   front matter.
+- Rare forms go, each under 0.5% of 4,026 public files, each a loud error with an
+  easy fix: `|+` and `>+`; indentation indicators (`|2`); UTF-16, UTF-32 and a BOM, so
+  UTF-8 only; tabs outside strings; one-pair `[a: b]`; the `...` marker, since `---`
+  and the end of the stream do its work; escapes JSON doesn't have.
+- Multi-line quoted scalars go too: an unclosed quote then fails on its own line, not
+  at the next quote. `\`-newline and `\ ` go with them.
+- A more-indented line inside `>` becomes an error. Its special folding rule is hard to
+  implement and to predict; silently folding it instead would change values.
+- Staying: flow (34.5%, and JSON needs it), `>` (8.3%), `|-` and `>-` (5.9%), several
+  documents (27.8% of Kubernetes files), trailing commas (they cost nothing), and
+  `- - x` (3 files, but `- key:` stays, so cutting it would add a rule, not remove one).
