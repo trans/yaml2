@@ -15,6 +15,7 @@ working on the code needs belongs in the project's own docs, not here.
 | File | What it holds |
 |---|---|
 | [status.md](status.md) | The goal, where things stand, decisions open for the user, working with @oyl |
+| [rules.md](rules.md) | The design so far: the clean break, each rule as the user set it, what follows, what's open |
 | [landscape.md](landscape.md) | The spec's state, what is deployed (@oyl's measurements), partial fixes so far |
 
 Keep each note short and dated (`*Updated YYYY-MM-DD*`), with absolute

@@ -5,21 +5,18 @@
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
 
-**Where things stand.** Nothing is designed yet: no spec text, no code on
-`main`, no git remote. Background is in [landscape.md](landscape.md).
+**Where things stand.** The user is setting the design rule by rule; the
+rules are in [rules.md](rules.md). The user chose a clean break on
+2026-11-03, so 2.0 need not be readable by existing parsers. No spec text,
+no code on `main`, no git remote. Background is in
+[landscape.md](landscape.md).
 
 ## Open, for the user
 
-1. **The compatibility contract.** Comes first, since most other choices
-   follow from it. Proposed, not decided: every YAML 2.0 document is valid
-   in today's parsers and reads the same in 1.1 and 1.2 readers; a 2.0
-   parser rejects whatever they would read differently. That breaks
-   writers, never readers. The alternative is a clean break: free to fix
-   the syntax, but no existing parser reads it. Merge keys (`<<`) are the
-   hardest case for the proposed contract.
+1. **The questions Rule 1 raises:** see [rules.md](rules.md).
 2. **Whose name it is.** "YAML 2.0" is the next version number of a spec
    the yaml-spec group maintains. Work through that group, or publish
-   independently and offer it to them?
+   independently and offer it to them? Can wait for a draft.
 3. **Remote and visibility.** If the repository is public the `ai` branch
    is too; then also decide on `transcript.encrypt`.
 
