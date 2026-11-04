@@ -349,7 +349,10 @@ with exact spellings, so that languages agree.
 
 ## Syntax cuts
 
-Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
+Measured with `syntax.py`. On 2026-11-04 the user took the nine cuts below ("I pretty
+much agree with those"): `|+` and `>+`; `|1` to `|9`; everything but UTF-8; tabs outside
+strings; one-pair `[a: b]`; escapes JSON doesn't have; multi-line plain; multi-line
+quoted; more-indented lines inside `>`.
 
 - Multi-line plain scalars go: a plain scalar is one line. The user's earlier idea
   (yaml/YAML2#5, 2016) was to keep their line breaks, since an app can remove lines
@@ -369,7 +372,7 @@ Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
   and replaces `--- |`, a text document proposed the same day, which needed a new
   string type and a rule that it comes last. The user agreed, `--- |` dropped
   (2026-11-04). An ordinary `--- |` with indented text is still a block string.
-- Rare forms go, each under 0.5% of 4,026 public files, each a loud error with an
+- The rare forms are each under 0.5% of 4,026 public files, each a loud error with an
   easy fix: `|+` and `>+`; indentation indicators (`|2`); UTF-16, UTF-32 and a BOM, so
   UTF-8 only; tabs outside strings; one-pair `[a: b]`; escapes JSON doesn't have.
 - Without `|2` the first non-blank line sets a block's indent, as it does in all but 3
@@ -382,3 +385,13 @@ Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
 - Staying: flow (34.5%, and JSON needs it), `>` (8.3%), `|-` and `>-` (5.9%), several
   documents (27.8% of Kubernetes files), trailing commas (they cost nothing), and
   `- - x` (3 files, but `- key:` stays, so cutting it would add a rule, not remove one).
+- Margin strings, the user's idea from a Ruby literal (2026-11-04), **open**:
+  `a: |this is the text` then `   |  more`. The first `|` sets a column, each later line
+  has `|` there, and all after it is literal, so a `|` in the text or a leading space is
+  fine, and `#` isn't a comment. Line breaks fall between lines, so an empty last `|`
+  line gives a final newline. What you see is the exact value, with no chomping or
+  indent detection. `|` followed by the end of the line, or by spaces and `#`, stays the
+  ordinary header (103 of 4,213 real blocks have that comment). A key rename shifts the
+  column unless the string starts on its own line. Agent's view: leave `|text` an error
+  in 2.0, which keeps it open for later. It would be an addition, it can't replace
+  `|-` (real ones run to 594 lines), and pasted text needs every line touched.

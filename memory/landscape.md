@@ -203,6 +203,11 @@ Multi-line plain scalars: in 40 of 369 GitLab files and 4 of 311 Compose files. 
 GitLab ones sampled are mostly shell commands that rely on folding into one line
 (`docker build` / `--pull` / ...). Measured with [syntax.py](syntax.py).
 
+Block strings in the 4,026 public files: 4,213. `|` 2,810 uses, median 3 lines, 90% at
+14, max 362. `|-` 302 uses, median 3, 90% at 29, max 594. `a: |text` is an error in all
+parsers tested, so that spelling is free. Line-prefixed strings exist elsewhere: Zig's
+`\\` and NestedText's `>`.
+
 ## Syntax use in public files (2026-11-04)
 
 `syntax.py` on GitHub search samples of ten formats: Helm values, Kubernetes, Ansible,
