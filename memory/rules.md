@@ -77,8 +77,8 @@ development:
 - No references inside a `--- &` document. Without chains there is no billion
   laughs: output is at most quadratic and no size limit is needed. Layered
   bases are written at the use site: `<<: [*rails, *base]`.
-  **Proposed change, not answered:** allow `<<` at the top of an entry, merging
-  earlier entries. The workflow shadow needed it 15 times. By the agent's
+  **Proposed change, to be discussed (the user, 2026-11-03):** allow `<<` at the
+  top of an entry, merging earlier entries. The workflow shadow needed it 15 times. By the agent's
   reasoning it stays safe: such a merge only unions keys already written, so no
   entry can outgrow the document. Nesting a merge deeper is what doubles.
 
@@ -171,8 +171,9 @@ is what that test settled on, all the agent's proposals, not yet answered:
   `!` is a type expression; any other value is a literal that must match.
 - **Expressions:** a leading `!`, then names, `[int*]` for any number, `[int, str]`
   for exactly those, `|` for alternatives, and `'read'` for a literal, which gives
-  enums: `!'read' | 'write' | 'none'`.
-- **Optional is on the key, and means absent or empty:** `name?: !str`. It can't go
+  enums: `!'read' | 'write' | 'none'`. The user: enums make sense (2026-11-03).
+- **Optional is on the key, and means absent or empty:** `name?: !str` (the user:
+  "might be ok", 2026-11-03). It can't go
   on the value, since an inline mapping has nowhere to put it (changed by the
   test). An empty value types as None, so null exists only through a schema: this
   mostly answers the null question.
@@ -186,7 +187,8 @@ is what that test settled on, all the agent's proposals, not yet answered:
 - **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
   `flag`. That recovered nearly all of what patterns check, with no regex in the
-  schema. An unbound name stays a string.
+  schema. An unbound name stays a string. The user didn't follow this at first
+  (2026-11-03), so it may need a clearer form.
 - **Schemas name types; app code binds them to classes.** A schema must never
   name a class to build, or `!ruby/object` comes back by another door.
 - **Delivery:** `--- !` carries a shadow for the documents after it, and an app
