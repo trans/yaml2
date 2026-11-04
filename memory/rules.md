@@ -123,10 +123,23 @@ handing it to a 1.x mode.
 
 ## Keys
 
-Open. The agent's proposal, not yet answered: keys are strings only, a
-duplicate key is an error, and `?` goes. Nothing real uses what this cuts
-(landscape.md), and a stray `{{ x }}` becomes an error instead of a mapping
-with a mapping for a key.
+**`?` goes** (the user, 2026-11-03). Non-scalar keys are almost never used.
+
+Open, for the user:
+
+- **Non-scalar keys.** The user raised serialization (Ruby Hashes with array or
+  hash keys) and floated reference keys: `*foo:`, where `foo` is a complex entry
+  in a `--- &` document. It parses unambiguously. The agent recommends strings
+  only, with such a Hash written as a sequence of pairs, because keys then fit
+  every language's map, and only Ruby gained from the old form: tested
+  2026-11-03, Psych round trips them, PyYAML refuses them, a JS object flattens
+  `[1,2]` to `"1,2"`, and a JS `Map` can't find an equal array. Rule 1 and no
+  tags already end faithful object serialization: a key `1` returns as `"1"`.
+  A reference key stays an error for now, and allowing it later breaks no file.
+- **Duplicate keys.** Proposed: an error. Includes `1` and `"1"` in one mapping.
+
+Evidence is in landscape.md. Strings only also makes a stray `{{ x }}` an error
+instead of a mapping with a mapping for a key.
 
 ## YAML Schema
 
