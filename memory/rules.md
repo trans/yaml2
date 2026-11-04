@@ -73,12 +73,52 @@ The agent's terms for it, also not confirmed:
 - Upgrading is mechanical: `web: &web` under `services` becomes `web: &`, and
   `*web` becomes `*services/web`.
 
+**Definition documents** (the user's idea, 2026-11-03, "one possibility"; the
+agent recommends it over the bare `&` on nodes above; not decided). Only a
+document opened with `--- &` can be referenced:
+
+```yaml
+--- &
+defaults:
+  adapter: postgres
+versions:
+  app: 1.4
+---
+development:
+  <<: *defaults
+  image: *versions:app
+```
+
+The agent's terms, not confirmed:
+
+- Every reference, not just merge, targets an earlier `--- &` document. Any
+  other `&` is an error, so 1.x anchors fail loudly.
+- A `--- &` document is a mapping and is never delivered as data, which
+  replaces Compose's `x-` keys and GitLab's hidden jobs.
+- It stays in scope for the rest of the stream, so several documents can share
+  it, and prepending one shares definitions across files with no include
+  feature.
+- No references inside a `--- &` document. Without chains there is no billion
+  laughs: output is at most quadratic and no size limit is needed. Layered
+  bases are written at the use site: `<<: [*rails, *base]`.
+- A reference can't be a key.
+
+If adopted, the node-level mark and its terms above go, and so do the finished
+and ancestor checks. Reuse in sequences works (`- *checkout`). Cost: the upgrade
+moves text. A base that is also real data moves out and stays as `web: *web`.
+
+**Path separator** (the user asked about `:`, 2026-11-03; the agent recommends
+it; not decided). Fewest clashes (landscape.md): keys holding `:` in 1 of 2,995
+files, `/` in 19, `.` in 160. It is already YAML's key character, and it needs
+no new scanner rule, since a plain scalar already ends at `:` plus a space.
+`Fn::Sub`-style keys clash, and would be quoted.
+
 The agent's proposal for references, not yet confirmed:
 
 - `<<` can't stay a magic key. In 1.1 it's an implicit type, which Rule 1
   ends, so it becomes an indicator like `-`, and `"<<"` is the literal key.
 - Keep `*` as the reference indicator, followed by a path from the root:
-  `<<: *defaults`, `image: *versions/app`. The common case is then today's
+  `<<: *defaults`, `image: *versions:app` (separator above). The common case is then today's
   file with `&defaults` deleted, and Rule 1 holds because `*` can't start a
   plain scalar.
 - Separate two things. A reference names exactly one node. A query (YPATH
@@ -89,8 +129,8 @@ The agent's proposal for references, not yet confirmed:
   mine. A renamed key fails loudly. So anything reused sits under a key.
 - A reference is a copy of a finished node, so the data stays a tree. Either
   direction below rules out cycles: pointing at an ancestor is an error.
-- Billion laughs survives. Nested copies still double, even with merge alone,
-  so the spec needs a mandatory limit on expanded size.
+- Billion laughs survives wherever references can chain. Nested copies still
+  double, even with merge alone, so that needs a mandatory size limit.
 
 ## YAML Schema
 

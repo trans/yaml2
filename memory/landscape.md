@@ -43,9 +43,18 @@ in 12.7% of files, block scalars 10.4%, empty `key:` 2.1%, complex keys 0.48%,
 multiple documents 0.15%, spelled nulls 0.15%, anchors 0.12%, tags 0.09%
 (Ruby objects and a spec example), merge 0.06%.
 
-Not a basis for cutting anchors or merge. This is one person's code with
+These counts include 368 browser snapshots. Not a basis for cutting anchors or
+merge. This is one person's code with
 little Compose or GitLab CI in it, so those features are undercounted. A
 public sample of those files would be needed.
+
+## Separator characters in keys (2026-11-03)
+
+The same walk without the browser snapshots, whose keys are full of URLs:
+2,995 files, 111,461 keys. Keys holding `:` were in 1 file (1 key), `/` in 19
+files (124 keys, mostly `app.kubernetes.io/name`-style), `.` in 160 files
+(1,273 keys). No CloudFormation in the sample, so `Fn::Sub`-style keys don't
+show up.
 
 ## YPATH so far (checked 2026-11-03)
 
