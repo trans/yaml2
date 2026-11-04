@@ -146,14 +146,25 @@ flattens `[1,2]` to `"1,2"`, and a JS `Map` can't find an equal array. A stray
 `{{ x }}` also becomes an error instead of a mapping with a mapping for a key.
 Evidence is in landscape.md.
 
+Key order, agreed by the user, 2026-11-04 ("if it is common then why bother" with
+`!omap`): 2.0 guarantees it. A parser keeps mappings in document order and an
+emitter never sorts them. Proposed consequences, not yet answered:
+
+- A native map can still lose it: a JS object moves number-like keys first, and Go
+  maps are random. So the guarantee is on the parser's API (events, tree, an ordered
+  map), and a conversion to a native map is the caller's choice.
+- Merge needs a defined order now. Proposed: `<<` puts its keys where it is written,
+  a key written locally keeps its own place and value, and in `<<: [*a, *b]` the
+  earlier source wins.
+
 ## YAML Schema
 
 The user's term, 2026-11-03: the optional layer that types the data. The user
 calls it the real trick: Ruby and others still serialize, through schemas.
 
 **A schema is a typed shadow of the document** (the user's idea, 2026-11-03,
-"something to that effect"; the agent recommends it over reusing JSON Schema; not
-decided, though the first test went well). It mirrors the document, with each
+"something to that effect"; adopted over reusing JSON Schema, the user's "sure" on
+2026-11-04, to be confirmed). It mirrors the document, with each
 value replaced by its type:
 
 ```yaml
@@ -271,9 +282,9 @@ Still missing:
   (hover text, completion). The real problem is that a shadow gives each field one
   slot, its type, where JSON Schema gives an object. In the five schemas: 1,043
   descriptions, 162 titles, 61 defaults, 9 examples, 4 deprecations, so nearly all
-  prose. The agent proposes that a comment directly above a key is its
-  description, as with RDoc or YARD: parsers still discard comments, and only
-  doc tools keep them. Not answered, and no tool built.
+  prose. A comment directly above a key is its description (the user's "sure",
+  2026-11-04), as with RDoc or YARD: parsers still discard comments, and only doc
+  tools keep them. No tool built.
 - Defaults aren't in the schema language (the user's point, 2026-11-04: merge does
   it in most cases). An author's default is a `<<` from a `--- &` entry: local keys
   win and missing ones fill in, visibly in the file, so the same bytes give the
