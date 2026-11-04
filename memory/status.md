@@ -17,7 +17,8 @@ in that the user hasn't seen. Background is in [landscape.md](landscape.md).
 1. **The design's open points:** marked as such in [rules.md](rules.md). Merge, the
    size limit, the syntax cuts and how schemas are named were settled on 2026-11-04,
    and margin strings are parked for later. Patterns are proposed as I-Regexp. Left:
-   whether to refuse leftover tags (the `!` rule).
+   whether to refuse leftover tags (the `!` rule), which the user wants left as an open
+   question for the core team, with pros and cons in section 14.
 2. **Whose name it is.** The user's plan (2026-11-04): make this as complete as
    possible, then present it to the YAML core team. If they reject it whole, decide
    where to take it then. If they take it up, they'll hammer out the final details.

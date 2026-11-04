@@ -355,7 +355,12 @@ inside block scalars). 158 files (3.4%) hold one a known tool reads: release too
 
 1.x refuses a plain scalar starting with `%`, `@` or a backtick, so these have to be
 quoted: 1,530 start with `%`, mostly Rails strings like `%{count}` and `%Y-%m-%d`, 26
-with `@`, 9 with a backtick.
+with `@`, 9 with a backtick. 60 start with `!`, in 36 of the 4,241 files PyYAML can
+scan: mostly mkdocs filters like `!^_`, and path and branch exclusions in workflows.
+
+In the draft, a tag with its content on the same line reads as text, in block and flow
+alike, and in a table entry a reference then delivers it. A tag with its content on the
+lines below is refused (`expected a marker`), like any other nested block under a scalar.
 
 ## Repeated keys (2026-11-04)
 

@@ -275,9 +275,11 @@ tests settled on, all proposals, left open for the core team:
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string and the parser knows nothing about schemas. So a leftover 1.x tag reads
   as text, in 137 of 3,544 public files. The agent proposed refusing a plain scalar
-  starting with `!` outside the table. The user is thinking it over (2026-11-04): it may
-  not be needed, since people have to convert, not just add `%YAML 2.0`. A value starting with
-  `!` is a type expression; any other value is a literal that must match.
+  starting with `!` outside the table. **Open:** the user is undecided (2026-11-04), and
+  asked for it to go to the core team as an open question, so section 14 of the draft
+  gives the case each way. The user's point against: people have to convert, not just add
+  `%YAML 2.0`. A value starting with `!` is a type expression; any other value is a
+  literal that must match.
 - **`!` marks a type on every part; bare text is a literal** (the user's `!a | !b`,
   2026-11-04): `!a | !b`, `!str | inherit`, and enums need no quotes: `read | write
   | none`. `''` is the empty literal. A literal can't contain ` | `.
