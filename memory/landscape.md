@@ -101,6 +101,11 @@ The fixture does this for real: `worker`'s `restart` is `on-failure` in PyYAML a
 `<<` isn't first: PyYAML keeps merged keys first (`x, y, name`) wherever `<<` is
 written, Psych puts them where `<<` is. Go's map print sorts, so it shows no order.
 
+Same sample: 92 of the 299 mappings override a merged key. `<<: *base` (x, y),
+`name: a`, `y: 3` gives `x, y, name` in PyYAML and Psych, as do Python `{**b}`, Ruby
+`Hash#merge` and JS spread. Putting overrides where they are written instead would
+change the order of 91 of the 299, in 17 files.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,

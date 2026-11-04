@@ -83,7 +83,7 @@ development:
   limit needed" was wrong. A 1 MB file with a 500 KB entry and 100,000 `- *a` lines
   expands to about 50 GB. A limit on expanded size, or nodes shared in memory,
   is probably still needed. The user is concerned about this and wants to revisit.
-- Data documents can use `<<` anywhere: what it points at holds no nested
+- Data documents can use `<<` at any depth: what it points at holds no nested
   references, so each use adds at most one entry.
 
 **Path syntax** (the user chose `:`). Fewest clashes (landscape.md): keys
@@ -153,13 +153,19 @@ emitter never sorts them. Proposed consequences, not yet answered:
 - A native map can still lose it: a JS object moves number-like keys first, and Go
   maps are random. So the guarantee is on the parser's API (events, tree, an ordered
   map), and a conversion to a native map is the caller's choice.
-- Merge needs a defined order now. Proposed 2026-11-04, replacing "where it is
-  written", which the user questioned: `<<` must be the first key of a mapping. Start
-  with the merged keys in source order, then apply local keys in order, so a local
-  key overrides in place and new keys follow. In `<<: [*a, *b]` the earlier source
-  wins. A second `<<` can't be first, so it needs no rule of its own. "Top" had two
-  meanings here: depth (the `--- &` rule) and position (this one). Not yet answered.
-  Why: a late `<<` already gives different values, see landscape.md.
+- Merge order. The user on `<<` as the first key of a mapping: "I think so"
+  (2026-11-04), replacing "where it is written", and raised the effect on order.
+  "Top" had two meanings: depth (the `--- &` rule) and position (this one). In
+  `<<: [*a, *b]` the earlier source wins. A second `<<` can't be first, so it needs
+  no rule of its own. Why: a late `<<` already gives different values, see
+  landscape.md. Two effects on the order guarantee, **open**:
+  - Merged keys always come before local ones, so a file can't say "name, then the
+    defaults". Around it: `<<: [*head, *base]`, or no merge.
+  - Where an override goes. Proposed: it stays in the merged key's place, so
+    `<<: *base` (x, y), `name: a`, `y: 3` gives `x, y, name`. The other choice,
+    moving it to where it is written, gives `x, name, y`: local keys are then always
+    in written order, and restating a key moves it. In-place is what every parser and
+    language merge tested does; the other would reorder 91 of 299 merge mappings.
 
 ## YAML Schema
 
