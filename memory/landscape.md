@@ -35,6 +35,27 @@
 - Dates have no standard 1.2 spelling: the 1.2.0 change list dropped
   `!!timestamp`, with `!!binary`, `!!set`, `!!omap` and `!!pairs`.
 
+## Feature use in local files (2026-11-03)
+
+A walk over PyYAML's events: 3,363 unique files under `~/Projects` and
+`~/.config`, skipping vendored directories and test corpora. Flow collections
+in 12.7% of files, block scalars 10.4%, empty `key:` 2.1%, complex keys 0.48%,
+multiple documents 0.15%, spelled nulls 0.15%, anchors 0.12%, tags 0.09%
+(Ruby objects and a spec example), merge 0.06%.
+
+Not a basis for cutting anchors or merge. This is one person's code with
+little Compose or GitLab CI in it, so those features are undercounted. A
+public sample of those files would be needed.
+
+## YPATH so far (checked 2026-11-03)
+
+No agreed standard exists. yaml/yaml-path is an empty repository. The others:
+Peter Murphy's YPath proposal (v0.4, 2011), Ruby's old `YAML::YPath`, the
+`yamlpath` Python tool, and andrewmd5/cyaml's YPATH 1.0. The last two are
+query languages that return many nodes, and cyaml's steps don't cover keys
+with special characters. JSON Pointer (RFC 6901) is the closest match for
+naming one node.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,

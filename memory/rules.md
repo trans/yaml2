@@ -36,11 +36,41 @@ Follows from it (the agent's reading, not yet confirmed):
   the value is the string `1`, and a JSON to YAML 2.0 to JSON round trip
   loses types unless something supplies them.
 
-Open:
+Probably, the user said on 2026-11-03: `key:` is the empty string, and the app
+or schema decides what that means. Watch for whether a null value turns out
+to be needed.
 
-- **What `key:` with no value means, and whether null can be written.**
-  Proposed: no null; `key:` is the empty string, and the app or schema
-  decides what that means. The user hasn't answered.
+## Reuse: merge, and maybe no anchors
+
+**Merge stays**, as far as the user can see (2026-11-03): it has proven too
+useful to remove. The user's view is that YAML 1.2 dropping it is probably
+part of why nobody has fully adopted 1.2.
+
+**Anchors may go** (the user's idea, 2026-11-03, not decided): a workable
+YPATH could replace them. Every node already has an address, so `&name` is a
+second naming system.
+
+The agent's proposal, not yet answered:
+
+- `<<` can't stay a magic key. In 1.1 it's an implicit type, which Rule 1
+  ends, so it becomes an indicator like `-`, and `"<<"` is the literal key.
+- Keep `*` as the reference indicator, followed by a path from the root:
+  `<<: *defaults`, `image: *versions/app`. The common case is then today's
+  file with `&defaults` deleted, and Rule 1 holds because `*` can't start a
+  plain scalar.
+- Separate two things. A reference names exactly one node. A query (YPATH
+  proper: wildcards, filters, many nodes) is for tools, and is a later
+  question.
+- Keys only in references, no sequence indices. `*steps/0` still resolves
+  after someone inserts a step, to the wrong one: silent wrong data, a new
+  mine. A renamed key fails loudly. So anything reused sits under a key.
+- Backward only: a reference gets the finished value of an earlier node, as
+  a copy. Cycles can't happen, and the data stays a tree.
+- Billion laughs survives. Nested copies still double, even with merge alone,
+  so the spec needs a mandatory limit on expanded size.
+- Cost: parsers must be able to find any earlier node, not just anchored
+  ones. A parser holding the whole input can pay that only when a file uses a
+  reference; a true streaming parser can't.
 
 ## YAML Schema
 
