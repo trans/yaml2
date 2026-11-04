@@ -192,6 +192,9 @@ Agreed by the user, 2026-11-03:
 - No limit on key length (the user, 2026-11-04). 1.x's 1024 limit only bounded lookahead,
   which flow keys needed. A 2.0 key is one line.
 - A duplicate key is an error, including `1` and `"1"` in one mapping.
+  Finding repeats must not grow with the square of the keys, even in a stream written to
+  force it (the user, 2026-11-04). This limits growth, not technique: a parser may scan
+  a short list and change method as a mapping grows, and a fixed-seed hash doesn't pass.
   The user asked on 2026-11-04 whether the cost of checking argues for replacing instead.
   It doesn't: replacing needs the same lookup, and merges need it anyway. Of 4,163 public
   files, 64 repeat a key, 51 of those with different values, one of them on purpose: see
