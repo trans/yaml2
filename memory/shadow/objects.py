@@ -20,13 +20,13 @@ square:
   side: !float
 shape: !circle | !square
 labels: [[[!int, !int], !str], ...]
----
-when: !date
-data: !blob
-tags: !tag-set
-origin: !point
-shapes: [!shape, ...]
-places: !labels
+document:
+  when: !date
+  data: !blob
+  tags: !tag-set
+  origin: !point
+  shapes: [!shape, ...]
+  places: !labels
 """
 
 DOC = """when: 2026-11-03
@@ -74,5 +74,5 @@ BIND = {
 }
 
 doc = yaml.load(DOC, Loader=yaml.BaseLoader)
-print('unbound:', shadow.Schema(SCHEMA).check(doc))
-print('bound:  ', shadow.Schema(SCHEMA, BIND).check(doc))
+print('unbound:', shadow.Schema(SCHEMA, root='document').check(doc))
+print('bound:  ', shadow.Schema(SCHEMA, BIND, 'document').check(doc))

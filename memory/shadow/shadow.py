@@ -18,11 +18,21 @@ scalar type may carry a limit: `!int(0..100)`, `!str(1..)`, `!str(/regex/)`.
 Mappings are closed otherwise. Alternatives are chosen by shape, never by how text looks: at most
 one scalar type, at most one sequence, and mappings told apart by their
 required keys and literals.
+
+A schema is a table, `--- &`. Its root is an entry, named by the app or by a data
+document's `--- !name`. `read_stream` reads a stream that holds both. A name in the
+table wins over a standard one. A name with a `/` is global and is never looked up.
 """
+import base64
+import binascii
+import datetime
 import re
 import yaml
 
-BUILTIN = {'str', 'int', 'float', 'bool', 'any'}
+BUILTIN = {'str', 'int', 'float', 'bool', 'any', 'date', 'datetime', 'binary'}
+INT = r'-?(0|[1-9][0-9]*)'
+DATE = r'[0-9]{4}-[0-9]{2}-[0-9]{2}'
+DATETIME = DATE + r'[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([Zz]|[-+][0-9]{2}:[0-9]{2})'
 
 
 class SchemaError(Exception):
@@ -145,14 +155,18 @@ def to_type(value):
     return parse_expr(value)
 
 
+def _blank(text):
+    """True if the text holds only blank lines and comments."""
+    return all(l.strip() == '' or l.lstrip().startswith('#') for l in text.splitlines())
+
+
 class Schema:
-    def __init__(self, text, bind=None):
+    def __init__(self, text, bind=None, root=None):
         # App code bound to named types: name -> fn(value) -> typed, or raises
         # ValueError. A schema only names types; it never picks the code.
         self.bind = bind or {}
         self.defs = {}
         raw = {}
-        root = None
         lines = [l for l in text.splitlines() if not l.startswith('%YAML')]
         docs, cur, marked = [], [], False
         for line in lines:
@@ -165,23 +179,22 @@ class Schema:
         if cur:
             docs.append((marked, '\n'.join(cur)))
         for is_def, body in docs:
-            data = yaml.load(_prepare(body), Loader=yaml.BaseLoader)
             if not is_def:
-                root = data
+                if not _blank(body):
+                    raise SchemaError('a schema is a table: `--- &` only')
                 continue
+            data = yaml.load(_prepare(body), Loader=yaml.BaseLoader)
             for name, entry in data.items():
-                if name in BUILTIN:
-                    raise SchemaError(f'{name} is a built-in type')
                 raw[name] = self._merge(entry, raw, name)
         self.defs = {k: to_type(v) for k, v in raw.items()}
         self.names = {id(t): n for n, t in self.defs.items()}
-        self.root = to_type(self._merge(root, raw, 'root'))
+        if root is not None and root not in self.defs:
+            raise SchemaError(f'no entry {root}')
+        self.root = None if root is None else self.defs[root]
         for name, t in self.defs.items():
             self._check_names(t, name)
-        self._check_names(self.root, 'root')
         for name, t in self.defs.items():
             self._check_alts(t, name)
-        self._check_alts(self.root, 'root')
 
     @staticmethod
     def _merge(entry, raw, name):
@@ -202,7 +215,7 @@ class Schema:
         """The alternatives of t, with names resolved."""
         if t[0] == 'alt':
             return [a for x in t[1] for a in self.flat(x, seen)]
-        if t[0] == 'name' and t[1] not in BUILTIN:
+        if t[0] == 'name' and (t[1] in self.defs or t[1] not in BUILTIN):
             if t[1] not in self.defs:
                 raise SchemaError(f'no type {t[1]}')
             if t[1] in seen:
@@ -258,7 +271,7 @@ class Schema:
         if kind == 'alt':
             return self.conv_alt(self.flat(t), v, path)
         if kind == 'name':
-            if t[1] in BUILTIN:
+            if t[1] not in self.defs:
                 return self.conv_scalar(t[1], v, path, t[2] if len(t) > 2 else None)
             out = self.conv(self.defs[t[1]], v, path)
             if t[1] in self.bind:
@@ -292,10 +305,22 @@ class Schema:
             out = v
         elif name == 'bool' and v in ('true', 'false'):
             out = v == 'true'
-        elif name == 'int' and re.fullmatch(r'-?[0-9]+', v):
+        elif name == 'int' and re.fullmatch(INT, v):
             out = int(v)
-        elif name == 'float' and re.fullmatch(r'-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?', v):
+        elif name == 'float' and re.fullmatch(INT + r'(\.[0-9]+)?([eE][-+]?[0-9]+)?', v):
             out = float(v)
+        elif name in ('date', 'datetime', 'binary'):
+            try:
+                if name == 'date' and re.fullmatch(DATE, v):
+                    out = datetime.date.fromisoformat(v)
+                elif name == 'datetime' and re.fullmatch(DATETIME, v):
+                    out = datetime.datetime.fromisoformat(v.upper().replace('Z', '+00:00'))
+                elif name == 'binary':
+                    out = base64.b64decode(v.encode('ascii'), validate=True)
+                else:
+                    raise ValueError
+            except (ValueError, binascii.Error, UnicodeEncodeError):
+                raise Bad(path, f'expected {name}, got {v[:40]!r}')
         else:
             raise Bad(path, f'expected {name}, got {v[:40]!r}')
         if limit and limit[0] == 're':
@@ -376,5 +401,42 @@ class Schema:
         return True
 
 
-def load(path, bind=None):
-    return Schema(open(path).read(), bind)
+def load(path, bind=None, root=None):
+    return Schema(open(path).read(), bind, root)
+
+
+def read_stream(text, bind=None):
+    """Read a stream with its own table. Yield (name, value) per data document.
+
+    A document's `--- !name` types it if the table has that name. Otherwise the
+    name is only passed on, and a name with a `/` is never looked up.
+    """
+    table, docs, name, cur, into = [], [], None, None, None
+    for line in text.splitlines():
+        if line.startswith('%YAML'):
+            continue
+        if line.startswith('---'):
+            if into == 'data':
+                docs.append((name, '\n'.join(cur)))
+            mark = line[3:].strip()
+            into = 'table' if mark == '&' else 'data'
+            name = mark[1:] if mark.startswith('!') and len(mark) > 1 else None
+            if mark == '!':
+                raise SchemaError('`--- !` needs a name')
+            cur = table if into == 'table' else []
+            if into == 'table':
+                table.append(line)
+            continue
+        if into is None:
+            if _blank(line):
+                continue
+            raise SchemaError('a document starts with `---`')
+        cur.append(line)
+    if into == 'data':
+        docs.append((name, '\n'.join(cur)))
+    schema = Schema('\n'.join(table), bind) if table else None
+    for name, body in docs:
+        value = yaml.load(body, Loader=yaml.BaseLoader)
+        if schema and name in schema.defs:
+            value = schema.conv(schema.defs[name], value, '')
+        yield name, value

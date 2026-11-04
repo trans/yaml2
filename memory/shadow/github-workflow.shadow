@@ -262,14 +262,15 @@ triggers:
   schedule?: [!cron, ...]
   workflow_call?: !workflow-call
   workflow_dispatch?: !workflow-dispatch
----
-name?: !str
-run-name?: !str
-on: !event | !triggers | [!event, ...]
-env?: !str-map | !expr
-defaults?: !defaults
-concurrency?: !str | !concurrency
-cache-mode?: !cache-mode
-permissions?: !permissions
-jobs:
-  !str: !job
+# The root: a data document says `--- !workflow`, or the app names it.
+workflow:
+  name?: !str
+  run-name?: !str
+  on: !event | !triggers | [!event, ...]
+  env?: !str-map | !expr
+  defaults?: !defaults
+  concurrency?: !str | !concurrency
+  cache-mode?: !cache-mode
+  permissions?: !permissions
+  jobs:
+    !str: !job

@@ -121,8 +121,9 @@ def main():
     validator = jsonschema.validators.validator_for(schema, default=jsonschema.Draft7Validator)(schema)
     here = os.path.dirname(os.path.abspath(__file__))
     file = 'github-workflow.shadow' if kind == 'workflows' else 'compose.shadow'
-    sh = shadow.load(os.path.join(here, file))
-    bound = shadow.load(os.path.join(here, file), BINDINGS if kind == 'workflows' else None)
+    root = 'workflow' if kind == 'workflows' else 'compose'
+    sh = shadow.load(os.path.join(here, file), root=root)
+    bound = shadow.load(os.path.join(here, file), BINDINGS if kind == 'workflows' else None, root)
     tally = collections.Counter()
     reasons = {'shadow_only': collections.Counter(), 'schema_only': collections.Counter()}
     good = []

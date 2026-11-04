@@ -66,6 +66,14 @@ limits (`!int(0..100)`) were added, with `x-*` replaced by `!str(/^x-/)`. Every
 result above came out the same. The schema language in `rules.md` is current;
 results above were first produced with the older notation.
 
+## Roots and standard names (2026-11-04)
+
+Each shadow's root is now a table entry (`workflow`, `compose`, `document` in
+`objects.py`), picked with `root=`; bare `--- !` is gone. `!int` and `!float` take
+JSON's spellings, and `!date`, `!datetime` and `!binary` are added. Both comparisons
+came out identical. `read_stream` reads a stream with its own table and yields
+`(name, value)` per document. It has been run on small examples only.
+
 ## What the tests changed
 
 See rules.md, YAML Schema.

@@ -297,37 +297,35 @@ tests settled on, all the agent's proposals, not yet answered:
   named type.
 - **Schemas name types; app code binds them to classes.** A schema must never
   name a class to build, or `!ruby/object` comes back by another door.
-- **`--- !` marks a shadow** (the user asked how a schema is identified,
-  2026-11-03). `--- &` is the lookup table, `--- !` a shadow, `---` data, and only
-  data is delivered. A schema file is a table and a shadow; a stream can carry both
-  before its data, and a shadow types the `---` documents after it. One table per
-  stream: `!job` and `*defaults` look in the same place. An app can supply a schema
-  directly or by prepending it, and the app's schema wins. It also eases the "above
-  or below the line" wart. The prototype reads `--- !` in a schema file; a shadow
-  and data in one stream isn't tested. **Proposed to replace this:** see the next item.
-- **A document names its interpretation with `--- !name`**, **proposed** 2026-11-04. The
-  user asked for a whole-document tag so any app reading a file knows what it is
-  meant to be, and that is also how a lone file points at its schema. It is per
-  document, optional, delivered beside the data and not in it. A parser looks nothing
-  up and never fetches: it is a name, not an address, and reading a file must not touch
-  the network. The app's schema wins, so a hostile file can't pick a laxer one, and an
-  app may refuse a name it didn't expect. Node tags stay out. A name with a `/` is
-  global, domain first (`github.com/actions/workflow`); one without is local to the
-  stream or app. No `tag:` form and no year: that date only shows who held the domain
-  (RFC 4151), and a name is advisory, so a domain changing hands does no harm. A format
-  with versions puts one in the path (`.../workflow/v1`). If the stream's table has that name, it types the document; otherwise
-  it is only a name for the app. Then the bare `--- !` goes: a shadow's root is a table
-  entry, so the markers are `--- &`, `--- !name` and `---`. Moving both shadows' roots
-  into named entries changed no result. A table and data in one stream isn't tested.
-- **No `!` versus `!!`,** proposed 2026-11-04 (the user asked). Inside a schema every
-  name is built in or in the table, which already separates standard from app. If the
-  standard later adds a name a table defines, the table wins. An app type is a table
-  entry plus app code, so `!ruby!int` isn't needed.
-- **Standard names are exact,** proposed 2026-11-04, since a schema exists to be a
-  shared standard (the user). `!bool` is `true` or `false`. `!int` and `!float` take
-  JSON's spellings, so `0755` is refused; that changed no result in either comparison.
-  Add `!date`, `!datetime` and `!binary` (RFC 3339 and base64). Not `!uri`, which is a
-  pattern question, nor `!set`, which an app can bind.
+- **How a stream is marked** (the user accepted this, 2026-11-04). `--- &` is the
+  lookup table, `--- !name` a named document, `---` a plain one, and only data is
+  delivered. Bare `--- !` goes: a shadow's root is a table entry, so a schema file is
+  a table and nothing else. One table per stream: `!job` and `*defaults` look in the
+  same place. An app can supply a schema directly or by prepending it. Moving both
+  shadows' roots into named entries changed no result.
+- **A document names its interpretation with `--- !name`** (the user asked for a
+  whole-document tag so any app reading a file knows what it is meant to be, and
+  accepted this, 2026-11-04). It is also how a lone file points at its schema. It is
+  per document, optional, delivered beside the data and not in it. A parser looks
+  nothing up and never fetches: it is a name, not an address, and reading a file must
+  not touch the network. It is advisory. The app's schema wins, so a hostile file
+  can't pick a laxer one, and an app may refuse a name it didn't expect. Node tags
+  stay out. A name with a `/` is global, domain first (`github.com/actions/workflow`);
+  one without is local to the stream or app. No `tag:` form and no year: that date
+  only shows who held the domain (RFC 4151), and a name is advisory, so a domain
+  changing hands does no harm. A format with versions puts one in the path
+  (`.../workflow/v1`). If the stream's table has that name, it types the document;
+  otherwise it is only a name for the app. `read_stream` in the prototype does this,
+  tested on small examples only, not on real files.
+- **No `!` versus `!!`** (the user asked, and accepted this, 2026-11-04). Inside a
+  schema every name is built in or in the table, which already separates standard
+  from app. If the standard later adds a name a table defines, the table wins. An app
+  type is a table entry plus app code, so `!ruby!int` isn't needed.
+- **Standard names are exact** (the user accepted this, 2026-11-04), since a schema
+  exists to be a shared standard. `!bool` is `true` or `false`. `!int` and `!float`
+  take JSON's spellings, so `0755` is refused; that changed no result in either
+  comparison. `!date`, `!datetime` and `!binary` are added (RFC 3339 and base64). Not
+  `!uri`, which is a pattern question, nor `!set`, which an app can bind.
 - **Patterns:** the user wants to revisit them.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.

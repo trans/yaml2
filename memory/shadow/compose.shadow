@@ -501,22 +501,23 @@ include-map:
   env_file?: !str | [!str, ...]
   project_directory?: !str
 include: !str | !include-map
----
-<<: *ext
-version?: !str
-name?: !str
-include?: [!include, ...]
-services?:
-  !str: !service
-models?:
-  !str: !model
-networks?:
-  !str: !network | ''
-volumes?:
-  !str: !volume | ''
-secrets?:
-  !str: !secret
-configs?:
-  !str: !config
-jobs?:
-  !str: !job
+# The root: a data document says `--- !compose`, or the app names it.
+compose:
+  <<: *ext
+  version?: !str
+  name?: !str
+  include?: [!include, ...]
+  services?:
+    !str: !service
+  models?:
+    !str: !model
+  networks?:
+    !str: !network | ''
+  volumes?:
+    !str: !volume | ''
+  secrets?:
+    !str: !secret
+  configs?:
+    !str: !config
+  jobs?:
+    !str: !job
