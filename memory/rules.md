@@ -212,9 +212,13 @@ emitter never sorts them. Proposed consequences, not yet answered:
 The user's term, 2026-11-03: the optional layer that types the data. The user
 calls it the real trick: Ruby and others still serialize, through schemas.
 
+**What it is** (the user, 2026-11-04): not needed to use YAML. Apps can take
+responsibility for interpretation, and no schema is necessary. A schema is a shared
+common means of interpretation and constraints, and nothing more.
+
 **A schema is a typed shadow of the document** (the user's idea, 2026-11-03,
-"something to that effect"; adopted over reusing JSON Schema, the user's "sure" on
-2026-11-04, to be confirmed). It mirrors the document, with each
+"something to that effect"; confirmed 2026-11-04 over reusing JSON Schema, with work
+still to do on it). It mirrors the document, with each
 value replaced by its type:
 
 ```yaml
@@ -300,9 +304,29 @@ tests settled on, all the agent's proposals, not yet answered:
   stream: `!job` and `*defaults` look in the same place. An app can supply a schema
   directly or by prepending it, and the app's schema wins. It also eases the "above
   or below the line" wart. The prototype reads `--- !` in a schema file; a shadow
-  and data in one stream isn't tested.
-- **Open:** how a data file on its own points at its schema, for editors and
-  generic tools. Today that's a comment or file name matching.
+  and data in one stream isn't tested. **Proposed to replace this:** see the next item.
+- **A document names its interpretation with `--- !name`**, **proposed** 2026-11-04. The
+  user asked for a whole-document tag so any app reading a file knows what it is
+  meant to be, and that is also how a lone file points at its schema. It is per
+  document, optional, delivered beside the data and not in it. A parser looks nothing
+  up and never fetches: it is a name, not an address, and reading a file must not touch
+  the network. The app's schema wins, so a hostile file can't pick a laxer one, and an
+  app may refuse a name it didn't expect. Node tags stay out. A name with a `/` is
+  global, domain first (`github.com/actions/workflow`); one without is local to the
+  stream or app. If the stream's table has that name, it types the document; otherwise
+  it is only a name for the app. Then the bare `--- !` goes: a shadow's root is a table
+  entry, so the markers are `--- &`, `--- !name` and `---`. Moving both shadows' roots
+  into named entries changed no result. A table and data in one stream isn't tested.
+- **No `!` versus `!!`,** proposed 2026-11-04 (the user asked). Inside a schema every
+  name is built in or in the table, which already separates standard from app. If the
+  standard later adds a name a table defines, the table wins. An app type is a table
+  entry plus app code, so `!ruby!int` isn't needed.
+- **Standard names are exact,** proposed 2026-11-04, since a schema exists to be a
+  shared standard (the user). `!bool` is `true` or `false`. `!int` and `!float` take
+  JSON's spellings, so `0755` is refused; that changed no result in either comparison.
+  Add `!date`, `!datetime` and `!binary` (RFC 3339 and base64). Not `!uri`, which is a
+  pattern question, nor `!set`, which an app can bind.
+- **Patterns:** the user wants to revisit them.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

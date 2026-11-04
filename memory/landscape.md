@@ -232,6 +232,15 @@ aren't used here.
 Tabs split parsers: `key:\tvalue` loads in libyaml, Psych and go-yaml v3, and pure
 Python PyYAML refuses it. `-\tvalue` is refused by all of them.
 
+## How files say what they are (2026-11-04)
+
+In the public samples, Kubernetes files carry `apiVersion` and `kind` (280 of 320),
+OpenAPI files `openapi` or `swagger` (369 of 419), and 116 of 311 Compose files a
+`version`. The rest say nothing: tools go by file name or path. The
+`# yaml-language-server: $schema=` comment is in 8 of about 4,000 files, a root `$schema`
+key in none. In the five JSON Schemas, `format` is 25 of 3,567 keyword uses: `uri-reference`
+14, `uri` 7, `email` 2, `date-time` 1, `regex` 1.
+
 ## Partial fixes so far
 
 - KYAML (Kubernetes, KEP-5295): a subset with double-quoted value strings,
