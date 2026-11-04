@@ -62,6 +62,22 @@ The same 2,995 files. Non-scalar keys were in 16 files, all of them Helm
 templates where `{{ x }}` happens to parse as a flow mapping, so none were
 meant. Duplicate keys were in 4 files, all test fixtures of bad input.
 
+## What real JSON Schemas spend their keywords on (2026-11-03)
+
+Five schemas: GitHub workflows, Compose, GitLab CI, package.json, Ansible
+playbooks (2,399 schema nodes, 3,567 keyword uses). Counted by walking schema
+positions, leaving out documentation keywords.
+
+- Shape (`type`, `properties`, `items`, `required`, `$ref`, `enum`, ...): 86.2%.
+- Unions and conditions (`oneOf`, `anyOf`, `allOf`, `if`, `not`): 7.8%.
+- Validation (`pattern`, `minLength`, `minimum`, `format`, ...): 6.0%.
+
+Per node: `$ref` is common (560 uses), so named types matter. 118 nodes are maps
+with arbitrary keys. 68 unions mix a scalar with a sequence or mapping, which
+shape can tell apart. All 117 unions of
+scalar types include string (`boolean|string` 38, `integer|string` 33,
+`number|string` 29, all three with string 17).
+
 ## YPATH so far (checked 2026-11-03)
 
 No agreed standard exists. yaml/yaml-path is an empty repository. The others:

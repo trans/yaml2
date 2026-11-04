@@ -142,26 +142,42 @@ Evidence is in landscape.md.
 
 The user's term, 2026-11-03: the optional layer that types the data. The user
 calls it the real trick: Ruby and others still serialize, through schemas.
-Nothing is designed yet.
 
-What the decisions above leave it to do (the agent's list):
+**A schema is a typed shadow of the document** (the user's idea, 2026-11-03,
+"something to that effect"; the user isn't sure it's enough; the agent
+recommends it over reusing JSON Schema; not decided). It mirrors the document,
+with each value replaced by its type:
 
-- Type scalars: integer, float, boolean, date, each with one exact spelling.
-- Say when `key:` means null.
-- Carry what 1.x types did: set, ordered map, binary.
-- Turn a sequence of pairs back into a map.
-- Do what tags did in polymorphic places: which kind of thing is this mapping?
+```yaml
+a: !int
+b: !str
+c: ![int*]
+```
 
 The agent's proposals, not yet answered:
 
+- **It types; it doesn't validate.** Real JSON Schemas are 86% shape and 6%
+  validation (landscape.md), so dropping validation is most of the
+  simplification. Ranges and patterns stay the app's job.
+- **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
+  plain string and the parser knows nothing about schemas. In a schema, a value
+  starting with `!` is a type; any other value is a literal that must match,
+  which gives discriminators (`kind: circle`).
+- **Many or fixed:** `[int*]` is any number, `[int, str]` is exactly those two.
+- **Optional:** `!int?`.
+- **Arbitrary keys:** a type as the key, `!str: !int`.
+- **Named types** live in the schema's `--- &` document and are written
+  `!service`. The schema layer resolves them, not the parser, so recursive types
+  work although `--- &` documents can't hold references.
+- **Alternatives** (`!str | ![str*]`) are chosen by shape or by a literal, never
+  by how text looks, and at most one may be a scalar. All 117 scalar unions in
+  the sample include string, so each is simply `!str` in 2.0.
 - **Schemas name types; app code binds them to classes.** A schema must never
-  name a class to build, or `!ruby/object` comes back by another door. This
-  matters most if a document can choose its own schema.
-- **Reuse JSON Schema's vocabulary, with `type` meaning convert.** As written
-  it can't apply: every scalar is a string, so `type: integer` always fails.
-  Reading it as "convert to integer" makes SchemaStore's existing schemas type
-  2.0 files with nobody writing new ones.
-- **No guessing between scalar types.** `type: [number, string]` applied to
-  `1.10` gives 1.1: implicit typing again, now in the schema.
+  name a class to build, or `!ruby/object` comes back by another door.
+- **Delivery:** `--- !` carries a shadow for the documents after it, and an app
+  supplies one by prepending it, as with `--- &`. The app's schema wins.
+- **JSON Schema stays a source:** its common part could be converted to shadows
+  mechanically, so SchemaStore's work isn't lost.
 
-Open: how a document or app says which schema applies now that tags are out.
+Still to design: dates and other exact spellings, null, pairs back to a map,
+set, ordered map, binary.
