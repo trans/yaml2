@@ -56,6 +56,12 @@ files (124 keys, mostly `app.kubernetes.io/name`-style), `.` in 160 files
 (1,273 keys). No CloudFormation in the sample, so `Fn::Sub`-style keys don't
 show up.
 
+## Complex and duplicate keys (2026-11-03)
+
+The same 2,995 files. Non-scalar keys were in 16 files, all of them Helm
+templates where `{{ x }}` happens to parse as a flow mapping, so none were
+meant. Duplicate keys were in 4 files, all test fixtures of bad input.
+
 ## YPATH so far (checked 2026-11-03)
 
 No agreed standard exists. yaml/yaml-path is an empty repository. The others:

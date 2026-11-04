@@ -110,11 +110,23 @@ to retain, but definition documents do that with fewer rules.
 
 ## How a file says it is 2.0
 
-Open. The agent's proposal, not yet answered: `%YAML 2.0` is required on the
-first line, and `---` isn't needed after it. Without it a clean break reopens
-the original mine, since an old parser reads a 2.0 file silently and wrongly.
-Tested 2026-11-03 on PyYAML, libyaml and Psych: `country: NO` with no directive
-reads as false in all three, and `%YAML 2.0` is refused in all three.
+**`%YAML 2.0` is required** (the user chose, 2026-11-03), and can be relaxed
+once 2.0 has taken over; dropping it then breaks no file. Without it a clean
+break reopens the original mine, since an old parser reads a 2.0 file silently
+and wrongly. Tested 2026-11-03 on PyYAML, libyaml and Psych: `country: NO` with
+no directive reads as false in all three, and `%YAML 2.0` is refused in all
+three.
+
+Not confirmed (the agent's terms): it goes on the first line, `---` isn't needed
+after it, and a 2.0 parser treats a file without it as not 2.0, refusing it or
+handing it to a 1.x mode.
+
+## Keys
+
+Open. The agent's proposal, not yet answered: keys are strings only, a
+duplicate key is an error, and `?` goes. Nothing real uses what this cuts
+(landscape.md), and a stray `{{ x }}` becomes an error instead of a mapping
+with a mapping for a key.
 
 ## YAML Schema
 
