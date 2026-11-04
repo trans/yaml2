@@ -145,9 +145,13 @@ Not confirmed (the agent's terms):
 - A reference names exactly one node, as a copy, so the data stays a tree. A
   query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
   later question.
-- Keys only, no sequence indices: `*steps:0` would still resolve after someone
-  inserts a step, to the wrong one. Reuse in sequences works (`- *checkout`).
-- A reference can't be a key.
+- Keys only, no sequence indices (the user, 2026-11-04: fine for now, "it can alwasy
+  be revisted"): `*steps:0` would still resolve after someone inserts a step, to the
+  wrong one. A path through a sequence is an error, so allowing indices later changes
+  no working file. Reuse in sequences works (`- *checkout`).
+- A reference can't be a key: `*foo: x` stays an error for now, as agreed under Keys
+  (2026-11-03). Real use: none in 4,164 public files parsed, 161 of them using
+  references (2026-11-04). 1.x allows `*foo : x`.
 - Cost: the upgrade moves text. A base that is also real data moves out and
   stays as `web: *web`.
 
