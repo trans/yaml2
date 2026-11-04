@@ -267,10 +267,14 @@ Still missing:
 
 - Rules across keys: `not` 26, `if` 12. "Not both", "at least one of" and "if this
   then that" can't be written, except a literal choosing between alternatives.
-- Documentation: descriptions, defaults, examples. 75% of the workflow schema is
-  this, and editors use it for hover text and completion. A shadow has only
-  comments, which aren't data. The biggest practical gap. The agent proposes that
-  a comment directly above a key is its description; not answered.
+- Documentation. It isn't needed to load or type anything; only editors use it
+  (hover text, completion). The real problem is that a shadow gives each field one
+  slot, its type, where JSON Schema gives an object. In the five schemas: 1,043
+  descriptions, 162 titles, 61 defaults, 9 examples, 4 deprecations, so nearly all
+  prose. The agent proposes that a comment directly above a key is its
+  description, as with RDoc or YARD: parsers still discard comments, and only
+  doc tools keep them. A default stays prose: applying it would make the same
+  bytes give different data. Not answered, and no tool built.
 - Links across files: `$ref` to another file or URL. A shadow has one stream.
 - Same-shape alternatives: two sequences, or two scalars, told apart by content.
 
