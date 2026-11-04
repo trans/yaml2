@@ -256,7 +256,10 @@ tests settled on, all proposals, left open for the core team:
   2026-11-04: regex may not be needed at all; something simpler like PIC, or
   glob-like, may be enough. See **Patterns** below.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
-  plain string and the parser knows nothing about schemas. A value starting with
+  plain string and the parser knows nothing about schemas. So a leftover 1.x tag reads
+  as text, in 137 of 3,544 public files. The agent proposed refusing a plain scalar
+  starting with `!` outside the table. The user is thinking it over (2026-11-04): it may
+  not be needed, since people have to convert, not just add `%YAML 2.0`. A value starting with
   `!` is a type expression; any other value is a literal that must match.
 - **`!` marks a type on every part; bare text is a literal** (the user's `!a | !b`,
   2026-11-04): `!a | !b`, `!str | inherit`, and enums need no quotes: `read | write

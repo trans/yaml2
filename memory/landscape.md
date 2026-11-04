@@ -346,3 +346,14 @@ Reading "as written" means all values are strings. It says nothing about what an
 does with them. `{ description: Queue full, or queue limit }` is a real bug the draft
 catches: 1.x silently makes a second key with a null value.
 
+## Comments that tools read, and forced quotes (2026-11-04)
+
+Rough line scans of the 4,651 public files. About 54% hold a comment (some are `#` lines
+inside block scalars). 158 files (3.4%) hold one a known tool reads: release tools 67,
+`# noqa` 38, yamllint 24, helm-docs 16, kubeconform and the like 12,
+`yaml-language-server` 8, security scanners 7, renovate 1.
+
+1.x refuses a plain scalar starting with `%`, `@` or a backtick, so these have to be
+quoted: 1,530 start with `%`, mostly Rails strings like `%{count}` and `%Y-%m-%d`, 26
+with `@`, 9 with a backtick.
+
