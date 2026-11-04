@@ -110,9 +110,15 @@ refinement: only a single `:` separates, so `Fn::Sub` is one key and only
 
 Not confirmed (the agent's terms):
 
-- Quote rather than escape: `*a:"foo:bar"`. A quoted segment is a whole key,
-  with the same quotes as scalars. It also covers spaces and flow characters,
-  so no second escape scheme is needed.
+- No quotes in a reference, **proposed** 2026-11-04, not answered, replacing the
+  agent's `*a:"foo:bar"`. The user asked whether schema keys could just refuse `:`.
+  The agent narrowed that to entry names, the top level of a `--- &` document, which
+  are never delivered, so renaming one costs nothing. Deeper keys are delivered, and a
+  shadow must mirror them, so they keep their colons. A path splits at every single
+  `:`, so it can't reach such a key, but copying its parent still brings it. A `"` in a
+  reference is an error, so quotes can be added later without breaking a file. Tested
+  on GitLab's 126 real `!reference` paths: 21 go through a colon key, all at the entry
+  name, so 21 need a rename and none loses reach. No path segment holds a space.
 - A `--- &` document is a mapping and is never delivered as data, which replaces
   Compose's `x-` keys and GitLab's hidden jobs.
 - It stays in scope for the rest of the stream, so several documents can share

@@ -85,6 +85,16 @@ files (124 keys, mostly `app.kubernetes.io/name`-style), `.` in 160 files
 (1,273 keys). No CloudFormation in the sample, so `Fn::Sub`-style keys don't
 show up.
 
+That sample understates `:`, because it held no GitLab files. Rechecked 2026-11-04 on
+the 4,651 public files, 388,646 keys: a single `:` in 1,975 (1,438 of them Rails keys
+like `:one`), `/` in 7,861, `.` in 7,584. So `:` is still the best separator, but GitLab
+job names use it: 273 of 21,715 keys, in 42 of 369 files. Other real ones include
+`aws:SecureTransport` and OAuth scopes like `read:accounts`.
+
+Real paths exist only in GitLab's `!reference`: 126 in 369 files, 125 of them two
+segments long. All 126 start at a hidden job. 21 hold a `:`, always in the first
+segment (`[.deps:rocm, before_script]`). None holds a space.
+
 ## Complex and duplicate keys (2026-11-03)
 
 The same 2,995 files. Non-scalar keys were in 16 files, all of them Helm
