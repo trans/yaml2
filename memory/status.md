@@ -18,10 +18,12 @@ no code on `main`. Background is in
 2. **Whose name it is.** "YAML 2.0" is the next version number of a spec
    the yaml-spec group maintains. Work through that group, or publish
    independently and offer it to them? Can wait for a draft.
-3. **Publishing.** The user added `origin`, `trans/yaml2` on GitHub, public, on
-   2026-11-04. It was empty then, and nothing has been pushed: ask first. The `ai`
-   branch goes public with it, so write nothing private here. No transcripts are
-   kept in this repository yet, so `transcript.encrypt` can wait.
+3. **Publishing.** `origin` is `trans/yaml2` on GitHub, public. The user added it and
+   approved the first push of `main` and `ai` on 2026-11-04, with @oyl's figures in
+   `landscape.md` and with `ai`'s history rewritten first to drop one private sentence.
+   So the `ai` branch is public: write nothing private here. Ask before pushing
+   again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
+   wait.
 
 ## Working with @oyl
 

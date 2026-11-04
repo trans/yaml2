@@ -353,15 +353,15 @@ Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
 
 - Multi-line plain scalars go: a plain scalar is one line. The user's earlier idea
   (yaml/YAML2#5, 2016) was to keep their line breaks, since an app can remove lines
-  but can't get them back. That argument holds, and `|` does that. But real files
-  rely on folding, so keeping breaks would silently change them, and a dropped `- `
-  or `:` would still be swallowed. Cutting makes both an error.
+  but can't get them back. The user retracted it on 2026-11-04. Real files rely on
+  folding, so keeping breaks would silently change them, and a dropped `- ` or `:`
+  would still be swallowed. Cutting makes both an error.
 - `|` always ends in exactly one newline, whether or not the file does. Blank lines
   after it are layout. Otherwise an editor's final newline changes the value.
 - `--- |` as a text document: everything after that line, byte for byte, is one
   string. No indentation, no chomping, and a `---` inside is text, so it must be the
-  last document. This is the user's flush-left string from YAML2#5, and it covers
-  front matter.
+  last document. This grew from the user's flush-left string in YAML2#5, and it covers
+  front matter. Whether the retraction above covers it too is **not yet asked**.
 - Rare forms go, each under 0.5% of 4,026 public files, each a loud error with an
   easy fix: `|+` and `>+`; indentation indicators (`|2`); UTF-16, UTF-32 and a BOM, so
   UTF-8 only; tabs outside strings; one-pair `[a: b]`; the `...` marker, since `---`
