@@ -1,6 +1,6 @@
 # Typed shadow experiments
 
-*Updated 2026-11-03*
+*Updated 2026-11-04*
 
 Does a typed shadow carry a full real format? `github-workflow.shadow` is
 GitHub's workflow format, written from SchemaStore's `github-workflow.json`, and
@@ -54,6 +54,12 @@ any key with an empty value (`!str?`). The second was later replaced by
   false, `0.50` to 0.5. All stay as written under Rule 1.
 - **Size:** 9.4 KB against 22.0 KB of compact schema without its documentation.
 - **Merge:** 63 uses of `<<` across both shadows, all at the top of an entry.
+
+## Notation since (2026-11-04)
+
+Both shadows were converted to `!a | !b`, bare literals and `[!x, ...]`. Every
+result above came out the same. The schema language in `rules.md` is current;
+results above were first produced with the older notation.
 
 ## What the tests changed
 

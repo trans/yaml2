@@ -6,7 +6,7 @@ SCHEMA = """%YAML 2.0
 --- &
 date: !str
 blob: !str
-tag-set: ![str*]
+tag-set: [!str, ...]
 point:
   x: !float
   y: !float
@@ -18,14 +18,14 @@ square:
   kind: square
   corner: !point
   side: !float
-shape: !circle | square
-labels: ![[[int, int], str]*]
+shape: !circle | !square
+labels: [[[!int, !int], !str], ...]
 ---
 when: !date
 data: !blob
 tags: !tag-set
 origin: !point
-shapes: ![shape*]
+shapes: [!shape, ...]
 places: !labels
 """
 

@@ -1,6 +1,6 @@
 # The rules of YAML 2.0
 
-*Updated 2026-11-03*
+*Updated 2026-11-04*
 
 The design, rule by rule, as the user sets them. Keep the user's wording for
 each rule, and keep what the agent derived from it marked as such until the
@@ -76,10 +76,13 @@ development:
   other `&` is an error, so 1.x anchors fail loudly.
 - In a `--- &` document the only reference allowed is `<<` at the top of an
   entry, merging earlier entries (the user, 2026-11-03, which refines "no
-  references inside"; the workflow shadow needed it 15 times). Nothing deeper.
-  A merge there only combines keys already written, so no entry can outgrow the
-  file. A merge nested under a new key is what doubles (billion laughs), and
-  that stays banned, so the spec needs no size limit. Argued, not tested.
+  references inside"). Nothing deeper. A merge there only combines keys already
+  written, so no entry can outgrow the file, and a merge nested under a new key,
+  which is what doubles, stays banned.
+- **Corrected 2026-11-04:** this makes growth quadratic, not small, so "no size
+  limit needed" was wrong. A 1 MB file with a 500 KB entry and 100,000 `- *a` lines
+  expands to about 50 GB. A limit on expanded size, or nodes shared in memory,
+  is probably still needed. The user is concerned about this and wants to revisit.
 - Data documents can use `<<` anywhere: what it points at holds no nested
   references, so each use adds at most one entry.
 
@@ -171,9 +174,17 @@ tests settled on, all the agent's proposals, not yet answered:
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string and the parser knows nothing about schemas. A value starting with
   `!` is a type expression; any other value is a literal that must match.
-- **Expressions:** a leading `!`, then names, `[int*]` for any number, `[int, str]`
-  for exactly those, `|` for alternatives, and `'read'` for a literal, which gives
-  enums: `!'read' | 'write' | 'none'`. The user: enums make sense (2026-11-03).
+- **`!` marks a type on every part; bare text is a literal** (the user's `!a | !b`,
+  2026-11-04): `!a | !b`, `!str | inherit`, and enums need no quotes: `read | write
+  | none`. `''` is the empty literal. A literal can't contain ` | `.
+- **Sequences are real sequences, and `...` means repeat** (the user's idea,
+  2026-11-04, replacing `*`, which already means a reference). `[!int, ...]`, or in
+  block form `- !int` then `- ...`, is any number, none included. `[!int, !str]` is
+  exactly those, `[!str, !int, ...]` a string then ints. Items can be inline
+  mappings. `...` must not start a line at column 0, where it ends a document.
+- **Mappings are real mappings:** block, or flow as `{!str: !int}`. Inside `|` a
+  mapping must be named, since `: ` can't sit in plain text, and a sequence must
+  come last, since a value can't start with `[` and go on.
 - **Optional is on the key, and means absent or empty:** `name?: !str` (the user:
   "might be ok", 2026-11-03). It can't go
   on the value, since an inline mapping has nowhere to put it (changed by the
@@ -190,6 +201,10 @@ tests settled on, all the agent's proposals, not yet answered:
   the top level, never nested, and that is what `--- &` replaces. Most of the 48
   `<<` uses in `compose.shadow` exist only to carry `x-*`. The prototype still
   takes `x-*` until this is decided.
+- **An unknown type is an error in the schema**, reported when it is loaded, so
+  `!stirng` is caught even if no document reaches that field. Every name is built
+  in (`str`, `int`, `float`, `bool`, `any`) or in the table, so an app's own type
+  is declared there (`date: !str`). This keeps a schema checkable on its own.
 - **Named types** live in the schema's `--- &` document, which is a lookup table,
   as in a data file. `!flag` looks up the key `flag` there. `*flag` would paste the
   value in, and the parser would do it; `!flag` is a plain string to the parser,
@@ -231,6 +246,21 @@ marking required keys instead may read better.
 app bindings rebuilt classes, a union of classes told apart by a literal, a set,
 a date, binary, and a map with tuple keys from pairs. Unbound, the same document
 stays plain data. This is how a language serializes through a schema.
+
+**What JSON Schema can do that this can't** (2026-11-04; counts are keyword uses in
+the five schemas in landscape.md):
+
+- Check values: `pattern` 48, `minItems`/`maxItems` 47, `minLength`/`maxLength` 47,
+  `format` 25, `uniqueItems` 25, `minimum`/`maximum` 12. Left to the app on purpose.
+- Rules across keys: `not` 26, `if` 12, `dependencies` 3. "Not both", "at least
+  one of" and "if this then that" can't be written, except a literal choosing
+  between alternatives.
+- Documentation: descriptions, defaults, examples. 75% of the workflow schema is
+  this, and editors use it for hover text and completion. A shadow has only
+  comments, which aren't data. This is the biggest practical gap, and is open.
+- Key name rules: `patternProperties` 97, many of which only say "any key".
+- Links across files: `$ref` to another file or URL. A shadow has one stream.
+- Same-shape alternatives: two sequences, or two scalars, told apart by content.
 
 Still to decide: whether the spec defines standard names (`date`, `binary`, `set`)
 with exact spellings, so that languages agree.

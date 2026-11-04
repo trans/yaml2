@@ -16,13 +16,13 @@ str-map:
   !str: !str
 any-map:
   !str: !any
-list-or-dict: !str-map | [str*]
-str-or-list: !str | [str*]
-command: !str | [str*]
+list-or-dict: !str-map | [!str, ...]
+str-or-list: !str | [!str, ...]
+command: !str | [!str, ...]
 
 extra-hosts-map:
-  !str: !str | [str*]
-extra-hosts: !extra-hosts-map | [str*]
+  !str: !str | [!str, ...]
+extra-hosts: !extra-hosts-map | [!str, ...]
 
 blkio-limit:
   path?: !str
@@ -31,12 +31,12 @@ blkio-weight:
   path?: !str
   weight?: !number
 blkio-config:
-  device_read_bps?: ![blkio-limit*]
-  device_read_iops?: ![blkio-limit*]
-  device_write_bps?: ![blkio-limit*]
-  device_write_iops?: ![blkio-limit*]
+  device_read_bps?: [!blkio-limit, ...]
+  device_read_iops?: [!blkio-limit, ...]
+  device_write_bps?: [!blkio-limit, ...]
+  device_write_iops?: [!blkio-limit, ...]
   weight?: !number
-  weight_device?: ![blkio-weight*]
+  weight_device?: [!blkio-weight, ...]
 
 credential-spec:
   <<: *ext
@@ -49,7 +49,7 @@ device-map:
   source: !str
   target?: !str
   permissions?: !str
-device: !str | device-map
+device: !str | !device-map
 
 logging:
   <<: *ext
@@ -65,11 +65,11 @@ service-models-map:
 
 service-network:
   <<: *ext
-  aliases?: ![str*]
+  aliases?: [!str, ...]
   interface_name?: !str
   ipv4_address?: !str
   ipv6_address?: !str
-  link_local_ips?: ![str*]
+  link_local_ips?: [!str, ...]
   mac_address?: !str
   driver_opts?: !str-map
   priority?: !number
@@ -82,8 +82,8 @@ volume-bind:
   <<: *ext
   propagation?: !str
   create_host_path?: !flag
-  recursive?: !'enabled' | 'disabled' | 'writable' | 'readonly'
-  selinux?: !'z' | 'Z'
+  recursive?: enabled | disabled | writable | readonly
+  selinux?: z | Z
 volume-volume:
   <<: *ext
   labels?: !list-or-dict
@@ -98,7 +98,7 @@ volume-image:
   subpath?: !str
 service-volume-map:
   <<: *ext
-  type: !'bind' | 'volume' | 'tmpfs' | 'cluster' | 'npipe' | 'image'
+  type: bind | volume | tmpfs | cluster | npipe | image
   source?: !str
   target?: !str
   read_only?: !flag
@@ -107,7 +107,7 @@ service-volume-map:
   volume?: !volume-volume
   tmpfs?: !volume-tmpfs
   image?: !volume-image
-service-volume: !str | service-volume-map
+service-volume: !str | !service-volume-map
 
 config-ref-map:
   <<: *ext
@@ -116,41 +116,41 @@ config-ref-map:
   uid?: !str
   gid?: !str
   mode?: !number
-config-ref: !str | config-ref-map
+config-ref: !str | !config-ref-map
 
 ulimit:
   <<: *ext
   hard: !number
   soft: !number
 ulimits:
-  !str: !number | ulimit
+  !str: !number | !ulimit
 
 env-file-map:
   path: !str
   format?: !str
   required?: !flag
-env-file-item: !str | env-file-map
-env-file: !str | [env-file-item*]
+env-file-item: !str | !env-file-map
+env-file: !str | [!env-file-item, ...]
 
 device-request:
   <<: *ext
-  capabilities?: ![str*]
+  capabilities?: [!str, ...]
   count?: !number
-  device_ids?: ![str*]
+  device_ids?: [!str, ...]
   driver?: !str
   options?: !list-or-dict
-gpus: !'all' | [device-request*]
+gpus: all | [!device-request, ...]
 
 container-spec:
   <<: *ext
   annotations?: !list-or-dict
   blkio_config?: !blkio-config
-  cap_add?: ![str*]
-  cap_drop?: ![str*]
-  cgroup?: !'host' | 'private'
+  cap_add?: [!str, ...]
+  cap_drop?: [!str, ...]
+  cgroup?: host | private
   cgroup_parent?: !str
   command?: !command
-  configs?: ![config-ref*]
+  configs?: [!config-ref, ...]
   cpu_count?: !number
   cpu_percent?: !number
   cpu_shares?: !number
@@ -161,19 +161,19 @@ container-spec:
   cpus?: !number
   cpuset?: !str
   credential_spec?: !credential-spec
-  device_cgroup_rules?: ![str*]
-  devices?: ![device*]
+  device_cgroup_rules?: [!str, ...]
+  devices?: [!device, ...]
   dns?: !str-or-list
-  dns_opt?: ![str*]
+  dns_opt?: [!str, ...]
   dns_search?: !str-or-list
   domainname?: !str
   entrypoint?: !command
   env_file?: !env-file
-  label_file?: !str | [str*]
+  label_file?: !str | [!str, ...]
   environment?: !list-or-dict
   extra_hosts?: !extra-hosts
   gpus?: !gpus
-  group_add?: ![str*]
+  group_add?: [!str, ...]
   hostname?: !str
   image?: !str
   init?: !flag
@@ -187,8 +187,8 @@ container-spec:
   mem_swappiness?: !number
   memswap_limit?: !number
   network_mode?: !str
-  models?: ![str*] | service-models-map
-  networks?: ![str*] | service-networks-map
+  models?: !service-models-map | [!str, ...]
+  networks?: !service-networks-map | [!str, ...]
   oom_kill_disable?: !flag
   oom_score_adj?: !number
   pid?: !str
@@ -199,9 +199,9 @@ container-spec:
   pull_refresh_after?: !str
   read_only?: !flag
   runtime?: !str
-  security_opt?: ![str*]
+  security_opt?: [!str, ...]
   shm_size?: !number
-  secrets?: ![config-ref*]
+  secrets?: [!config-ref, ...]
   sysctls?: !list-or-dict
   stop_grace_period?: !str
   stop_signal?: !str
@@ -213,8 +213,8 @@ container-spec:
   user?: !str
   uts?: !str
   userns_mode?: !str
-  volumes?: ![service-volume*]
-  volumes_from?: ![str*]
+  volumes?: [!service-volume, ...]
+  volumes_from?: [!str, ...]
   working_dir?: !str
 
 build-map:
@@ -222,12 +222,12 @@ build-map:
   context?: !str
   dockerfile?: !str
   dockerfile_inline?: !str
-  entitlements?: ![str*]
+  entitlements?: [!str, ...]
   args?: !list-or-dict
   ssh?: !list-or-dict
   labels?: !list-or-dict
-  cache_from?: ![str*]
-  cache_to?: ![str*]
+  cache_from?: [!str, ...]
+  cache_to?: [!str, ...]
   no_cache?: !flag
   no_cache_filter?: !str-or-list
   additional_contexts?: !list-or-dict
@@ -240,16 +240,16 @@ build-map:
   extra_hosts?: !extra-hosts
   isolation?: !str
   privileged?: !flag
-  secrets?: ![config-ref*]
-  tags?: ![str*]
+  secrets?: [!config-ref, ...]
+  tags?: [!str, ...]
   ulimits?: !ulimits
-  platforms?: ![str*]
+  platforms?: [!str, ...]
 
 depends-condition:
   <<: *ext
   restart?: !flag
   required?: !bool
-  condition: !'service_started' | 'service_healthy' | 'service_completed_successfully'
+  condition: service_started | service_healthy | service_completed_successfully
 depends-map:
   !str: !depends-condition
 
@@ -258,7 +258,7 @@ healthcheck:
   disable?: !flag
   interval?: !str
   retries?: !number
-  test?: !str | [str*]
+  test?: !str | [!str, ...]
   timeout?: !str
   start_period?: !str
   start_interval?: !str
@@ -272,15 +272,15 @@ port-map:
   published?: !str
   protocol?: !str
   app_protocol?: !str
-port: !str | port-map
+port: !str | !port-map
 
 workload-spec:
   <<: *ext
-  build?: !str | build-map
-  depends_on?: ![str*] | depends-map
+  build?: !str | !build-map
+  depends_on?: !depends-map | [!str, ...]
   healthcheck?: !healthcheck
-  ports?: ![port*]
-  expose?: ![str*]
+  ports?: [!port, ...]
+  expose?: [!str, ...]
   stdin_open?: !flag
   tty?: !flag
 
@@ -291,7 +291,7 @@ update-config:
   failure_action?: !str
   monitor?: !str
   max_failure_ratio?: !number
-  order?: !'start-first' | 'stop-first'
+  order?: start-first | stop-first
 
 resource-limits:
   <<: *ext
@@ -309,9 +309,9 @@ generic-resource:
 
 device-resource:
   <<: *ext
-  capabilities: ![str*]
+  capabilities: [!str, ...]
   count?: !number
-  device_ids?: ![str*]
+  device_ids?: [!str, ...]
   driver?: !str
   options?: !list-or-dict
 
@@ -319,8 +319,8 @@ resource-reservations:
   <<: *ext
   cpus?: !number
   memory?: !str
-  generic_resources?: ![generic-resource*]
-  devices?: ![device-resource*]
+  generic_resources?: [!generic-resource, ...]
+  devices?: [!device-resource, ...]
 
 resources:
   <<: *ext
@@ -340,8 +340,8 @@ preference:
 
 placement:
   <<: *ext
-  constraints?: ![str*]
-  preferences?: ![preference*]
+  constraints?: [!str, ...]
+  preferences?: [!preference, ...]
   max_replicas_per_node?: !number
 
 deployment:
@@ -373,14 +373,14 @@ watch:
   ignore?: !str-or-list
   include?: !str-or-list
   path: !str
-  action: !'rebuild' | 'sync' | 'restart' | 'sync+restart' | 'sync+exec'
+  action: rebuild | sync | restart | sync+restart | sync+exec
   target?: !str
   exec?: !service-hook
   initial_sync?: !bool
 
 development:
   <<: *ext
-  watch?: ![watch*]
+  watch?: [!watch, ...]
 
 provider-map:
   <<: *ext
@@ -395,42 +395,42 @@ service:
   <<: [*container-spec, *workload-spec]
   deploy?: !deployment
   develop?: !development
-  profiles?: ![str*]
+  profiles?: [!str, ...]
   restart?: !str
   scale?: !number
   attach?: !flag
   container_name?: !str
   provider?: !provider-map
-  extends?: !str | extends-map
-  links?: ![str*]
-  external_links?: ![str*]
-  pre_start?: ![pre-start-hook*]
-  post_start?: ![service-hook*]
-  pre_stop?: ![service-hook*]
+  extends?: !str | !extends-map
+  links?: [!str, ...]
+  external_links?: [!str, ...]
+  pre_start?: [!pre-start-hook, ...]
+  post_start?: [!service-hook, ...]
+  pre_stop?: [!service-hook, ...]
 
 schedule-map:
   <<: *ext
   cron: !str
   timezone?: !str
-  concurrency?: !'forbid' | 'queue'
-  missed_fires?: !'one' | 'skip'
-schedule-item: !str | schedule-map
+  concurrency?: forbid | queue
+  missed_fires?: one | skip
+schedule-item: !str | !schedule-map
 
 triggers:
   <<: *ext
   manual?: !flag
-  schedule?: ![schedule-item*]
+  schedule?: [!schedule-item, ...]
 
 job:
   <<: [*container-spec, *workload-spec]
-  profiles?: ![str*]
-  extends?: !str | extends-map
+  profiles?: [!str, ...]
+  extends?: !str | !extends-map
   triggers: !triggers
 
 external-map:
   <<: *ext
   name?: !str
-external: !str | external-map
+external: !str | !external-map
 
 ipam-config:
   <<: *ext
@@ -442,7 +442,7 @@ ipam-config:
 ipam:
   <<: *ext
   driver?: !str
-  config?: ![ipam-config*]
+  config?: [!ipam-config, ...]
   options?: !str-map
 
 network:
@@ -492,18 +492,18 @@ model:
   name?: !str
   model: !str
   context_size?: !int
-  runtime_flags?: ![str*]
+  runtime_flags?: [!str, ...]
 
 include-map:
-  path?: !str | [str*]
-  env_file?: !str | [str*]
+  path?: !str | [!str, ...]
+  env_file?: !str | [!str, ...]
   project_directory?: !str
-include: !str | include-map
+include: !str | !include-map
 ---
 <<: *ext
 version?: !str
 name?: !str
-include?: ![include*]
+include?: [!include, ...]
 services?:
   !str: !service
 models?:

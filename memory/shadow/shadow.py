@@ -5,10 +5,12 @@ as a string. A schema is read the way a 2.0 parser would read it: `!` is an
 ordinary character, so `read_schema` only quotes what PyYAML would otherwise
 take for a tag.
 
-A value starting with `!` is a type expression, any other value a literal:
+`!name` is a type and bare text a literal, on every part of a value:
 
-    expr  := alt ('|' alt)*
-    alt   := name | '[' expr '*' ']' | '[' expr (',' expr)* ']' | 'literal'
+    expr  := atom ('|' atom)*
+    atom  := '!' name | '[' expr (',' expr)* [',' '...'] ']' | '' | literal
+
+`...` repeats the item before it, any number of times, none included.
 
 A key ending in `?` may be absent or empty (empty types as None). A key that is
 a type expression (`!str`) takes every key not named. A key ending in `*` takes
@@ -43,55 +45,57 @@ def _prepare(doc):
         code = re.sub(r'\s+#.*$', '', line)
         if not code.strip() or code.lstrip().startswith('#'):
             continue
-        m = re.match(r'^(\s*)([^\s:]+):(?:\s+(.*))?$', code)
+        m = re.match(r'^(\s*(?:- )*)(.*)$', code)
+        ind, rest = m.group(1), m.group(2)
+        m = re.match(r'^([^\s:\[{]+):(?:\s+(.*))?$', rest)
         if not m:
-            raise SchemaError(f'cannot read: {line}')
-        ind, key, val = m.group(1), m.group(2), m.group(3)
+            # A sequence item that is a value, not a key: `- !str`, `- ...`.
+            out.append(ind + (_quote(rest) if rest[0] in '!*[{' else rest))
+            continue
+        key, val = m.group(1), m.group(2)
         if key.startswith('!') or key == '<<':
             key = _quote(key)
-        if val and (val.startswith('!') or val.startswith('*') or val.startswith('[*')):
+        if val and val[0] in '!*[{':
             val = _quote(val)
         out.append(f'{ind}{key}:' + (f' {val}' if val else ''))
     return '\n'.join(out) + '\n'
 
 
+def split_top(s, sep):
+    parts, depth, cur = [], 0, ''
+    for c in s:
+        depth += c in '[{'
+        depth -= c in ']}'
+        if c == sep and depth == 0:
+            parts.append(cur)
+            cur = ''
+        else:
+            cur += c
+    return parts + [cur]
+
+
 def parse_expr(s):
     s = s.strip()
-    parts, depth, cur, quoted = [], 0, '', False
-    for c in s:
-        if c == "'":
-            quoted = not quoted
-        if not quoted:
-            depth += c == '['
-            depth -= c == ']'
-            if c == '|' and depth == 0:
-                parts.append(cur)
-                cur = ''
-                continue
-        cur += c
-    parts.append(cur)
+    parts = split_top(s, '|')
     if len(parts) > 1:
         return ('alt', [parse_expr(p) for p in parts])
-    if s.startswith("'") and s.endswith("'"):
-        return ('lit', s[1:-1])
+    if s == "''":
+        return ('lit', '')
+    if s.startswith('!'):
+        if not re.fullmatch(r'[A-Za-z_][\w-]*', s[1:]):
+            raise SchemaError(f'bad type: {s}')
+        return ('name', s[1:])
     if s.startswith('[') and s.endswith(']'):
-        inner = s[1:-1].strip()
-        if inner.endswith('*'):
-            return ('many', parse_expr(inner[:-1]))
-        items, depth, cur = [], 0, ''
-        for c in inner:
-            depth += c == '['
-            depth -= c == ']'
-            if c == ',' and depth == 0:
-                items.append(cur)
-                cur = ''
-            else:
-                cur += c
-        items.append(cur)
-        return ('tuple', [parse_expr(i) for i in items])
-    if not re.fullmatch(r'[A-Za-z_][\w-]*', s):
-        raise SchemaError(f'bad type: {s}')
-    return ('name', s)
+        items = [i.strip() for i in split_top(s[1:-1], ',')]
+        rest = None
+        if items[-1] == '...':
+            items.pop()
+            rest = parse_expr(items.pop())
+        return ('seq', [parse_expr(i) for i in items], rest)
+    if s.startswith('{') and s.endswith('}'):
+        return to_type(dict(i.split(': ', 1) for i in
+                            (x.strip() for x in split_top(s[1:-1], ','))))
+    return ('lit', s)
 
 
 def to_type(value):
@@ -108,10 +112,12 @@ def to_type(value):
                 fields[k] = (to_type(v), False)
         return ('map', fields, any_key, prefixes)
     if isinstance(value, list):
-        raise SchemaError('a sequence in a schema is written as a type expression')
-    if value.startswith('!'):
-        return parse_expr(value[1:])
-    return ('lit', value)
+        items, rest = list(value), None
+        if items and items[-1] == '...':
+            items.pop()
+            rest = to_type(items.pop())
+        return ('seq', [to_type(i) for i in items], rest)
+    return parse_expr(value)
 
 
 class Schema:
@@ -145,6 +151,9 @@ class Schema:
         self.defs = {k: to_type(v) for k, v in raw.items()}
         self.names = {id(t): n for n, t in self.defs.items()}
         self.root = to_type(self._merge(root, raw, 'root'))
+        for name, t in self.defs.items():
+            self._check_names(t, name)
+        self._check_names(self.root, 'root')
         for name, t in self.defs.items():
             self._check_alts(t, name)
         self._check_alts(self.root, 'root')
@@ -181,7 +190,7 @@ class Schema:
         if t[0] == 'alt':
             alts = self.flat(t)
             scalars = [a for a in alts if a[0] == 'name']
-            seqs = [a for a in alts if a[0] in ('many', 'tuple')]
+            seqs = [a for a in alts if a[0] == 'seq']
             if len(scalars) > 1:
                 raise SchemaError(f'{where}: more than one scalar alternative: {scalars}')
             if len(seqs) > 1:
@@ -193,11 +202,27 @@ class Schema:
                 self._check_alts(ft, f'{where}.{k}')
             if t[2]:
                 self._check_alts(t[2], where)
-        elif t[0] == 'many':
-            self._check_alts(t[1], where)
-        elif t[0] == 'tuple':
-            for x in t[1]:
+        elif t[0] == 'seq':
+            for x in t[1] + ([t[2]] if t[2] else []):
                 self._check_alts(x, where)
+
+    def _check_names(self, t, where):
+        """Every name is built in or in the table, used or not by any document."""
+        if t[0] == 'name' and t[1] not in BUILTIN and t[1] not in self.defs:
+            raise SchemaError(f'{where}: unknown type !{t[1]}')
+        if t[0] == 'alt':
+            for x in t[1]:
+                self._check_names(x, where)
+        elif t[0] == 'seq':
+            for x in t[1] + ([t[2]] if t[2] else []):
+                self._check_names(x, where)
+        elif t[0] == 'map':
+            for k, (ft, _) in t[1].items():
+                self._check_names(ft, f'{where}.{k}')
+            if t[2]:
+                self._check_names(t[2], where)
+            for _, pt in t[3]:
+                self._check_names(pt, where)
 
     def check(self, value):
         return self.conv(self.root, value, '')
@@ -220,14 +245,14 @@ class Schema:
             if v != t[1]:
                 raise Bad(path, f'expected {t[1]!r}, got {str(v)[:40]!r}')
             return v
-        if kind == 'many':
+        if kind == 'seq':
+            fixed, rest = t[1], t[2]
             if not isinstance(v, list):
                 raise Bad(path, 'expected a sequence')
-            return [self.conv(t[1], x, f'{path}/{i}') for i, x in enumerate(v)]
-        if kind == 'tuple':
-            if not isinstance(v, list) or len(v) != len(t[1]):
-                raise Bad(path, f'expected a sequence of {len(t[1])}')
-            return [self.conv(a, x, f'{path}/{i}') for i, (a, x) in enumerate(zip(t[1], v))]
+            if len(v) < len(fixed) or (rest is None and len(v) != len(fixed)):
+                raise Bad(path, f'wrong length: {len(v)}')
+            return [self.conv(fixed[i] if i < len(fixed) else rest, x, f'{path}/{i}')
+                    for i, x in enumerate(v)]
         if kind == 'map':
             return self.conv_map(t, v, path)
         raise SchemaError(kind)
@@ -293,7 +318,7 @@ class Schema:
                 raise Bad(path, 'a mapping is not allowed here')
             raise Bad(path, f'{len(fits)} of {len(maps)} mapping alternatives fit')
         if isinstance(v, list):
-            seqs = [a for a in alts if a[0] in ('many', 'tuple')]
+            seqs = [a for a in alts if a[0] == 'seq']
             if not seqs:
                 raise Bad(path, 'a sequence is not allowed here')
             return self.bound(seqs[0], self.conv(seqs[0], v, path), path)
