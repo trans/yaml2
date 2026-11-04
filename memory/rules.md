@@ -77,6 +77,10 @@ development:
 - No references inside a `--- &` document. Without chains there is no billion
   laughs: output is at most quadratic and no size limit is needed. Layered
   bases are written at the use site: `<<: [*rails, *base]`.
+  **Proposed change, not answered:** allow `<<` at the top of an entry, merging
+  earlier entries. The workflow shadow needed it 15 times. By the agent's
+  reasoning it stays safe: such a merge only unions keys already written, so no
+  entry can outgrow the document. Nesting a merge deeper is what doubles.
 
 **Path syntax** (the user chose `:`). Fewest clashes (landscape.md): keys
 holding `:` in 1 of 2,995 files, `/` in 19, `.` in 160. It needs no new scanner
@@ -144,9 +148,9 @@ The user's term, 2026-11-03: the optional layer that types the data. The user
 calls it the real trick: Ruby and others still serialize, through schemas.
 
 **A schema is a typed shadow of the document** (the user's idea, 2026-11-03,
-"something to that effect"; the user isn't sure it's enough; the agent
-recommends it over reusing JSON Schema; not decided). It mirrors the document,
-with each value replaced by its type:
+"something to that effect"; the agent recommends it over reusing JSON Schema; not
+decided, though the first test went well). It mirrors the document, with each
+value replaced by its type:
 
 ```yaml
 a: !int
@@ -154,30 +158,46 @@ b: !str
 c: ![int*]
 ```
 
-The agent's proposals, not yet answered:
+Tested on GitHub workflows, 2026-11-03: see [shadow/](shadow/README.md). It
+agreed with the JSON Schema on all 131 real files, and caught 91.9% of the
+damage the schema catches, 99.3% with three small app bindings. Notation below
+is what that test settled on, all the agent's proposals, not yet answered:
 
 - **It types; it doesn't validate.** Real JSON Schemas are 86% shape and 6%
-  validation (landscape.md), so dropping validation is most of the
-  simplification. Ranges and patterns stay the app's job.
+  validation (landscape.md). Ranges, patterns, minimums and "not both of these
+  keys" stay the app's job.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
-  plain string and the parser knows nothing about schemas. In a schema, a value
-  starting with `!` is a type; any other value is a literal that must match,
-  which gives discriminators (`kind: circle`).
-- **Many or fixed:** `[int*]` is any number, `[int, str]` is exactly those two.
-- **Optional:** `!int?`.
-- **Arbitrary keys:** a type as the key, `!str: !int`.
-- **Named types** live in the schema's `--- &` document and are written
-  `!service`. The schema layer resolves them, not the parser, so recursive types
-  work although `--- &` documents can't hold references.
-- **Alternatives** (`!str | ![str*]`) are chosen by shape or by a literal, never
-  by how text looks, and at most one may be a scalar. All 117 scalar unions in
-  the sample include string, so each is simply `!str` in 2.0.
+  plain string and the parser knows nothing about schemas. A value starting with
+  `!` is a type expression; any other value is a literal that must match.
+- **Expressions:** a leading `!`, then names, `[int*]` for any number, `[int, str]`
+  for exactly those, `|` for alternatives, and `'read'` for a literal, which gives
+  enums: `!'read' | 'write' | 'none'`.
+- **Optional is on the key, and means absent or empty:** `name?: !str`. It can't go
+  on the value, since an inline mapping has nowhere to put it (changed by the
+  test). An empty value types as None, so null exists only through a schema: this
+  mostly answers the null question.
+- **Arbitrary keys:** a type as the key, `!str: !int`. Mappings are otherwise
+  closed.
+- **Named types** live in the schema's `--- &` document. The schema layer resolves
+  them, not the parser, so recursive types work.
+- **Alternatives** are chosen by shape, never by how text looks: at most one
+  scalar type, at most one sequence, and mappings told apart by required keys and
+  literals. All 117 scalar unions in the sample include string.
+- **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
+  two scalars, so it's a named string (`flag: !str`), and the app binds code to
+  `flag`. That recovered nearly all of what patterns check, with no regex in the
+  schema. An unbound name stays a string.
 - **Schemas name types; app code binds them to classes.** A schema must never
   name a class to build, or `!ruby/object` comes back by another door.
 - **Delivery:** `--- !` carries a shadow for the documents after it, and an app
-  supplies one by prepending it, as with `--- &`. The app's schema wins.
+  supplies one by prepending it, as with `--- &`. The app's schema wins. Not
+  tested.
 - **JSON Schema stays a source:** its common part could be converted to shadows
-  mechanically, so SchemaStore's work isn't lost.
+  mechanically. Not tested.
 
-Still to design: dates and other exact spellings, null, pairs back to a map,
-set, ordered map, binary.
+Warts: a literal key ending in `?` or starting with `!` can't be written in a
+schema. 78% of the workflow shadow's keys are optional, so `?` is noisy, and
+marking required keys instead may read better.
+
+Still to design: dates and other exact spellings, pairs back to a map, set,
+ordered map, binary.

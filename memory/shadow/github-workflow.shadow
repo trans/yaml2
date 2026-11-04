@@ -1,0 +1,275 @@
+%YAML 2.0
+# A typed shadow of a GitHub workflow, written from SchemaStore's
+# github-workflow.json. It types; ranges, patterns and activity names stay
+# GitHub's job.
+--- &
+# Scalars GitHub's expression engine reads: a value or ${{ ... }}. Two scalar
+# alternatives aren't allowed, so these are strings with a name an app can bind.
+expr: !str
+flag: !str
+number: !str
+
+event: !'branch_protection_rule' | 'check_run' | 'check_suite' | 'create' | 'delete' | 'deployment' | 'deployment_status' | 'discussion' | 'discussion_comment' | 'fork' | 'gollum' | 'issue_comment' | 'issues' | 'label' | 'merge_group' | 'milestone' | 'page_build' | 'project' | 'project_card' | 'project_column' | 'public' | 'pull_request' | 'pull_request_review' | 'pull_request_review_comment' | 'pull_request_target' | 'push' | 'registry_package' | 'release' | 'status' | 'watch' | 'workflow_call' | 'workflow_dispatch' | 'workflow_run' | 'repository_dispatch'
+cache-mode: !'read' | 'write' | 'write-only' | 'none'
+permission: !'read' | 'write' | 'none'
+
+str-map:
+  !str: !str
+
+permission-map:
+  actions?: !permission
+  artifact-metadata?: !permission
+  attestations?: !permission
+  checks?: !permission
+  code-quality?: !permission
+  contents?: !permission
+  deployments?: !permission
+  discussions?: !permission
+  id-token?: !'write' | 'none'
+  issues?: !permission
+  models?: !'read' | 'none'
+  packages?: !permission
+  pages?: !permission
+  pull-requests?: !permission
+  repository-projects?: !permission
+  security-events?: !permission
+  statuses?: !permission
+  vulnerability-alerts?: !'read' | 'none'
+  copilot-requests?: !'write'
+permissions: !'read-all' | 'write-all' | permission-map
+
+defaults:
+  run?:
+    shell?: !str
+    working-directory?: !str
+
+concurrency:
+  group: !str
+  cancel-in-progress?: !flag
+  queue?: !'single' | 'max'
+
+credentials:
+  username?: !str
+  password?: !str
+
+job-container:
+  image: !str
+  credentials?: !credentials
+  env?: !str-map | expr
+  ports?: ![str*]
+  volumes?: ![str*]
+  options?: !str
+
+service-container:
+  <<: *job-container
+  command?: !str
+  entrypoint?: !str
+
+environment:
+  name: !str
+  url?: !str
+  deployment?: !flag
+
+snapshot:
+  image-name: !str
+  version?: !str
+
+runner-group:
+  group?: !str
+  labels?: !str | [str*]
+
+matrix-item:
+  !str: !any
+
+matrix-map:
+  include?: !expr | [matrix-item*]
+  exclude?: !expr | [matrix-item*]
+  !str: !expr | [any*]
+
+strategy:
+  matrix: !expr | matrix-map
+  fail-fast?: !flag
+  max-parallel?: !number
+
+step-base:
+  id?: !str
+  if?: !str
+  name?: !str
+  working-directory?: !str
+  shell?: !str
+  with?: !str-map | expr
+  env?: !str-map | expr
+  continue-on-error?: !flag
+  timeout-minutes?: !number
+  background?: !bool
+
+uses-step:
+  <<: *step-base
+  uses: !str
+run-step:
+  <<: *step-base
+  run: !str
+wait-step:
+  <<: *step-base
+  wait: !str | [str*]
+wait-all-step:
+  <<: *step-base
+  wait-all: !str
+cancel-step:
+  <<: *step-base
+  cancel: !str
+parallel-step:
+  <<: *step-base
+  parallel: ![step*]
+step: !uses-step | run-step | wait-step | wait-all-step | cancel-step | parallel-step
+
+job-base:
+  name?: !str
+  needs?: !str | [str*]
+  permissions?: !permissions
+  cache-mode?: !cache-mode
+  if?: !str
+  strategy?: !strategy
+  concurrency?: !str | concurrency
+
+normal-job:
+  <<: *job-base
+  runs-on: !str | [str*] | runner-group
+  snapshot?: !str | snapshot
+  environment?: !str | environment
+  outputs?: !str-map
+  env?: !str-map | expr
+  defaults?: !defaults
+  steps?: ![step*]
+  timeout-minutes?: !number
+  continue-on-error?: !flag
+  container?: !str | job-container
+  services?:
+    !str: !service-container
+
+reusable-job:
+  <<: *job-base
+  uses: !str
+  with?: !str-map | expr
+  secrets?: !str-map | expr | 'inherit'
+
+job: !normal-job | reusable-job
+
+event-config:
+  types?: !str | [str*]
+  !str: !any
+
+push-config:
+  branches?: ![str*]
+  branches-ignore?: ![str*]
+  tags?: ![str*]
+  tags-ignore?: ![str*]
+  paths?: ![str*]
+  paths-ignore?: ![str*]
+
+pull-request-config:
+  <<: *push-config
+  types?: !str | [str*]
+
+call-input:
+  description?: !str
+  deprecationMessage?: !str
+  required?: !bool
+  type: !'boolean' | 'number' | 'string'
+  default?: !any
+
+call-output:
+  description?: !str
+  value: !str
+
+call-secret:
+  description?: !str
+  required?: !bool
+
+workflow-call:
+  inputs?:
+    !str: !call-input
+  outputs?:
+    !str: !call-output
+  secrets?:
+    !str: !call-secret
+
+input-base:
+  description?: !str
+  deprecationMessage?: !str
+  required?: !bool
+  default?: !any
+
+string-input:
+  <<: *input-base
+  type?: string
+boolean-input:
+  <<: *input-base
+  type: boolean
+number-input:
+  <<: *input-base
+  type: number
+environment-input:
+  <<: *input-base
+  type: environment
+choice-input:
+  <<: *input-base
+  type: choice
+  options: ![str*]
+input: !string-input | boolean-input | number-input | environment-input | choice-input
+
+workflow-dispatch:
+  inputs?:
+    !str: !input
+
+cron:
+  cron: !str
+  timezone?: !str
+
+triggers:
+  branch_protection_rule?: !event-config
+  check_run?: !event-config
+  check_suite?: !event-config
+  create?: !event-config
+  delete?: !event-config
+  deployment?: !event-config
+  deployment_status?: !event-config
+  discussion?: !event-config
+  discussion_comment?: !event-config
+  fork?: !event-config
+  gollum?: !event-config
+  issue_comment?: !event-config
+  issues?: !event-config
+  label?: !event-config
+  merge_group?: !event-config
+  milestone?: !event-config
+  page_build?: !event-config
+  project?: !event-config
+  project_card?: !event-config
+  project_column?: !event-config
+  public?: !event-config
+  pull_request_review?: !event-config
+  pull_request_review_comment?: !event-config
+  registry_package?: !event-config
+  release?: !event-config
+  status?: !event-config
+  watch?: !event-config
+  workflow_run?: !event-config
+  repository_dispatch?: !event-config
+  push?: !push-config
+  pull_request?: !pull-request-config
+  pull_request_target?: !pull-request-config
+  schedule?: ![cron*]
+  workflow_call?: !workflow-call
+  workflow_dispatch?: !workflow-dispatch
+---
+name?: !str
+run-name?: !str
+on: !event | [event*] | triggers
+env?: !str-map | expr
+defaults?: !defaults
+concurrency?: !str | concurrency
+cache-mode?: !cache-mode
+permissions?: !permissions
+jobs:
+  !str: !job
