@@ -46,11 +46,34 @@ to be needed.
 useful to remove. The user's view is that YAML 1.2 dropping it is probably
 part of why nobody has fully adopted 1.2.
 
-**Anchors may go** (the user's idea, 2026-11-03, not decided): a workable
-YPATH could replace them. Every node already has an address, so `&name` is a
-second naming system.
+**Anchor names go, references are paths** (the user's idea, 2026-11-03).
+Every node already has an address, so `&name` is a second naming system.
 
-The agent's proposal, not yet answered:
+**Backward only** (the user chose, 2026-11-03): a reference points at an
+earlier, finished node. The consumer never waits, a bad reference fails at its
+own line, and forward references could still be allowed later without breaking
+any file. Define, then use, is also how anchored files are already ordered.
+
+**A bare `&` marks what can be referenced** (the user's idea, 2026-11-03, a
+"maybe"; the agent recommends it; not confirmed). `defaults: &` says the node
+may be referenced, by its path, with no name. It keeps what anchors told the
+parser, so nothing unmarked is retained and a file with no `&` costs nothing,
+on a pipe too.
+
+The agent's terms for it, also not confirmed:
+
+- The mark is required. A reference must land on or inside a marked node, or
+  it's an error at its own line; otherwise the parser has to keep everything.
+- `&` must be followed by a space or line break, so a leftover 1.x `&defaults`
+  is an error, not a value.
+- `&` goes only on a mapping value, since sequence items can't be referenced.
+- Lost: anchors on sequence items (`- &checkout`) have to move under a key. The
+  mark would make most index references fail loudly, but swapping two marked
+  items would still be silently wrong, so keys only stands.
+- Upgrading is mechanical: `web: &web` under `services` becomes `web: &`, and
+  `*web` becomes `*services/web`.
+
+The agent's proposal for references, not yet confirmed:
 
 - `<<` can't stay a magic key. In 1.1 it's an implicit type, which Rule 1
   ends, so it becomes an indicator like `-`, and `"<<"` is the literal key.
@@ -68,26 +91,6 @@ The agent's proposal, not yet answered:
   direction below rules out cycles: pointing at an ancestor is an error.
 - Billion laughs survives. Nested copies still double, even with merge alone,
   so the spec needs a mandatory limit on expanded size.
-
-**Which direction references point. Open.** The user's framing, 2026-11-03:
-backward means being able to reference anything on demand; forward means
-knowing what to look for, but filling in the data has to be queued until it
-shows up.
-
-The agent recommends backward only:
-
-- The consumer never waits. Forward holds back everything after the first
-  open reference, and a merge hides its mapping's keys until the target comes.
-- A bad reference fails at its own line. Forward finds it at end of input,
-  after the consumer may have acted on what came before.
-- Define, then use, is how anchored files are already ordered, so the upgrade
-  stays "delete `&name`".
-- It can be loosened to allow forward references later without breaking any
-  file. Tightening later would break files.
-- Cost: anchors also told the parser what to keep, and dropping them gives
-  that up. With the input in memory that costs nothing extra; on a pipe it
-  means keeping the current document's bytes. A parser option refusing
-  references would remove that for huge data documents.
 
 ## YAML Schema
 
