@@ -144,6 +144,7 @@ class Schema:
                     raise SchemaError(f'{name} is a built-in type')
                 raw[name] = self._merge(entry, raw, name)
         self.defs = {k: to_type(v) for k, v in raw.items()}
+        self.names = {id(t): n for n, t in self.defs.items()}
         self.root = to_type(self._merge(root, raw, 'root'))
         for name, t in self.defs.items():
             self._check_alts(t, name)
@@ -276,12 +277,22 @@ class Schema:
                     out[key] = self.conv(t[2], v[key], f'{path}/{key}')
         return out
 
+    def bound(self, t, value, path):
+        """Apply the code bound to a named alternative, if any."""
+        name = self.names.get(id(t))
+        if name in self.bind:
+            try:
+                return self.bind[name](value)
+            except ValueError as e:
+                raise Bad(path, f'{name}: {e}')
+        return value
+
     def conv_alt(self, alts, v, path):
         if isinstance(v, dict):
             maps = [a for a in alts if a[0] == 'map']
             fits = [m for m in maps if self.discriminates(m, v)]
             if len(fits) == 1:
-                return self.conv_map(fits[0], v, path)
+                return self.bound(fits[0], self.conv_map(fits[0], v, path), path)
             if not maps:
                 raise Bad(path, 'a mapping is not allowed here')
             raise Bad(path, f'{len(fits)} of {len(maps)} mapping alternatives fit')
@@ -289,7 +300,7 @@ class Schema:
             seqs = [a for a in alts if a[0] in ('many', 'tuple')]
             if not seqs:
                 raise Bad(path, 'a sequence is not allowed here')
-            return self.conv(seqs[0], v, path)
+            return self.bound(seqs[0], self.conv(seqs[0], v, path), path)
         lits = [a[1] for a in alts if a[0] == 'lit']
         if v in lits:
             return v

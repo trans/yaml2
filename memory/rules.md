@@ -186,11 +186,15 @@ tests settled on, all the agent's proposals, not yet answered:
   today's Compose files; 2.0 files would use `--- &` instead of `x-` keys. Mappings
   are otherwise closed.
 - **Named types** live in the schema's `--- &` document, which is a lookup table,
-  as in a data file. `!flag` looks up the key `flag` there, as `*flag` would, but
-  keeps the name. The schema layer resolves it, not the parser, so recursive types
-  work. A key above the `---` is a name; below it, a key in the document. That
-  takes reading with care: the user read `flag: !str` as a key with a string value
-  (2026-11-03), which is what it literally is.
+  as in a data file. `!flag` looks up the key `flag` there. `*flag` would paste the
+  value in, and the parser would do it; `!flag` is a plain string to the parser,
+  and the schema layer resolves it and keeps the name. `*` can't replace it: a
+  reference is a whole value, so it can't sit in `![job*]` or `!str | job`, it
+  can't nest in a `--- &` document, and recursive types would never end. Use `<<`
+  to paste a shape and `!name` to use a type. A key above the `---` is a name;
+  below it, a key in the document. That takes reading with care: the user read
+  `flag: !str` as a key with a string value (2026-11-03), which is what it
+  literally is, and found it a bit confusing.
 - **Alternatives** are chosen by shape, never by how text looks: at most one
   scalar type, at most one sequence, and mappings told apart by required keys and
   literals. All 117 scalar unions in the sample include string.
@@ -211,5 +215,10 @@ Warts: a literal key ending in `?` or starting with `!` can't be written in a
 schema. 78% of the workflow shadow's keys are optional, so `?` is noisy, and
 marking required keys instead may read better.
 
-Still to design: dates and other exact spellings, pairs back to a map, set,
-ordered map, binary.
+**Objects need nothing new** (`shadow/objects.py`, 2026-11-03). Named types with
+app bindings rebuilt classes, a union of classes told apart by a literal, a set,
+a date, binary, and a map with tuple keys from pairs. Unbound, the same document
+stays plain data. This is how a language serializes through a schema.
+
+Still to decide: whether the spec defines standard names (`date`, `binary`, `set`)
+with exact spellings, so that languages agree.
