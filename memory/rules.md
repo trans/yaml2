@@ -124,11 +124,15 @@ Proposed, left open for the core team unless marked as the user's (see status.md
 - It stays in scope for the rest of the stream, so several documents can share
   it, and prepending one shares definitions across files with no include
   feature.
-- Several `--- &` documents, **open** (the user raised it, 2026-11-04). Three ways: 1
-  combine and refuse a repeated entry, which the draft does and the agent recommends; 2
-  combine and let a repeat replace; 3 each `--- &` replaces the whole table. Only 1 keeps
-  "the app's schema wins" when an app prepends one. It can relax to 2 later, not to 3. Its
-  cost: joining unrelated files that use one entry name is refused.
+- Several `--- &` documents, **open** (the user raised it, 2026-11-04, and finds a
+  refusal "a bit rough", and "we may need options"). Three ways: 1 combine and refuse a
+  repeated entry; 2 combine and let a later document's entry replace, as a later `<<:`
+  line does; 3 each `--- &` replaces the whole table. The agent first recommended 1, then
+  changed to 2 the same day: the case for 1 rested on an app prepending its schema, which
+  an app needn't do, since it can pass a schema separately. A repeat inside one `--- &`
+  stays refused. References copy as they are read, so a replacement never changes an
+  earlier document. A parser setting would break "same bytes, same data", so any choice
+  has to be written in the file.
 - `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
   key, is it." A parser never delivers it. So Rule 1 has no exception here: an
   indicator isn't a scalar, so quoting one changes nothing about any value.
@@ -187,6 +191,8 @@ handing it to a 1.x mode.
 Agreed by the user, 2026-11-03:
 
 - Keys are strings only, and `?` goes.
+- No limit on key length (the user, 2026-11-04). 1.x's 1024 limit only bounded lookahead,
+  which flow keys needed. A 2.0 key is one line.
 - A duplicate key is an error, including `1` and `"1"` in one mapping.
 - A Hash with non-string keys is written as a sequence of pairs, and a schema
   brings it back: `- [[1, 2], origin]`.
