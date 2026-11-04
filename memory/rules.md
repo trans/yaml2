@@ -40,42 +40,25 @@ Probably, the user said on 2026-11-03: `key:` is the empty string, and the app
 or schema decides what that means. Watch for whether a null value turns out
 to be needed.
 
-## Reuse: merge, and maybe no anchors
+## Reuse: merge and definition documents
 
-**Merge stays**, as far as the user can see (2026-11-03): it has proven too
-useful to remove. The user's view is that YAML 1.2 dropping it is probably
-part of why nobody has fully adopted 1.2.
+All 2026-11-03. The user answered "I think so" to definition documents
+replacing `&` on nodes, to no references inside them, and to `:` as the
+separator.
 
-**Anchor names go, references are paths** (the user's idea, 2026-11-03).
-Every node already has an address, so `&name` is a second naming system.
+**Merge stays**, as far as the user can see: it has proven too useful to
+remove. The user's view is that YAML 1.2 dropping it is probably part of why
+nobody has fully adopted 1.2.
 
-**Backward only** (the user chose, 2026-11-03): a reference points at an
-earlier, finished node. The consumer never waits, a bad reference fails at its
-own line, and forward references could still be allowed later without breaking
-any file. Define, then use, is also how anchored files are already ordered.
+**References are paths, not names** (the user's idea). Every node already has
+an address, so `&name` is a second naming system. Anchor names go.
 
-**A bare `&` marks what can be referenced** (the user's idea, 2026-11-03, a
-"maybe"; the agent recommends it; not confirmed). `defaults: &` says the node
-may be referenced, by its path, with no name. It keeps what anchors told the
-parser, so nothing unmarked is retained and a file with no `&` costs nothing,
-on a pipe too.
+**Backward only** (the user chose). The consumer never waits, a bad reference
+fails at its own line, and forward references could still be allowed later
+without breaking any file.
 
-The agent's terms for it, also not confirmed:
-
-- The mark is required. A reference must land on or inside a marked node, or
-  it's an error at its own line; otherwise the parser has to keep everything.
-- `&` must be followed by a space or line break, so a leftover 1.x `&defaults`
-  is an error, not a value.
-- `&` goes only on a mapping value, since sequence items can't be referenced.
-- Lost: anchors on sequence items (`- &checkout`) have to move under a key. The
-  mark would make most index references fail loudly, but swapping two marked
-  items would still be silently wrong, so keys only stands.
-- Upgrading is mechanical: `web: &web` under `services` becomes `web: &`, and
-  `*web` becomes `*services/web`.
-
-**Definition documents** (the user's idea, 2026-11-03, "one possibility"; the
-agent recommends it over the bare `&` on nodes above; not decided). Only a
-document opened with `--- &` can be referenced:
+**Definition documents** (the user's idea). Only a document opened with
+`--- &` can be referenced:
 
 ```yaml
 --- &
@@ -89,48 +72,49 @@ development:
   image: *versions:app
 ```
 
-The agent's terms, not confirmed:
-
 - Every reference, not just merge, targets an earlier `--- &` document. Any
   other `&` is an error, so 1.x anchors fail loudly.
-- A `--- &` document is a mapping and is never delivered as data, which
-  replaces Compose's `x-` keys and GitLab's hidden jobs.
-- It stays in scope for the rest of the stream, so several documents can share
-  it, and prepending one shares definitions across files with no include
-  feature.
 - No references inside a `--- &` document. Without chains there is no billion
   laughs: output is at most quadratic and no size limit is needed. Layered
   bases are written at the use site: `<<: [*rails, *base]`.
+
+**Path syntax** (the user chose `:`). Fewest clashes (landscape.md): keys
+holding `:` in 1 of 2,995 files, `/` in 19, `.` in 160. It needs no new scanner
+rule, since a plain scalar already ends at `:` plus a space. The user's
+refinement: only a single `:` separates, so `Fn::Sub` is one key and only
+`foo:bar` needs quoting or escaping.
+
+Not confirmed (the agent's terms):
+
+- Quote rather than escape: `*a:"foo:bar"`. A quoted segment is a whole key,
+  with the same quotes as scalars. It also covers spaces and flow characters,
+  so no second escape scheme is needed.
+- A `--- &` document is a mapping and is never delivered as data, which replaces
+  Compose's `x-` keys and GitLab's hidden jobs.
+- It stays in scope for the rest of the stream, so several documents can share
+  it, and prepending one shares definitions across files with no include
+  feature.
+- `<<` becomes an indicator like `-`, since in 1.1 it is an implicit type, which
+  Rule 1 ends. `"<<"` is the literal key.
+- A reference names exactly one node, as a copy, so the data stays a tree. A
+  query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
+  later question.
+- Keys only, no sequence indices: `*steps:0` would still resolve after someone
+  inserts a step, to the wrong one. Reuse in sequences works (`- *checkout`).
 - A reference can't be a key.
+- Cost: the upgrade moves text. A base that is also real data moves out and
+  stays as `web: *web`.
 
-If adopted, the node-level mark and its terms above go, and so do the finished
-and ancestor checks. Reuse in sequences works (`- *checkout`). Cost: the upgrade
-moves text. A base that is also real data moves out and stays as `web: *web`.
+Dropped: a bare `&` on nodes (`defaults: &`). It kept the parser's hint of what
+to retain, but definition documents do that with fewer rules.
 
-**Path separator** (the user asked about `:`, 2026-11-03; the agent recommends
-it; not decided). Fewest clashes (landscape.md): keys holding `:` in 1 of 2,995
-files, `/` in 19, `.` in 160. It is already YAML's key character, and it needs
-no new scanner rule, since a plain scalar already ends at `:` plus a space.
-`Fn::Sub`-style keys clash, and would be quoted.
+## How a file says it is 2.0
 
-The agent's proposal for references, not yet confirmed:
-
-- `<<` can't stay a magic key. In 1.1 it's an implicit type, which Rule 1
-  ends, so it becomes an indicator like `-`, and `"<<"` is the literal key.
-- Keep `*` as the reference indicator, followed by a path from the root:
-  `<<: *defaults`, `image: *versions:app` (separator above). The common case is then today's
-  file with `&defaults` deleted, and Rule 1 holds because `*` can't start a
-  plain scalar.
-- Separate two things. A reference names exactly one node. A query (YPATH
-  proper: wildcards, filters, many nodes) is for tools, and is a later
-  question.
-- Keys only in references, no sequence indices. `*steps/0` still resolves
-  after someone inserts a step, to the wrong one: silent wrong data, a new
-  mine. A renamed key fails loudly. So anything reused sits under a key.
-- A reference is a copy of a finished node, so the data stays a tree. Either
-  direction below rules out cycles: pointing at an ancestor is an error.
-- Billion laughs survives wherever references can chain. Nested copies still
-  double, even with merge alone, so that needs a mandatory size limit.
+Open. The agent's proposal, not yet answered: `%YAML 2.0` is required on the
+first line, and `---` isn't needed after it. Without it a clean break reopens
+the original mine, since an old parser reads a 2.0 file silently and wrongly.
+Tested 2026-11-03 on PyYAML, libyaml and Psych: `country: NO` with no directive
+reads as false in all three, and `%YAML 2.0` is refused in all three.
 
 ## YAML Schema
 
