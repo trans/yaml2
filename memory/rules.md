@@ -110,15 +110,14 @@ refinement: only a single `:` separates, so `Fn::Sub` is one key and only
 
 Not confirmed (the agent's terms):
 
-- No quotes in a reference, **proposed** 2026-11-04, not answered, replacing the
-  agent's `*a:"foo:bar"`. The user asked whether schema keys could just refuse `:`.
-  The agent narrowed that to entry names, the top level of a `--- &` document, which
-  are never delivered, so renaming one costs nothing. Deeper keys are delivered, and a
-  shadow must mirror them, so they keep their colons. A path splits at every single
-  `:`, so it can't reach such a key, but copying its parent still brings it. A `"` in a
-  reference is an error, so quotes can be added later without breaking a file. Tested
-  on GitLab's 126 real `!reference` paths: 21 go through a colon key, all at the entry
-  name, so 21 need a rename and none loses reach. No path segment holds a space.
+- Verbatim keys, **proposed** 2026-11-04, the user's idea after 1.x's `!<...>`:
+  `<...>` holds one key, taken literally, anywhere in a path. `*<a:foo:bar>` is one key,
+  `*<a:foo>:bar` that key then `bar`, and `*a:<foo:bar>` `a` then that key. It replaces
+  the agent's `*a:"foo:bar"`, which the user found made no sense, and doubling
+  (`.deps::rocm`), which would make `*a:Fn::Sub` mean `Fn:Sub`. A ban on `:` in entry
+  names was also tried and dropped ("Yuck! keys with colons"), so entry names can hold
+  any key text. In GitLab, 21 of 126 real paths need it, all at the entry name:
+  `*<.deps:rocm>:before_script`.
 - A `--- &` document is a mapping and is never delivered as data, which replaces
   Compose's `x-` keys and GitLab's hidden jobs.
 - It stays in scope for the rest of the stream, so several documents can share
@@ -145,7 +144,7 @@ Not confirmed (the agent's terms):
 - Flow collections, **proposed** (the user asked, 2026-11-04): both work, by the same
   rules, if flow stays, as proposed below. `{<<: *a, x: 1}` with `<<:` first, and
   `[-<< *s, x]` at any position. A reference ends at `,`, `]` or `}`, so a path key
-  holding those needs quotes inside flow, as any plain scalar does. `[<<: *a, x]` is
+  holding those needs `<...>` inside flow. `[<<: *a, x]` is
   a one-pair mapping item, as in 1.x, unless that form is cut below. Real use of either
   in flow: none (landscape.md).
 - A reference names exactly one node, as a copy, so the data stays a tree. A
@@ -406,7 +405,7 @@ quoted; more-indented lines inside `>`.
   "what about `...`?" (2026-11-04), and the restart is the user's point. In 1.2 `...`
   only ends a document, and what follows is still read as YAML, which is why Markdown
   can't follow it. Blank lines are skipped, comments aren't: `# Heading` then `---` is
-  Markdown. Bare documents go. This covers front matter, the user's case in YAML2#5,
+  Markdown. Bare documents after `...` go. This covers front matter, the user's case in YAML2#5,
   and replaces `--- |`, a text document proposed the same day, which needed a new
   string type and a rule that it comes last. The user agreed, `--- |` dropped
   (2026-11-04). An ordinary `--- |` with indented text is still a block string.

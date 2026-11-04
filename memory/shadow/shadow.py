@@ -412,8 +412,10 @@ def read_stream(text, bind=None):
     name is only passed on, and a name with a `/` is never looked up.
     """
     table, docs, name, cur, into = [], [], None, None, None
+    directive = False
     for line in text.splitlines():
         if line.startswith('%YAML'):
+            directive = True
             continue
         if line.startswith('---'):
             if into == 'data':
@@ -430,7 +432,9 @@ def read_stream(text, bind=None):
         if into is None:
             if _blank(line):
                 continue
-            raise SchemaError('a document starts with `---`')
+            if not directive:
+                raise SchemaError('a stream starts with `%YAML 2.0`')
+            into, cur = 'data', []
         cur.append(line)
     if into == 'data':
         docs.append((name, '\n'.join(cur)))
