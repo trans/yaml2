@@ -133,6 +133,9 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   stays refused. References copy as they are read, so a replacement never changes an
   earlier document. A parser setting would break "same bytes, same data", so any choice
   has to be written in the file.
+  The user then wondered about per-document tables, and proposed a compromise: `...`
+  replaces the whole table (2026-11-04). The agent recommends that, with option 2 between
+  `...` lines: `---` shares, `...` then `---` starts fresh, and no new syntax. Not settled.
 - `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
   key, is it." A parser never delivers it. So Rule 1 has no exception here: an
   indicator isn't a scalar, so quoting one changes nothing about any value.
@@ -194,6 +197,9 @@ Agreed by the user, 2026-11-03:
 - No limit on key length (the user, 2026-11-04). 1.x's 1024 limit only bounded lookahead,
   which flow keys needed. A 2.0 key is one line.
 - A duplicate key is an error, including `1` and `"1"` in one mapping.
+  The user asked on 2026-11-04 whether the cost of checking argues for replacing instead.
+  It doesn't: replacing needs the same lookup, and merges need it anyway. Of 4,163 public
+  files, 64 repeat a key, and 51 of those silently lose a different value.
 - A Hash with non-string keys is written as a sequence of pairs, and a schema
   brings it back: `- [[1, 2], origin]`.
 - A reference key (`*foo:`, the user's idea) stays an error for now. Allowing it

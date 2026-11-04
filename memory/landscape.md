@@ -357,6 +357,13 @@ inside block scalars). 158 files (3.4%) hold one a known tool reads: release too
 quoted: 1,530 start with `%`, mostly Rails strings like `%{count}` and `%Y-%m-%d`, 26
 with `@`, 9 with a backtick.
 
+## Repeated keys (2026-11-04)
+
+Of 4,163 public files PyYAML can compose, 64 repeat a key in a mapping: rails 39, jekyll
+11, mkdocs 5, openapi 4, others 5. 51 of them lose a different value, 116 keys in all
+(97 more repeat the same value). The commonest key is `422`, an OpenAPI response written
+twice. Last-wins readers drop the earlier one with no warning.
+
 ## Flow indentation and reused anchors (2026-11-04)
 
 1.2.2 productions 197 and 69 require lines inside a flow collection to be deeper than
