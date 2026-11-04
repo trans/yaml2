@@ -189,14 +189,15 @@ In PyYAML and Psych: `a: |` with `text` gives `text\n` if the file ends in a new
 and `text` if not. Blank lines after a `|` are dropped; after a `|+` they are content,
 so a blank line between keys changes the value. A flush-left `--- |` string is refused
 by both, though 1.2 allows it (spec example 9.3), and the test suite tags that example
-`1.3-err`. Of 474 Markdown files with front matter under `~/Projects`, 27 (5.7%) have
+`1.3-err`. Of about 475 Markdown files with front matter under `~/Projects`, 27 (5.7%) have
 a `---` line in the body, which would end such a document, and 3 (0.6%) have a `...`
 line. Pandoc already accepts `...` as the end of a metadata block; 2 of those files
 close that way.
 
 `...` in the public sample: 21 uses, 18 with nothing but comments or blanks after them,
-3 followed by `---` and more documents, all in the Kubernetes sample. PyYAML refuses
-text after `...` when it isn't a new document.
+3 followed by `---` on the next line and more documents, all in the Kubernetes sample.
+No body of the 476 Markdown files starts with a `---` line. 1.2 allows a bare document
+after `...` (spec example 9.3), but libyaml and pure PyYAML refuse one.
 
 Multi-line plain scalars: in 40 of 369 GitLab files and 4 of 311 Compose files. The
 GitLab ones sampled are mostly shell commands that rely on folding into one line

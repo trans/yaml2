@@ -358,12 +358,15 @@ Under way since 2026-11-04, measured with `syntax.py`. All **proposed**.
   would still be swallowed. Cutting makes both an error.
 - `|` always ends in exactly one newline, whether or not the file does. Blank lines
   after it are layout. Otherwise an editor's final newline changes the value.
-- `...` ends the YAML, raised by the user's "what about `...`?" (2026-11-04). A parser
-  stops there, whatever follows isn't YAML, and it reports where it stopped so an app
-  can take the rest. That covers front matter, the user's case in YAML2#5, and it
-  replaces `--- |`, a text document proposed the same day, which needed a new string
-  type and a rule that it comes last. Cost: `...` then `---` silently loses what
-  follows, so an upgrade has to remove those. **Open.**
+- `...` ends the YAML unless the next non-blank line is `---`, which starts another
+  document, as in 1.2. A parser stops at any other `...`, whatever follows isn't YAML,
+  and it reports where it stopped so an app can take the rest. Raised by the user's
+  "what about `...`?" (2026-11-04), and the restart is the user's point. In 1.2 `...`
+  only ends a document, and what follows is still read as YAML, which is why Markdown
+  can't follow it. Blank lines are skipped, comments aren't: `# Heading` then `---` is
+  Markdown. Bare documents go. This covers front matter, the user's case in YAML2#5,
+  and replaces `--- |`, a text document proposed the same day, which needed a new
+  string type and a rule that it comes last. **Open.**
 - Rare forms go, each under 0.5% of 4,026 public files, each a loud error with an
   easy fix: `|+` and `>+`; indentation indicators (`|2`); UTF-16, UTF-32 and a BOM, so
   UTF-8 only; tabs outside strings; one-pair `[a: b]`; escapes JSON doesn't have.
