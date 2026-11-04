@@ -161,17 +161,17 @@ emitter never sorts them. Proposed consequences, not yet answered:
     y), `name: a`, `y: 3` gives `x, y, name`. A mapping with `<<` is ordered as if the
     merged keys were pasted at the top and each local key then assigned. So merged
     keys always come before local ones, and a file can't say "name, then the
-    defaults". Around it: `<<: [*head, *base]`, or no merge.
-  - One `<<` per mapping; more than one source goes in a list, `<<: [*a, *b]`
-    (proposed, answering the user's "can there be more than one merge?"). Two `<<`
-    lines is an error, which first-key-only already gives.
-  - Sources paste in list order, a's keys then b's (proposed). This corrects
-    "source order" as a claim about parsers: PyYAML and Psych reverse the sources.
-    `<<: [*head, *base]` only works in list order.
-  - A key in two sources: proposed an error, as a duplicate key is. This replaces the
-    earlier proposal, "the earlier source wins", which is 1.1's rule. **Open.**
-    Layering still works: a `--- &` entry takes `<<: *base` and overrides it, and that
-    entry is what gets merged. An error can be relaxed later; a winner can't be undone.
+    defaults". Around it: merge a `head` entry first, or no merge.
+  - Several sources. The user asked why `<<: *a` then `<<: *b` isn't allowed
+    (2026-11-04). No good reason: 1.x forbids it because `<<` is a key and keys are
+    unique, which is why the list form exists, and an indicator doesn't have that
+    limit. Proposed: repeated `<<` lines, one reference each, before any other key,
+    and no list form. Read top to bottom: a later line replaces a key in place, as a
+    local key does. With a (p, q) and b (q, r) that gives `p, q` from b, `r`. **Open.**
+    This replaces three proposals of the same day: one `<<` with a list, "the earlier
+    source wins", and "a key in two sources is an error". It depends on `<<` being an
+    indicator, still unconfirmed. Layering needs no entry of its own now: `<<: *base`
+    then `<<: *prod`.
 
 ## YAML Schema
 

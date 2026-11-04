@@ -110,8 +110,11 @@ More than one merge, with a (p, q) and b (q, r). `<<: [*a, *b]` gives q from a i
 PyYAML, Psych and go-yaml v3. Their keys come out `q, r, p` in PyYAML and Psych, the
 sources reversed. Two `<<` lines give q from b in PyYAML and Psych, the opposite
 winner, and an error in go-yaml v3. Same sample: 260 of the 299 uses name one source,
-39 are lists, 33 of those with two or more sources, in 5 files. No mapping has two
-`<<` lines, and no list has a key in two sources. A thin sample for "who wins".
+39 are lists, in 5 files, 33 of them with two or more sources. Their 78 sources are
+77 references and one inline mapping, in the `oyl.go` fixture. No list has a key in
+two sources, a thin sample for "who wins". No mapping has two `<<` lines, which says
+little, as 1.x forbids duplicate keys. With no list, the two-line result (`p, q` from
+b, `r`) is also what JS spread, Ruby `Hash#merge` and Python `{**a, **b}` give.
 
 ## Partial fixes so far
 
