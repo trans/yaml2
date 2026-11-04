@@ -423,6 +423,16 @@ quoted; more-indented lines inside `>`.
   at the next quote. `\`-newline and `\ ` go with them.
 - A more-indented line inside `>` becomes an error. Its special folding rule is hard to
   implement and to predict; silently folding it instead would change values.
+- `%`, `@` and `` ` `` are freed at the start of a plain scalar (the user, 2026-11-04:
+  "free them. the YAML team can decide otherwise if they have a reason too"). They were
+  only inherited, and forced quotes on 1,530 public values starting with `%` alone. A
+  line starting with `%` at column 0 stays reserved for directives. 1.x refuses these
+  today, so no existing file changes meaning.
+- Comments are never data, and no interface that delivers data shows them. A parser may
+  also offer a syntax tree that keeps them, and the spec gives one attachment rule so
+  tools agree (the user, 2026-11-04): a comment at the end of a line belongs to the last
+  node on it, and a run of comment lines to the key or item on the next line, with no
+  blank line between. Uses: tools that rewrite files, documentation, tool directives.
 - Staying: flow (34.5%, and JSON needs it), `>` (8.3%), `|-` and `>-` (5.9%), several
   documents (27.8% of Kubernetes files), trailing commas (they cost nothing), and
   `- - x` (3 files, but `- key:` stays, so cutting it would add a rule, not remove one).

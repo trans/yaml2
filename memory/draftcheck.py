@@ -7,7 +7,7 @@ Runs every example in the draft, then edge cases. The size limit isn't implement
 import json, re, sys
 class No(Exception): pass
 FLOWI = ',[]{}'
-IND = ",[]{}#&*|>'\"%@`"
+IND = ",[]{}#&*|>'\""
 class P:
     def __init__(s, t):
         if '\r' in t.replace('\r\n', ''): raise No('lone CR')
@@ -213,6 +213,7 @@ class P:
         c, n = s.ch(), s.ch(1)
         if re.match(r'-<< +\*', s.t[s.i:s.i + 40]): s.bad('-<< outside a sequence')
         if not c or c in IND or c in ' \t\n': s.bad('bad start of a plain scalar')
+        if c == '%' and s.col() == 0: s.bad('reserved for directives')
         if c in '-?:' and (n in ('', ' ', '\t', '\n') or (flow and n in FLOWI)): s.bad('bad start of a plain scalar')
         b = s.i
         while True:
@@ -431,6 +432,9 @@ good = [
  ('--- &\nFn::Sub: {x: 1}\n---\na: *Fn::Sub:x\n', [{"a": "1"}]),
  ('--- &\n"my key": {x: 1}\n---\na: *<my key>:x\nb: [*<my key>:x, 1]\n', [{"a": "1", "b": ["1", "1"]}]),
  ('a: !Ref foo\n', [{"a": "!Ref foo"}]),
+ ('- %d\n- @x\n- `y`\n', [["%d", "@x", "`y`"]]),
+ ('  %a: 1\n', [{"%a": "1"}]),
+ ('[%a, @b]\n', [["%a", "@b"]]),
  ('a: b#c\n', [{"a": "b#c"}]),
  ('a: x:y:z\nb: http://x.y/z\n', [{"a": "x:y:z", "b": "http://x.y/z"}]),
  ('a: "\\ud83d\\ude00"\n', [{"a": "\U0001F600"}]),
@@ -444,7 +448,7 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', 'a: 1\t\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', 'a: 1\t\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
  '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '--- &\na: 1\n--- &\na: 2\n', '<< : x\n', '<<:\n',
  'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', '--- &\na: 1\nb:\n  - *a\n', '--- &\ns: [x]\nt:\n  u:\n    -<< *s\n',
