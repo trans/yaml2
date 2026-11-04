@@ -1,6 +1,6 @@
 # Landscape: where YAML stands
 
-*Updated 2026-11-03*
+*Updated 2026-11-04*
 
 ## The spec (checked 2026-11-03)
 
@@ -86,6 +86,20 @@ Peter Murphy's YPath proposal (v0.4, 2011), Ruby's old `YAML::YPath`, the
 query languages that return many nodes, and cyaml's steps don't cover keys
 with special characters. JSON Pointer (RFC 6901) is the closest match for
 naming one node.
+
+## Where `<<` sits, and what it changes (2026-11-04)
+
+4,192 unique files (the 311 public Compose files plus `~/Projects`), 32 with merge,
+299 uses. 276 are the first key of their mapping. The 23 others are in 3 files: 11
+each in two Compose files, no local key clashing with a merged one, and 1 in a test
+fixture, `oyl.go/testdata/anchors.yaml`. No mapping has two.
+
+`{y: 3, name: a, <<: {x: 1, y: 2}}` with `<<` last gives `y: 3` in PyYAML 6.0.3 and
+go-yaml v3.0.1, and `y: 2` in Psych 5.2.2, where the merge overwrites the local key.
+The fixture does this for real: `worker`'s `restart` is `on-failure` in PyYAML and
+`always` in Psych. With `<<` first all three agree on values. Key order differs when
+`<<` isn't first: PyYAML keeps merged keys first (`x, y, name`) wherever `<<` is
+written, Psych puts them where `<<` is. Go's map print sorts, so it shows no order.
 
 ## Partial fixes so far
 

@@ -153,9 +153,13 @@ emitter never sorts them. Proposed consequences, not yet answered:
 - A native map can still lose it: a JS object moves number-like keys first, and Go
   maps are random. So the guarantee is on the parser's API (events, tree, an ordered
   map), and a conversion to a native map is the caller's choice.
-- Merge needs a defined order now. Proposed: `<<` puts its keys where it is written,
-  a key written locally keeps its own place and value, and in `<<: [*a, *b]` the
-  earlier source wins.
+- Merge needs a defined order now. Proposed 2026-11-04, replacing "where it is
+  written", which the user questioned: `<<` must be the first key of a mapping. Start
+  with the merged keys in source order, then apply local keys in order, so a local
+  key overrides in place and new keys follow. In `<<: [*a, *b]` the earlier source
+  wins. A second `<<` can't be first, so it needs no rule of its own. "Top" had two
+  meanings here: depth (the `--- &` rule) and position (this one). Not yet answered.
+  Why: a late `<<` already gives different values, see landscape.md.
 
 ## YAML Schema
 
