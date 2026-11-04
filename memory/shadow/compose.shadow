@@ -39,32 +39,32 @@ blkio-config:
   weight_device?: [!blkio-weight, ...]
 
 credential-spec:
-  << *ext
+  <<: *ext
   config?: !str
   file?: !str
   registry?: !str
 
 device-map:
-  << *ext
+  <<: *ext
   source: !str
   target?: !str
   permissions?: !str
 device: !str | !device-map
 
 logging:
-  << *ext
+  <<: *ext
   driver?: !str
   options?: !str-map
 
 service-model:
-  << *ext
+  <<: *ext
   endpoint_var?: !str
   model_var?: !str
 service-models-map:
   !str: !service-model | ''
 
 service-network:
-  << *ext
+  <<: *ext
   aliases?: [!str, ...]
   interface_name?: !str
   ipv4_address?: !str
@@ -79,25 +79,25 @@ service-networks-map:
   !str: !service-network | ''
 
 volume-bind:
-  << *ext
+  <<: *ext
   propagation?: !str
   create_host_path?: !flag
   recursive?: enabled | disabled | writable | readonly
   selinux?: z | Z
 volume-volume:
-  << *ext
+  <<: *ext
   labels?: !list-or-dict
   nocopy?: !flag
   subpath?: !str
 volume-tmpfs:
-  << *ext
+  <<: *ext
   size?: !number
   mode?: !number
 volume-image:
-  << *ext
+  <<: *ext
   subpath?: !str
 service-volume-map:
-  << *ext
+  <<: *ext
   type: bind | volume | tmpfs | cluster | npipe | image
   source?: !str
   target?: !str
@@ -110,7 +110,7 @@ service-volume-map:
 service-volume: !str | !service-volume-map
 
 config-ref-map:
-  << *ext
+  <<: *ext
   source?: !str
   target?: !str
   uid?: !str
@@ -119,7 +119,7 @@ config-ref-map:
 config-ref: !str | !config-ref-map
 
 ulimit:
-  << *ext
+  <<: *ext
   hard: !number
   soft: !number
 ulimits:
@@ -133,7 +133,7 @@ env-file-item: !str | !env-file-map
 env-file: !str | [!env-file-item, ...]
 
 device-request:
-  << *ext
+  <<: *ext
   capabilities?: [!str, ...]
   count?: !number
   device_ids?: [!str, ...]
@@ -142,7 +142,7 @@ device-request:
 gpus: all | [!device-request, ...]
 
 container-spec:
-  << *ext
+  <<: *ext
   annotations?: !list-or-dict
   blkio_config?: !blkio-config
   cap_add?: [!str, ...]
@@ -218,7 +218,7 @@ container-spec:
   working_dir?: !str
 
 build-map:
-  << *ext
+  <<: *ext
   context?: !str
   dockerfile?: !str
   dockerfile_inline?: !str
@@ -246,7 +246,7 @@ build-map:
   platforms?: [!str, ...]
 
 depends-condition:
-  << *ext
+  <<: *ext
   restart?: !flag
   required?: !bool
   condition: service_started | service_healthy | service_completed_successfully
@@ -254,7 +254,7 @@ depends-map:
   !str: !depends-condition
 
 healthcheck:
-  << *ext
+  <<: *ext
   disable?: !flag
   interval?: !str
   retries?: !number
@@ -264,7 +264,7 @@ healthcheck:
   start_interval?: !str
 
 port-map:
-  << *ext
+  <<: *ext
   name?: !str
   mode?: !str
   host_ip?: !str
@@ -275,7 +275,7 @@ port-map:
 port: !str | !port-map
 
 workload-spec:
-  << *ext
+  <<: *ext
   build?: !str | !build-map
   depends_on?: !depends-map | [!str, ...]
   healthcheck?: !healthcheck
@@ -285,7 +285,7 @@ workload-spec:
   tty?: !flag
 
 update-config:
-  << *ext
+  <<: *ext
   parallelism?: !number
   delay?: !str
   failure_action?: !str
@@ -294,21 +294,21 @@ update-config:
   order?: start-first | stop-first
 
 resource-limits:
-  << *ext
+  <<: *ext
   cpus?: !number
   memory?: !str
   pids?: !number
 
 generic-spec:
-  << *ext
+  <<: *ext
   kind?: !str
   value?: !number
 generic-resource:
-  << *ext
+  <<: *ext
   discrete_resource_spec?: !generic-spec
 
 device-resource:
-  << *ext
+  <<: *ext
   capabilities: [!str, ...]
   count?: !number
   device_ids?: [!str, ...]
@@ -316,36 +316,36 @@ device-resource:
   options?: !list-or-dict
 
 resource-reservations:
-  << *ext
+  <<: *ext
   cpus?: !number
   memory?: !str
   generic_resources?: [!generic-resource, ...]
   devices?: [!device-resource, ...]
 
 resources:
-  << *ext
+  <<: *ext
   limits?: !resource-limits
   reservations?: !resource-reservations
 
 restart-policy:
-  << *ext
+  <<: *ext
   condition?: !str
   delay?: !str
   max_attempts?: !number
   window?: !str
 
 preference:
-  << *ext
+  <<: *ext
   spread?: !str
 
 placement:
-  << *ext
+  <<: *ext
   constraints?: [!str, ...]
   preferences?: [!preference, ...]
   max_replicas_per_node?: !number
 
 deployment:
-  << *ext
+  <<: *ext
   mode?: !str
   endpoint_mode?: !str
   replicas?: !number
@@ -357,7 +357,7 @@ deployment:
   placement?: !placement
 
 service-hook:
-  << *ext
+  <<: *ext
   command: !command
   user?: !str
   privileged?: !flag
@@ -365,11 +365,11 @@ service-hook:
   environment?: !list-or-dict
 
 pre-start-hook:
-  << *container-spec
+  <<: *container-spec
   per_replica?: !flag
 
 watch:
-  << *ext
+  <<: *ext
   ignore?: !str-or-list
   include?: !str-or-list
   path: !str
@@ -379,11 +379,11 @@ watch:
   initial_sync?: !bool
 
 development:
-  << *ext
+  <<: *ext
   watch?: [!watch, ...]
 
 provider-map:
-  << *ext
+  <<: *ext
   type: !str
   options?: !any-map
 
@@ -392,8 +392,8 @@ extends-map:
   file?: !str
 
 service:
-  << *container-spec
-  << *workload-spec
+  <<: *container-spec
+  <<: *workload-spec
   deploy?: !deployment
   develop?: !development
   profiles?: [!str, ...]
@@ -410,7 +410,7 @@ service:
   pre_stop?: [!service-hook, ...]
 
 schedule-map:
-  << *ext
+  <<: *ext
   cron: !str
   timezone?: !str
   concurrency?: forbid | queue
@@ -418,37 +418,37 @@ schedule-map:
 schedule-item: !str | !schedule-map
 
 triggers:
-  << *ext
+  <<: *ext
   manual?: !flag
   schedule?: [!schedule-item, ...]
 
 job:
-  << *container-spec
-  << *workload-spec
+  <<: *container-spec
+  <<: *workload-spec
   profiles?: [!str, ...]
   extends?: !str | !extends-map
   triggers: !triggers
 
 external-map:
-  << *ext
+  <<: *ext
   name?: !str
 external: !str | !external-map
 
 ipam-config:
-  << *ext
+  <<: *ext
   subnet?: !str
   ip_range?: !str
   gateway?: !str
   aux_addresses?: !str-map
 
 ipam:
-  << *ext
+  <<: *ext
   driver?: !str
   config?: [!ipam-config, ...]
   options?: !str-map
 
 network:
-  << *ext
+  <<: *ext
   name?: !str
   driver?: !str
   driver_opts?: !str-map
@@ -461,7 +461,7 @@ network:
   labels?: !list-or-dict
 
 volume:
-  << *ext
+  <<: *ext
   name?: !str
   driver?: !str
   driver_opts?: !str-map
@@ -469,7 +469,7 @@ volume:
   labels?: !list-or-dict
 
 secret:
-  << *ext
+  <<: *ext
   name?: !str
   environment?: !str
   file?: !str
@@ -480,7 +480,7 @@ secret:
   template_driver?: !str
 
 config:
-  << *ext
+  <<: *ext
   name?: !str
   content?: !str
   environment?: !str
@@ -490,7 +490,7 @@ config:
   template_driver?: !str
 
 model:
-  << *ext
+  <<: *ext
   name?: !str
   model: !str
   context_size?: !int
@@ -502,7 +502,7 @@ include-map:
   project_directory?: !str
 include: !str | !include-map
 ---
-<< *ext
+<<: *ext
 version?: !str
 name?: !str
 include?: [!include, ...]

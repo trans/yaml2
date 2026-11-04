@@ -40,7 +40,7 @@ def _quote(text):
 
 
 def _prepare(doc):
-    """Quote `!` keys and values, and turn `<< *x` into a key, for PyYAML's sake."""
+    """Quote `!` keys and values, and join `<<: *x` lines, for PyYAML's sake."""
     out = []
     for line in doc.splitlines():
         code = re.sub(r'\s+#.*$', '', line)
@@ -48,7 +48,7 @@ def _prepare(doc):
             continue
         m = re.match(r'^(\s*(?:- )*)(.*)$', code)
         ind, rest = m.group(1), m.group(2)
-        m = re.match(r'^<<:? +(\*\S+)$', rest)
+        m = re.match(r'^<<: +(\*\S+)$', rest)
         if m:
             # PyYAML would keep only the last of a repeated key, so join them.
             if out and out[-1].startswith(f"{ind}'<<': "):
@@ -63,7 +63,7 @@ def _prepare(doc):
             continue
         key, val = m.group(1), m.group(2)
         if key == '<<':
-            raise SchemaError('`<<` takes one reference: `<< *a`, or quote the key')
+            raise SchemaError('`<<:` takes one reference: `<<: *a`, or quote the key')
         if key.startswith('!'):
             key = _quote(key)
         if val and val[0] in '!*[{':

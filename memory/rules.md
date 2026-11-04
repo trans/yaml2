@@ -68,7 +68,7 @@ versions:
   app: 1.4
 ---
 development:
-  << *defaults
+  <<: *defaults
   image: *versions:app
 ```
 
@@ -105,24 +105,27 @@ Not confirmed (the agent's terms):
 - `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
   key, is it." A parser never delivers it. So Rule 1 has no exception here: an
   indicator isn't a scalar, so quoting one changes nothing about any value.
-- It has no colon: `<< *a` (the user, 2026-11-04). Like `-` it needs a space, and a
-  reference must follow, so CircleCI's `<< parameters.x >>` and `<<*a` stay text. It
-  counts only where a mapping entry can start.
-- The key form works too: the user, 2026-11-04, "we should just also support the key
-  form", in place of the error proposed that day. Read here as `<<: *a` merging just
-  as `<< *a` does, under the same rules; the other reading, an ordinary key, is
-  **not ruled out**. `<<: [*a, *b]` stays an error. `"<<":` is the literal key.
-- Sequence merge, raised by the user 2026-11-04 as `-<< *s`. **Proposed:** it replaces
-  itself with the items of `s`, which must be a sequence. One token, a space, then a
-  reference, so anything else stays text. Any position, any number: nothing can
-  clash, and position is the point. Plain concatenation, no dedupe. `- << *a` is
-  different, an item that is a mapping with merged keys; a shape check tells them
-  apart, as `<<` needs a mapping and `-<<` a sequence.
-  In data documents only for now. A `--- &` entry with two `-<<` of the entry before
-  it doubles each time, so 30 entries in under 1 KB make 2^30 items. `<<` can't do
-  that, because keys collapse. The rule above already keeps it out of `--- &`. Cost:
-  lists can't be built from lists in the table, which GitLab's docs show doing.
-  Revisit with the size limit.
+- It keeps its colon: `<<: *a` (the user, 2026-11-04, reversing `<< *a` of the same
+  day: "It's just makes it more obvious, even if it is not an actual key."). So one
+  spelling. A plain `<<:` always merges and takes one reference, `<<: [*a, *b]` is an
+  error, and `"<<":` is the literal key. CircleCI's `<< parameters.x >>` stays text.
+- Sequence merge: `-<< *s`, raised by the user, accepted 2026-11-04 ("perfect", then
+  "yes"), in data documents only for now. It replaces itself with the items of `s`,
+  which must be a sequence. One token, a space, then a reference, so anything else
+  stays text. Any position, any number: nothing can clash, and position is the point.
+  Plain concatenation, no dedupe. **Proposed:** no colon, since items have none, and
+  `- <<: *a` (an item that is a mapping with merged keys) then differs from `-<< *a`
+  by more than a space. A shape check also tells them apart: `<<:` needs a mapping,
+  `-<<` a sequence.
+  Why not in `--- &`: an entry with two `-<<` of the entry before it doubles each
+  time, so 30 entries in under 1 KB make 2^30 items. `<<:` can't, because keys
+  collapse. Cost: lists can't be built from lists in the table, which GitLab's docs
+  show doing. Revisit with the size limit.
+- Flow collections, **proposed** (the user asked, 2026-11-04): both work, by the same
+  rules, if flow survives the syntax cuts. `{<<: *a, x: 1}` with `<<:` first, and
+  `[-<< *s, x]` at any position. A reference ends at `,`, `]` or `}`, so a path key
+  holding those needs quotes inside flow, as any plain scalar does. `[<<: *a, x]` is
+  a one-pair mapping item, as in 1.x. Real use of either in flow: none (landscape.md).
 - A reference names exactly one node, as a copy, so the data stays a tree. A
   query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
   later question.
@@ -176,7 +179,7 @@ emitter never sorts them. Proposed consequences, not yet answered:
   (2026-11-04), replacing "where it is written". "Top" had two meanings: depth (the
   `--- &` rule) and position (this one). Why: a late `<<` already gives different
   values, see landscape.md.
-  - Override in place: the user's "I am good with it" (2026-11-04). `<< *base` (x,
+  - Override in place: the user's "I am good with it" (2026-11-04). `<<: *base` (x,
     y), `name: a`, `y: 3` gives `x, y, name`. A mapping with `<<` is ordered as if the
     merged keys were pasted at the top and each local key then assigned. So merged
     keys always come before local ones, and a file can't say "name, then the
@@ -184,8 +187,8 @@ emitter never sorts them. Proposed consequences, not yet answered:
   - Several sources: repeated `<<` lines, the user's choice (2026-11-04, "I think it
     makes more sense"). One reference each, all before any other key, no list form.
     Read top to bottom: a later line replaces a key in place, as a local key does.
-    With a (p, q) and b (q, r) that gives `p, q` from b, `r`. Layering is `<< *base`
-    then `<< *prod`. Two written keys that are the same are still an error; only a
+    With a (p, q) and b (q, r) that gives `p, q` from b, `r`. Layering is `<<: *base`
+    then `<<: *prod`. Two written keys that are the same are still an error; only a
     merged key can be replaced. This replaces `<<: [*a, *b]`, "the earlier source
     wins" and "a key in two sources is an error", all dropped the same day.
 

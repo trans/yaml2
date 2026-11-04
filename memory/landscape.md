@@ -118,8 +118,23 @@ b, `r`) is also what JS spread, Ruby `Hash#merge` and Python `{**a, **b}` give.
 
 Is `<<` ever data? In 4,347 unique files (the same sample plus `~/.config`): no quoted
 `"<<"` key, no plain key starting `<< `, and one plain value starting `<< `,
-CircleCI's `<< parameters.executor >>`. No scalar starts `<< *`, so `<< *a` is safe
-from that template syntax.
+CircleCI's `<< parameters.executor >>`. Quoted `"<<"` is a literal key in PyYAML and
+go-yaml v3, but Psych merges it: `{"<<": {"a": 1}, "b": 2}` gives `{a, b}`.
+
+### With GitLab CI added (2026-11-04)
+
+The counts above are Compose and local files, and undercount this. In 369 public
+`.gitlab-ci.yml` files, 55 use merge, 483 uses: 278 first and 205 late, in 19 files,
+usually after `dependencies`, `needs` or `stage`. None of the 205 has a local key
+clashing with a merged one, so moving `<<` first changes no values. No list form at
+all. 39 mappings, in 4 files, have two `<<` lines, always together, and 4 of those,
+in 1 file, have a key in both sources; GitLab reads with Psych, so the later wins,
+which is the 2.0 rule. So 782 uses in all: 554 first, 228 late, and only the `oyl.go`
+fixture clashes.
+
+Flow: none of the 782 uses is in `{ }`, and none of the 57 `- *x` uses in GitLab with
+x a sequence is in `[ ]`. All three parsers accept `{<<: *a, x: 1}` and `[<<: *a, x]`,
+and Psych's late-merge difference shows in flow too.
 
 ## Sequence merge (2026-11-04)
 

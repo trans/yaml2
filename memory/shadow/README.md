@@ -48,10 +48,10 @@ any key with an empty value (`!str?`). The second was later replaced by
 - **Damaged copies:** 10,500 mutations, 6,962 rejected by the schema, 99.6%
   caught. All 26 misses are inside `x-` blocks, probably a harness quirk:
   aliases are shared in one tree and copied in the other. Not checked.
-- **Merge syntax:** on 2026-11-04 the two list merges became two lines each, and all
-  65 lines in both shadows became `<< *a`. Output is identical before and after, on
-  the workflows and the 311 public Compose files. The prototype also reads `<<: *a`,
-  and refuses a `<<` that isn't first, or that has anything but one reference.
+- **Merge syntax:** on 2026-11-04 the two list merges became two lines each. Output
+  is identical before and after, on the workflows and the 311 public Compose files.
+  The prototype refuses a `<<:` that isn't first, or that has anything but one
+  reference.
 - **Typing:** 26,083 strings, 500 empty, 4 booleans. The schema allows a string
   wherever it allows a number, so agreeing with it is easier than for workflows.
 - **Mines:** YAML 1.1 changes 22 values in these files: `0755` to 493, `OFF` to
