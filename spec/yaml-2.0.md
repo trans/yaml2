@@ -164,8 +164,9 @@ application.
 
 A name is delivered beside the data, not in it. A parser looks nothing up and never
 fetches anything, because a name isn't an address, and reading a file must not touch
-the network. A name is advisory: the application's own schema wins, and an application
-may refuse a name it didn't expect. YAML Schema says how a name can type a document.
+the network. A name alone is advisory: an application may refuse a name it didn't expect.
+A name that is an entry in the file's own table stamps the document with that entry, and
+YAML Schema says what that means.
 
 ```yaml
 --- !github.com/actions/workflow/v1

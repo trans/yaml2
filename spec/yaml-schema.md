@@ -42,28 +42,40 @@ leave out the `%YAML 2.0` line. An example marked `refused` must be refused.
 
 ## 2. Conformance
 
-A schema is checked when it is loaded, before any data is read. A bad schema is an error even
-if no document reaches the bad part: `!stirng` is caught at once.
+Everything a document's root reaches is checked before that document's data, so a misspelt
+`!stirng` is caught at once. An entry nothing reaches isn't a type, because `motd: !important` is a
+fine data entry of the same form.
 
 A document that doesn't fit its schema is refused, as a syntax error is. A refusal gives the
-line and column, and the path to the value. There is no lenient mode.
+line and column, and the path to the value. Through a reference, it gives the place the reference
+is used, with the entry's line beside it. There is no lenient mode.
+
+The time to type a stream must grow in line with its size, for any schema and any stream, even one
+written to force it. Section 16 says how.
 
 ## 3. Applying a schema
 
-There are two ways to type a document:
+A document gets its schema in one of two ways:
 
-- **The application supplies a schema** and says which entry is the root. It can pass the
-  schema directly, or prepend it to the stream.
-- **A document names an entry.** `--- !name` types the document if the name is local and the
-  table has that entry. Otherwise the name is only a name for the application. A global name,
-  one with a `/`, is never looked up in the table.
+- **The file says.** `--- !name` types a document if the name is local and the file's own table
+  has that entry. A schema written in with the data stamps it: that is how the file is meant to be
+  read, and an application's schema doesn't replace it.
+- **The application says.** A document with no stamp can take a schema the application got from
+  elsewhere, and the application says which entry is the root. How it picks one is its own
+  business: the file's name, its extension, or simply knowing what it reads. That schema stays
+  out of the stream's table, so one schema can serve many files, and a file's entries can share
+  its names.
 
-The application's choice wins, so a file can't pick a laxer schema for itself. A document with
-neither stays strings.
+A global name, one with a `/`, is never looked up in the table, so it stamps nothing. Nor does a
+name the table doesn't have. A document with neither stays strings.
 
-A schema is applied as a stream is parsed, because a type can depend on how a scalar was
-written, and that isn't in the delivered data (part 1, section 11). A `--- &` document holds
-both types and data, and there is one table: `!job` and `*defaults` look in the same place.
+A library may let an application ignore a file's schema and read the document as it is, or hand it
+the schema, which is YAML too.
+
+A schema sees how each scalar was written, and that isn't in the delivered data (part 1, section
+11). So it runs over what a parser read, not over what it delivered. A parser can type events as
+they arrive, or a tree once it is built. A `--- &` document holds both types and data, and a
+stream has one table: `!job` and `*defaults` look in the same place.
 
 ```yaml
 --- &
@@ -92,12 +104,12 @@ retries: 3
 |---|---|---|
 | `!str` | any scalar | its text |
 | `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)` | an integer |
-| `!float` | a plain scalar: an integer, with `.digits` or an exponent or both | a number |
+| `!float` | a plain scalar: an integer, which may have `.digits`, an exponent or both | a number |
 | `!bool` | a plain `true` or `false` | a boolean |
 | `!null` | a plain `null` | null |
 | `!date` | any scalar: an RFC 3339 full-date | a date |
 | `!datetime` | any scalar: an RFC 3339 date-time | a date and time |
-| `!binary` | any scalar: base64, RFC 4648 section 4 | bytes |
+| `!binary` | any scalar: base64, RFC 4648 section 4, with line breaks skipped | bytes |
 | `!any` | any node | that node, untyped |
 
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans.
@@ -134,6 +146,22 @@ yes
 
 JSON has no date, so a date in JSON is quoted, and `!date` has to read it. That's why the last
 three take a scalar however it's written.
+
+`!binary` skips line breaks, because a `|` block of wrapped base64 is how a long value is usually
+laid out. RFC 4648 leaves that choice to the format using it.
+
+```yaml
+--- &
+blob: !binary
+--- !blob
+|
+  aGVs
+  bG8=
+```
+
+```json
+"aGVsbG8="
+```
 
 ### 4.2 Limits
 
@@ -293,7 +321,8 @@ typed data keeps the document's order.
 
 A key ending in `?` is optional. It may be absent, or written with no value, which delivers
 null. A quoted key is always a literal key, so a key that ends in `?` or starts with `!` can
-be written.
+be written. If a type names a key both ways, the later one wins, because a merge can't tell them
+apart.
 
 ```yaml
 --- &
@@ -374,14 +403,31 @@ steps: [!step, ...]
 [{"name": "build", "run": "make"}]
 ```
 
-A named type can't take a limit: `!port(1..)` is refused. An entry that only names itself is
-refused, as `a: !a` is, since nothing would ever check a value.
+A named type can't take a limit: `!port(1..)` is refused. A cycle of names with no collection in
+it is refused, since going round it never reaches a value: `a: !a`, and `a: !b | !int` with
+`b: !a | !str`.
+
+An entry a type has reached can't be replaced until `...`, because a replacement never changes what
+came before it (part 1, section 8.1).
+
+```yaml refused
+--- &
+a: !b
+b: !int
+--- !a
+1
+--- &
+b: !bool
+--- !a
+true
+```
 
 ## 9. Alternatives
 
 `|` joins alternatives. The node's shape chooses first: a mapping looks among the mappings,
 and a sequence among the sequences. There is at most one sequence. Exactly one mapping must
-fit, by its required keys and its literal values.
+fit. A mapping fits if it has the required keys and literal values, and no key it doesn't take.
+No alternative is tried by typing what is inside it, so typing never backtracks.
 
 ```yaml
 --- &
@@ -445,6 +491,38 @@ b: "1.10"
 
 Inside `|`, a mapping must be named, since `: ` can't sit in a plain scalar, and a sequence
 must come last, since a plain scalar can't start with `[`.
+
+Each name counts once in a union, at its first place, so `!m | !m` is `!m`, and so is a union that
+reaches `m` by two paths. `!any` in a union takes a node no other alternative fits.
+
+```yaml
+--- &
+p:
+  x: !int
+q:
+  x: !int
+  z: !int
+u: !p | !q | !p
+list: [!u, ...]
+--- !list
+- {x: 1}
+- {x: 1, z: 2}
+```
+
+```json
+[{"x": 1}, {"x": 1, "z": 2}]
+```
+
+A union holds at most 10,000 positions once its names are expanded. A type counts 1, a literal
+counts nothing, since a hash table finds it, and a pattern counts its characters and classes after
+nested counts multiply, so `(a{1000}){1000}` counts a million. A mapping's type keys count as one
+union, and a type on its own as a union of one. A schema past that is refused when it is loaded, by
+every parser, so all of them agree on what loads.
+
+```yaml refused
+--- &
+a: !str(/(a{1000}){1000}/)
+```
 
 ## 10. Wherever this occurs
 
@@ -512,6 +590,10 @@ text: *port
 So a parser that keeps a reference as one shared node has to keep how each scalar was written,
 and it can't share a typed result between two types.
 
+An interface that keeps references types each node once under each type, and the sizes of what it
+types count against the limit. Without that memory, a chain of 28 references in 632 bytes takes 1.6
+billion visits. A type changes no count in held or full (part 1, section 10).
+
 A merge is the way to give a default. An author's default is a `<<` from a table entry: local keys
 win and missing ones fill in, visibly in the file, so the same bytes give the same data with or
 without a schema. A format's own default is applied by its application. Merge is shallow, so a
@@ -564,14 +646,19 @@ shapes: [!shape, ...]
 [{"x": 1, "y": 2}, {"target": 3}]
 ```
 
+A binding that refuses, refuses the document. It doesn't move on to the next alternative: the
+schema chooses the type, and then the code runs, so code never runs on trial. It is called once per
+use, so `*p` twice makes two calls and two values, since shared objects read as copies.
+
 A bound name is also how to keep a check that a schema can't state: a rule on two scalar forms,
 such as `true` or `${{ expression }}`, is a named string and a few lines of code.
 
 ## 13. Emitting and documenting
 
 An emitter of typed data needs the same schema. It quotes a string that the type at that place
-would read as something else: under `!int | !str`, the string `3` is written `"3"`. Part 1,
-section 11, says the rest.
+would read as something else: under `!int | !str`, the string `3` is written `"3"`. A bound value
+needs the way back too: the application gives code that turns a `Point` into the mapping its entry
+takes. Part 1, section 11, says the rest.
 
 A comment directly above a key is its description. A parser still discards it, and only a tool
 that keeps comments can show it. Part 1, section 11, says which key a comment belongs to.
@@ -590,7 +677,7 @@ limit      ::= "(" (range | "/" pattern "/") ")"
 range      ::= number? ".." number?
 number     ::= "-"? digit+ ("." digit+)?
 sequence   ::= "[" expression ("," " "* expression)* ("," " "* "...")? "]"
-literal    ::= any text, not starting with "!", "[" or "{", holding no " | "
+literal    ::= any text, not starting with "!", "[", "{", '"' or "'", holding no " | "
 name       ::= a table key, or a standard type, with no "/", "(", ")", "[", "]", "," or "|"
 pattern    ::= I-Regexp, RFC 9485, holding no "/)"
 ```
@@ -606,8 +693,19 @@ and a plain key ending in `?` is optional.
   proposal, not yet decided.
 - **Quoted scalars as literals.** Section 5 removes two warts, and hasn't been tried on a real
   schema. It means a type expression can't be quoted.
-- **Which standard names.** `!uri` and `!set` were left out. A set can be an application type, and
-  a URI is a pattern question.
+- **The standard types.** The list is short so far, and it should be thorough: widths such as
+  `!uint32` and `!float32`, exact decimals, times and durations, and names such as `!uri` and
+  `!uuid`, checked against other type systems. Names can be added later, as section 8 says.
+- **What a number is.** `!int` and `!float` have no stated range. Open: what every parser must read,
+  whether a parser may refuse past that but never round or wrap, how `!float` rounds, and whether a
+  value out of range refuses the document, so that `!int | !float` can't round on one parser only.
+- **`\p{..}`.** It needs Unicode's tables, about 16 KB, the first such tables in the design, and RFC
+  9485 names no Unicode version.
+- **The ceiling on a union.** Section 9's 10,000 refuses none of 1,247 real patterns. A lower figure
+  would make a schema of many overlapping unions quicker to load.
+- **Typing under kept references.** Section 11's count hasn't been built or tried.
+- **Ways past a stamp.** Section 3 lets a library ignore a file's schema. Whether one must is open,
+  since an application checking files it didn't write depends on it.
 - **`!null` and an empty value.** `!null` takes the plain `null` only, and `key?:` takes an
   empty value. Whether `!null` should take both is open.
 - **More than one limit on a type.** A range and a pattern can't be combined today.
@@ -623,16 +721,26 @@ and a plain key ending in `?` is optional.
 
 ## 16. Security
 
-A schema adds no way to run code: a name does nothing unless the application bound it, and a
-schema never fetches anything. Part 1, section 15, covers the data.
+A schema can't run code, fetch anything or grow the data: a name does nothing unless the application
+bound it. All a schema can do is spend time, and section 2 rules that out. Part 1, section 15, covers
+the data.
 
 - **A binding is a list of what may be built.** A library that binds every name to the class of
   that name, as Ruby's `unsafe_load` does with tags, hands the choice back to the file, which
   section 12 rules out.
-- **A schema in the stream is a claim.** A stream that carries its own schema can make it as lax
-  as it likes. An application that relies on a check supplies the schema itself (section 3).
-- **Patterns can be slow.** A dedicated I-Regexp engine can run in linear time, but RFC 9485 warns
-  that existing engines may not. A schema from someone else shouldn't be run on such an engine.
+- **A stamp isn't a check.** A file's own schema says how it is meant to be read, and it can be as
+  lax as its author likes. An application that relies on a check of files it didn't write ignores
+  or refuses a file's schema, and applies its own (section 3).
+- **Forced collisions.** Part 1, section 7.4, sets the rule for keys, and it covers what typing adds:
+  each data key against a type's keys, and `!name` in the table. A compiled schema shared between
+  parsers needs a hash key of its own.
+- **References.** A walk through a chain of references doubles at each link, so section 11 types
+  each node once under each type.
+- **Unions.** Names that repeat double at each level if read literally. Section 9 counts each name
+  once, and its ceiling fixes how much a scalar can cost per character.
+- **Patterns.** Matching takes time linear in the string, whichever engine does it, and section 9's
+  ceiling limits a pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
+  engine can't be used on a schema someone else wrote.
 - **Recursion is bounded by the data.** Typing goes down one level of data at each step through a
   named type that holds a collection, and an entry that only names itself is refused when the
   schema is loaded.
