@@ -107,8 +107,8 @@ development:
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.
 - Nesting: every parser must accept 256 levels and may refuse past that, but never crash.
-  The user agreed to a minimum on 2026-11-04. 256 is the agent's pick, seen by the user
-  with no objection: the deepest of the 4,241 real files that parse is 21.
+  The user agreed to a minimum on 2026-11-04. 256 is the agent's pick, and the user
+  accepted it as a minimum (2026-11-04): the deepest of the 4,241 real files that parse is 21.
 
 **Path syntax** (the user chose `:`). Fewest clashes (landscape.md): keys
 holding `:` in 1 of 2,995 files, `/` in 19, `.` in 160. It needs no new scanner
