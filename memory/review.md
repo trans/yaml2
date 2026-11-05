@@ -294,9 +294,8 @@ pattern engine, and narrowing alternatives as keys arrive.
   added later safely. The user (2026-11-05): this is about being thorough, not need, and a sample
   this size can't decide it, so the agent's "`!float32` looks unneeded" is withdrawn. Check the list
   against other type systems, not against real files.
-- **`\p{..}` stays** (the user, 2026-11-05, on the measurements below: "we are fine then"). Naming a
-  Unicode version is the step left, and section 15 of part 2 still lists it. Its 2 files are two
-  schemas of one project. I-Regexp
+- **`\p{..}` stays,** with Unicode 16 or later (the user, 2026-11-05, on the measurements below). In
+  section 4.3, not committed yet. Its 2 files are two schemas of one project. I-Regexp
   is portable. Only the agent's option of letting a parser refuse `\p{..}` would make a schema not
   portable. RFC 9485 leaves two gaps a spec can close: no Unicode version, and limits on counts.
 
@@ -321,5 +320,5 @@ pattern engine, and narrowing alternatives as keys arrive.
   stability policy forbids it. 190 of 248,965 changed category (0.076%), mostly inside letters. 2 left
   `L` (U+1885, U+1886), 21 joined it, and none left `Nd`. Since 12.0, 2 changed, neither across `L` or
   `Nd`. The policy doesn't promise a category stays, only that it keeps its fundamental identity, and the
-  list of categories is fixed. **Proposal, open:** a minimum, "Unicode 16 or later", as levels have.
-  A pattern only says yes or no, so a gap between parsers is a refusal, not different data.
+  list of categories is fixed. So the rule is a minimum, as levels have, not a pinned version. A
+  pattern only says yes or no, so a gap between parsers is usually a refusal, not different data.
