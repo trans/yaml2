@@ -26,8 +26,8 @@ scalar in a schema is always a literal, a reference is typed where it's used, `!
 every named type reachable from the root is checked. `schemacheck.py` tests the draft: 34
 examples and 108 edge cases pass, and breaking 13 new rules on purpose fails a test each time.
 Not done yet: the same for the older rules, and running the two real shadows through it. @oyl
-reviewed Draft 1 on 2026-11-05, and the review is applied in the working copy, not committed
-yet, with the user's answers: see [review.md](review.md). Numbers, the list of standard types
+reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
+[review.md](review.md). Numbers, the list of standard types
 and `\p{..}` are open, to work out with the user.
 
 **In `7689ea6`** (the user, 2026-11-05): patterns in flow collections (part 2, sections 4.3 and 14),
@@ -52,7 +52,7 @@ Background is in [landscape.md](landscape.md).
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
    a second push of `ai` the same day, and a third of both, with the spec, README and
    licenses, also that day, and a fourth of both, with the review applied, also that day, a fifth of both on
-   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, and a seventh of both that day, with `7689ea6`. The spec and README are CC BY 4.0, and the code on `ai` is
+   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, a seventh of both that day, with `7689ea6`, and an eighth of both that day, with `d645ce9`. The spec and README are CC BY 4.0, and the code on `ai` is
    MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.

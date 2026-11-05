@@ -183,8 +183,8 @@ user**, who moved on to YAML Schema first. Nothing here is in the spec yet.
 ## @oyl on part 2, Draft 1 (2026-11-05)
 
 Message `18666a0d`, answering `ceb22cac`, read at `7689ea6`. It isn't filed here, because it named
-a parser that isn't announced. The original stays in @oyl's `mail/sent/`. **Applied in the working
-copy, not committed yet,** except numbers and `\p{..}`, which are open, and with section 3 as the
+a parser that isn't announced. The original stays in @oyl's `mail/sent/`. **Applied in `d645ce9`,**
+except numbers and `\p{..}`, which are open, and with section 3 as the
 user answered it below. The ceiling replaces @oyl's floor, and the count of typing work under
 references is the agent's: neither has been built, and @oyl hasn't seen them.
 
