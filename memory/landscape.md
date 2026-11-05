@@ -424,3 +424,11 @@ Parsers: libyaml, pure PyYAML, Psych, go-yaml v3. Files: the 4,651 public ones.
   are dropped (the other has `@`). None of the 4,163 files that compose tags a whole
   document. Of 721 node tags, 304 add only `:`, the commonest being `!!python/name:`, 179
   are a bare `!`, and 238 fit.
+
+## JSON against the draft (2026-11-04)
+
+The 1.2.2 spec on 1.2: "Its primary focus was making YAML a strict superset of JSON."
+The draft isn't one, and doesn't say so yet. With `%YAML 2.0` added, 994 of 994 SchemaStore
+JSON files under 300 KB read with the same structure, keys and strings, in the same order.
+Numbers come back as text, and `true` and `null` as the strings. Refused: tab-indented JSON
+(no SchemaStore file has it), `{"a"\n:1}`, a raw U+007F to U+009F, and repeated keys.
