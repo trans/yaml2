@@ -23,6 +23,7 @@ working on the code needs belongs in the project's own docs, not here.
 | [syntax.py](syntax.py) | Measures how much real YAML uses each piece of syntax, as a basis for cuts |
 | [patterns.py](patterns.py) | Sorts real schema patterns by the simplest notation that could write them |
 | [draftcheck.py](draftcheck.py) | Tests the spec draft: a throwaway parser from its grammar, not a reference |
+| [schemacheck.py](schemacheck.py) | Tests YAML Schema, part 2, on top of draftcheck.py: also throwaway |
 
 Keep each note short and dated (`*Updated YYYY-MM-DD*`), with absolute
 dates and commit hashes. Check the code or `git log` before acting on

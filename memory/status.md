@@ -8,14 +8,21 @@ ecosystem that has become a minefield.
 **Where things stand.** The user is setting the design rule by rule; the
 rules are in [rules.md](rules.md). The user chose a clean break on
 2026-11-03, so 2.0 need not be readable by existing parsers. Draft 1 of the language is
-`spec/yaml-2.0.md` in the code checkout, committed on 2026-11-04; YAML Schema, part 2, isn't
-written. Section 14 of the draft lists what is open; the user went through it on 2026-11-04.
-@oyl's review is applied in `caece25`. The later decisions on shared nodes and the size
-limit, @oyl's five gaps and the limit on shared tables are in `2d5a90d`, pushed. Section 15,
-Security, is in the working copy, not committed yet. @oyl's four points on section 10 and
-how files join are open for the user ([review.md](review.md)). The user moved on to YAML
-Schema on 2026-11-05. The first question there, "wherever this occurs", is in
-[rules.md](rules.md).
+`spec/yaml-2.0.md` in the code checkout, committed on 2026-11-04. Section 14 of the draft lists
+what is open; the user went through it on 2026-11-04. @oyl's review is applied in `caece25`.
+The later decisions on shared nodes and the size limit, @oyl's five gaps and the limit on
+shared tables are in `2d5a90d`. Section 15, Security, is in `bf225ba`. @oyl's four points on
+section 10 and how files join are open for the user ([review.md](review.md)).
+
+**YAML Schema, part 2.** Draft 1 is `spec/yaml-schema.md`, in `bf225ba` (2026-11-05), and its
+section 15 lists what is open. The user decided "wherever this occurs" (see
+[rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
+scalar in a schema is always a literal, a reference is typed where it's used, `!int`,
+`!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
+every named type reachable from the root is checked. `schemacheck.py` tests the draft: 27
+examples and 66 edge cases pass. Not done yet: breaking its rules on purpose to prove the
+tests catch it, and running the two real shadows through it. @oyl hasn't been told about
+part 2.
 Background is in [landscape.md](landscape.md).
 
 ## Open, for the user
@@ -34,8 +41,8 @@ Background is in [landscape.md](landscape.md).
    approved the first push of `main` and `ai` on 2026-11-04, with @oyl's figures in
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
    a second push of `ai` the same day, and a third of both, with the spec, README and
-   licenses, also that day, and a fourth of both, with the review applied, also that day, and a fifth of both on
-   2026-11-05, with `2d5a90d`. The spec and README are CC BY 4.0, and the code on `ai` is
+   licenses, also that day, and a fourth of both, with the review applied, also that day, a fifth of both on
+   2026-11-05, with `2d5a90d`, and a sixth of both that day, with `bf225ba`. The spec and README are CC BY 4.0, and the code on `ai` is
    MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.

@@ -60,7 +60,7 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 - **Whether the first document should need `---`.** **Open**, in section 14, which now
   says the form without it is the one npm `yaml` refuses.
 - **A security section for the quadratic rule.** The user approved it on 2026-11-05. It is
-  section 15 of the working copy, **not committed yet**, and adds no rules.
+  section 15, and adds no rules. **Fixed in `bf225ba`.**
 - **What "column" counts.** **Open**, and not yet taken to the user.
 
 ## @oyl on sharing and load-all (2026-11-04, decided 2026-11-05)

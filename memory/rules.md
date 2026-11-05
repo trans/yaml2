@@ -387,10 +387,10 @@ tests settled on, all proposals, left open for the core team:
   literally is, and found it a bit confusing.
 - **Alternatives** are chosen by shape, never by how text looks: at most one
   scalar type, at most one sequence, and mappings told apart by required keys and
-  literals. All 117 scalar unions in the sample include string. **Proposed change, open
-  for the user (2026-11-05):** see "Wherever this occurs" just below.
-- **"Wherever this occurs" (proposed by the agent, 2026-11-05, open for the user).** The rule
-  is a recursive named type, which needs no new construct. Two changes make it work: a union
+  literals. All 117 scalar unions in the sample include string. Among scalars, the user
+  changed this on 2026-11-05: see "Wherever this occurs" just below.
+- **"Wherever this occurs" (the user accepted this, 2026-11-05).** The rule is a recursive
+  named type, which needs no new construct. Two changes make it work: a union
   may hold several scalar types, tried in the order written, and a quoted scalar matches
   string types only. JSON is then four lines of ordinary schema (`shadow/schema2.py`):
   `json: !null | !bool | !int | !float | !str | !array | !object`, `array: [!json, ...]`,
