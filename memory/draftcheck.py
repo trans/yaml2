@@ -11,9 +11,20 @@ IND = ",[]{}#&*|>'\""
 NAME = re.compile('[A-Za-z0-9._/\\-\u00b7\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u037d\u037f-\u1fff\u200c-\u200d\u203f-\u2040\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufefe\uff00-\ufffd\U00010000-\U000effff]')
 class P:
     def __init__(s, t):
-        if '\r' in t.replace('\r\n', ''): raise No('lone CR')
-        if re.search('[^\t\n\r\x20-\x7e\x85\xa0-\ud7ff\ue000-\ufefe\uff00-\ufffd\U00010000-\U0010ffff]', t): raise No('character not allowed')
+        s.dq = []
         s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.td = None; s.stopped = None
+    def finish(s):
+        """Characters, over what was read: nothing after a final `...` counts."""
+        t = s.t if s.stopped is None else s.t[:s.stopped]
+        if '\r' in t: raise No('lone CR')
+        if re.search('[\x00-\x08\x0b\x0c\x0e-\x1f]', t): raise No('character not allowed')
+        last = 0; out = []
+        for a, b in sorted(set(s.dq)):
+            if a < last or b > len(t): continue
+            out.append(t[last:a]); last = b
+        out.append(t[last:])
+        if re.search('[^\t\n\x20-\x7e\x85\xa0-\ud7ff\ue000-\ufefe\uff00-\ufffd\U00010000-\U0010ffff]', ''.join(out)): raise No('character not allowed')
+        return s
     def ch(s, k=0): return s.t[s.i + k] if s.i + k < len(s.t) else ''
     def eof(s): return s.i >= len(s.t)
     def bad(s, m):
@@ -106,6 +117,7 @@ class P:
             q = s.ch() in ('"', "'")
             k = s.double() if s.ch() == '"' else s.single() if q else s.plain(True)
             if not q and k == '<<': s.bad('plain << key')
+            s.fs() if q else s.white()
             s.colon()
             if k in here: s.bad('key repeated in one table document')
             here.add(k)
@@ -258,12 +270,12 @@ class P:
         s.i -= len(v) - len(w)
         return w
     def double(s):
-        s.i += 1; o = []
+        b = s.i; s.i += 1; o = []
         while True:
             c = s.ch()
             if c in ('', '\n'): s.bad('unclosed quote')
             s.i += 1
-            if c == '"': return ''.join(o)
+            if c == '"': s.dq.append((b, s.i)); return ''.join(o)
             if c != '\\': o.append(c); continue
             e = s.ch(); s.i += 1
             if e == 'u':
@@ -318,16 +330,10 @@ class P:
         else: v = '\n'.join(lines)
         return v if chomp else v + '\n'
     def fs(s):
-        j = s.i
-        if s.white():
-            if s.ch() == '#':
-                while s.ch() not in ('\n', ''): s.i += 1
-            if s.ch() == '\n': s.i += 1
-            else: s.i = j
         while True:
             c = s.ch()
-            if c in (' ', '\n'): s.i += 1
-            elif c == '#' and (s.bol() or s.t[s.i - 1] in ' \n'):
+            if c in (' ', '\t', '\n') and c: s.i += 1
+            elif c == '#' and (s.bol() or s.t[s.i - 1] in ' \t\n'):
                 while s.ch() not in ('\n', ''): s.i += 1
             else: return
     def flow(s):
@@ -365,6 +371,7 @@ class P:
                 q = s.ch() in ('"', "'")
                 k = s.double() if s.ch() == '"' else s.single() if q else s.plain(True)
                 if not q and k == '<<': s.bad('plain << key')
+                s.fs() if q else s.white()
                 s.colon()
                 if k in w: s.bad('duplicate key')
                 if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
@@ -420,7 +427,7 @@ class P:
 
 def read(t):
     if not t.startswith('%YAML'): t = '%YAML 2.0\n' + t
-    return P(t).stream()
+    return P(t).stream().finish()
 
 spec = open(sys.argv[1], encoding='utf-8').read()
 ok = bad = 0
@@ -488,6 +495,16 @@ good = [
  ('a:\t\n', [{"a": ""}]),
  ('- x\t\n', [["x"]]),
  ('-\t\n', [[""]]),
+ ('[a\t, b\t]\n', [["a", "b"]]),
+ ('{\n\t"a": 1,\n\t"b": [\n\t\t1,\n\t\t2\n\t]\n}\n', [{"a": "1", "b": ["1", "2"]}]),
+ ('{a:\tb, c\t: d}\n', [{"a": "b", "c": "d"}]),
+ ('{"a"\n: 1, \'b\'\t\n  : 2}\n', [{"a": "1", "b": "2"}]),
+ ('{"a" # c\n: 1}\n', [{"a": "1"}]),
+ ('--- &\n{"a"\n: 1}\n---\nb: *a\n', [{"b": "1"}]),
+ ('"a\ufeffb"\n', ["a\ufeffb"]),
+ ('["\x7f", "\x9f", "\uffff", "\ufffe"]\n', [["\x7f", "\x9f", "\uffff", "\ufffe"]]),
+ ('"a\x7fb": 1\n', [{"a\x7fb": "1"}]),
+ ('---\na: 1\n...\nbody \x01\r \ufeff text\n', [{"a": "1"}]),
  ('--- !配置\na: 1\n', [{"a": "1"}]),
  ('--- !例え.jp/設定/v1\na: 1\n', [{"a": "1"}]),
  ('--- &\n配置: {键: 值}\n---\na: *配置:键\nb: *<配置>:键\n', [{"a": "值", "b": "值"}]),
@@ -518,7 +535,7 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: {p: 1}, b: {c: *a}}\n', '--- &\n{a: {p: 1}, b: *a}\n', '--- &\n{a: {p: 1}, b: {c: {<<: *a}}}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '[a\t, b]\n', '[a, b\t]\n', '{a:\tb}\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '"a\ufeffb"\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: {p: 1}, b: {c: *a}}\n', '--- &\n{a: {p: 1}, b: *a}\n', '--- &\n{a: {p: 1}, b: {c: {<<: *a}}}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
  '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
  'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', '--- &\na: 1\nb:\n  - *a\n', '--- &\ns: [x]\nt:\n  u:\n    -<< *s\n',

@@ -298,7 +298,9 @@ tests settled on, all proposals, left open for the core team:
   never work". Instead part 2 needs a way to say "wherever this occurs, interpret it this
   way", so a JSON reading is an ordinary small schema. **Open:** the form of that rule.
   Goal (the user, 2026-11-04): make JSON a subset; "It shouldn't take much." The schema
-  covers types. The syntax needs language changes, see landscape.md, JSON against the draft.
+  covers types, and three language changes went into the draft for the syntax, see
+  landscape.md, JSON against the draft. Section 13 now claims a subset once `%YAML 2.0` is
+  on top, apart from repeated keys and a lone CR between tokens.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string to the grammar. So a leftover 1.x tag reads
   as text, in 137 of 3,544 public files. The agent proposed refusing a plain scalar
@@ -443,11 +445,13 @@ quoted; more-indented lines inside `>`.
 
 The user settled these details on 2026-11-04, reading section 14. A tab after the last
 content on a line is ignored, as a space is (their point; the draft had refused it), and
-a tab on a line with no content stays refused. `%YAML 2.0` may repeat before a marker.
+a tab on a line with no content stays refused, except inside flow. `%YAML 2.0` may repeat before a marker.
 Another version on the first line counts as no directive: refuse, or pass it to that
 version's parser if the caller asked ("it can switch parsers, dealer choice"). A block
-scalar with no text is the empty string. A key and its `:` stay on one line in flow.
-`{a}` is refused, which leaves room for sets later, and section 14 says so. U+FEFF is left as an
+scalar with no text is the empty string. A plain key and its `:` stay on one line in
+flow, and a quoted key may have a line break before `:`, for JSON (the user first agreed
+to one line, then chose the JSON goal, the same day).
+`{a}` is refused, which leaves room for sets later, and section 14 says so. U+FEFF outside double quotes is left as an
 open question there.
 
 A lone CR stays refused (the user, 2026-11-04, "But okay"). The reason is that a line
