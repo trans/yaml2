@@ -293,8 +293,10 @@ tests settled on, all proposals, left open for the core team:
 - **The parser uses the schema to parse** (the user, 2026-11-04, correcting the agent,
   who had written that a schema works on what the parser delivers). So a schema can see
   how a scalar was written while parsing, as 1.2's schemas do. The prototype still
-  applies a schema afterwards, to strings, and doesn't show this. Whether every schema
-  sees quotes, or only a standard JSON reading, is **open**.
+  applies a schema afterwards, to strings, and doesn't show this. Every schema can see
+  quotes: the agent proposed only a standard JSON reading, and the user said that "could
+  never work". Instead part 2 needs a way to say "wherever this occurs, interpret it this
+  way", so a JSON reading is an ordinary small schema. **Open:** the form of that rule.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string to the grammar. So a leftover 1.x tag reads
   as text, in 137 of 3,544 public files. The agent proposed refusing a plain scalar
