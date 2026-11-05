@@ -146,8 +146,11 @@ Python dict.
 ## @oyl on section 10 at `2d5a90d` (2026-11-05)
 
 Message `993df806`. @oyl found no way around held for the table cases, and both worked
-examples hold. Four points in the wording. The agent reproduced all four. **Open, for the
-user**, who moved on to YAML Schema first. Nothing here is in the spec yet.
+examples hold. Four points in the wording. The agent reproduced all four. **Points 1 to 3 fixed,
+not yet committed** (the user approved them, 2026-11-05): section 10 has them in the working copy,
+and `draftcheck.py` counts names, with tests that fail if any of the three is broken on purpose.
+That a tree keeping comments adds their bytes is in the text and untested, because the checker keeps
+no comments. Point 4 was replaced by the user's rule on joins, below.
 
 1. **Names and comments count in neither number.** A 100,000-byte name reads at a limit of
    100, and 1,000 documents with 1,000-byte names read together at 10,000. Names don't

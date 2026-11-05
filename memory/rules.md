@@ -405,6 +405,17 @@ tests settled on, all proposals, left open for the core team:
   Quoted-means-string changed no verdict on 408 workflows and 311 Compose files, which is
   weak evidence: those two shadows use non-string types in 9 places, and no quoted value
   reached one. It matches what a 1.2 parser with JSON Schema does today.
+- **Universal matchers (the user raised this, 2026-11-05). Open.** "any value matching
+  `/[+-][0-9]+/` is an `!int`". The reach already exists: a recursive type (above). What's missing
+  is the claim: only `!str` takes a pattern, and `!int`'s spelling is exact, so `+5` can't be an
+  integer without application code. The agent tried `!int(/P/)` in a throwaway script, with the
+  checkers unchanged: `signed: !int(/[-+][0-9]+/)` in `free: !signed | !str | !list | !map` reads
+  `+5` as 5 at any depth, leaves `5` and `"+5"` as strings, and leaves `image: !str` holding `+5` a
+  string. The agent recommends this over a separate rule, which would need a precedence against
+  the type at a key. Still to work out: reading matched text (the script reads sign and base-10
+  digits, and refuses `0x1f` under a pattern that claims it, rather than falling through to a
+  string); emitting (an integer 5 under `!signed` must be written `+5`, because `5` reads back as a
+  string); and `!float`, `!null` and `!bool`, where a pattern can't say which value is true.
 - **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
   `flag`. That recovered nearly all of what patterns check, with no regex in the

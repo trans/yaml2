@@ -64,7 +64,7 @@ class P:
         else:
             s.check(s.nsize(src)); out += src
     def deliver(s, name, v):
-        n = s.nsize(v) + s.extra; s.extra = 0
+        n = s.nsize(v) + s.extra + (s.nsize(name) if name else 0); s.extra = 0
         h = n - s.saved; s.saved = 0
         s.sizes.append((sum(s.tsize.values()), n)); s.helds.append((s.theld, h))
         s.dheld += h; s.dfull += n
@@ -197,7 +197,7 @@ class P:
             if s.t.startswith('<<:', s.i): s.bad('merge outside an entry')
             k = s.key(); s.colon()
             if k in here: s.bad('key repeated in one table document')
-            here.add(k)
+            here.add(k); s.tsize.pop(k, None)
             s.table[k] = s.value(0, True)
             s.entry(k, s.table[k])
             s.gap()
@@ -689,6 +689,19 @@ def size_tests():
     r = read(deep(256), None, False, True, 256)
     try: r.expand(r.docs[-1][1]); raise AssertionError('levels kept')
     except No: pass
+    named = '--- !' + 'n' * 100000 + '\na: 1\n'
+    no(named, 100); read(named, 100006); no(named, 100005); no(named, 100005, False, True)
+    r = read('--- !abc\na: 1\n'); assert r.sizes == [(0, 9)] and r.helds == [(0, 9)], (r.sizes, r.helds)
+    names = ''.join('--- !' + 'n' * 1000 + f'\na{i:03d}: 1\n' for i in range(1000))
+    no(names, 10000, True); read(names, 1000 * 1009, True); no(names, 1000 * 1009 - 1, True); read(names, 1009); no(names, 1008)
+    swap = '--- &\na: [x, yy]\n--- &\na:\n  -<< *a\n  - z\n---\nb: 1\n'
+    r = read(swap); assert r.sizes == [(10, 5)] and r.helds == [(14, 5)], (r.sizes, r.helds)
+    assert read('--- &\na: [x, yy]\n--- &\na:\n  -<< *a\n  - z\n').tsize['a'] == 10
+    read(swap, 19); no(swap, 18); read(swap, 19, False, True); no(swap, 18, False, True)
+    peak = '--- &\na: [x, yy]\n--- &\na:\n  -<< *a\n  - z\n'
+    read(peak, 14); no(peak, 13); read(peak, 14, False, True)
+    esc = '---\n"\\u00e9": "\\u00e9"\n'
+    r = read(esc); assert r.sizes == [(0, 7)] and r.helds == [(0, 7)], (r.sizes, r.helds)
     spl = '--- &\ns: [[[x]]]\n---\n- -<< *s\n- y\n'
     r = read(spl, None, False, True); assert r.levels(r.docs[-1][1]) == 4, r.levels(r.docs[-1][1])
     assert read(spl).levels(read(spl).docs[-1][1]) == 4
