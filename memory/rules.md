@@ -139,7 +139,8 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   lines a later `--- &` replaces an entry it repeats, as a later `<<:` line does, and a
   repeat inside one `--- &` is refused, as in any mapping. References copy as they are
   read, so a replacement never changes an earlier document or entry. An entry may name
-  the one it replaces, which extends it (filled in by the agent, listed in section 14).
+  the one it replaces, which extends it (the agent's addition, the user agreed the same
+  day: it needs no rule, since references look backward and the old entry is still there).
   Two other ways were dropped: refusing every repeat, and each `--- &` replacing the
   whole table. `read_stream` in the prototype still gathers one table per stream.
 - `<<` is an indicator like `-`, not a key: the user, 2026-11-04, "It's not really a
