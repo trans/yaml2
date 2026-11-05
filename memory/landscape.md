@@ -418,7 +418,8 @@ Parsers: libyaml, pure PyYAML, Psych, go-yaml v3. Files: the 4,651 public ones.
 - `{a}`: every parser gives `{"a": null}`. Leaving out `{{ x }}`, 50 entries in 9 files,
   and those sampled are unquoted placeholders like `{KAFKA_URL}`.
 - `%YAML 1.3`: 1.2 says warn and carry on. libyaml, Psych and go-yaml refuse, and pure
-  PyYAML reads it. `%YAML 2.0`: all four refuse, so an old parser can't misread a 2.0 file.
+  PyYAML reads it. `%YAML 2.0`: all four refuse. npm `yaml` 2.9.0 doesn't: it warns and
+  reads the stream as 1.2, so this isn't a general guarantee (see [review.md](review.md)).
 - `~`: 986 values in 24 files. An empty value turns up in 877 files.
 - Names: 989 of 990 SchemaStore ids fit `[A-Za-z0-9._/-]+` once the scheme and a final `#`
   are dropped (the other has `@`). None of the 4,163 files that compose tags a whole

@@ -14,6 +14,7 @@ working on the code needs belongs in the project's own docs, not here.
 
 | File | What it holds |
 |---|---|
+| [review.md](review.md) | @oyl's review of Draft 1: errors to fix and decisions for the user |
 | [status.md](status.md) | The goal, where things stand, decisions open for the user, working with @oyl |
 | [rules.md](rules.md) | The design so far: the clean break, each rule as the user set it, what follows, what's open |
 | [shadow/](shadow/README.md) | The typed shadow tested on GitHub workflows and Compose: the shadows, the checker, the results |
