@@ -120,7 +120,13 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   any key text. In GitLab, 21 of 126 real paths need it, all at the entry name:
   `*<.deps:rocm>:before_script`.
 - A `--- &` document is a mapping and is never delivered as data, which replaces
-  Compose's `x-` keys and GitLab's hidden jobs.
+  Compose's `x-` keys and GitLab's hidden jobs. Block or flow: the user preferred block
+  only, but asked for a technical reason, and there wasn't one (2026-11-04), so a JSON
+  object can be a table.
+- A document name stays stricter than YAML's URI characters (the user, 2026-11-04): at
+  the very least no `:`, which would let schemes back in and give one thing several
+  names, and no `%` escapes, which give one name two spellings. The rest of the narrow set
+  is open in section 14 of the draft.
 - It stays in scope until the next `...`, so several documents can share it, and
   prepending one shares definitions across files with no include feature.
 - Several `--- &` documents: the user chose, 2026-11-04. A stream's table starts empty,
@@ -421,7 +427,7 @@ Another version on the first line counts as no directive: refuse, or pass it to 
 version's parser if the caller asked ("it can switch parsers, dealer choice"). A block
 scalar with no text is the empty string. A key and its `:` stay on one line in flow.
 `{a}` is refused, which leaves room for sets later, and section 14 says so. Still there:
-U+FEFF and the characters of a name.
+U+FEFF.
 
 A lone CR stays refused (the user, 2026-11-04, "But okay"). The reason is that a line
 break tools can't see lets a viewer and a parser disagree. The user expects most parsers
