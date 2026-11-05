@@ -19,10 +19,14 @@ section 15 lists what is open. The user decided "wherever this occurs" (see
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
 scalar in a schema is always a literal, a reference is typed where it's used, `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
-every named type reachable from the root is checked. `schemacheck.py` tests the draft: 27
-examples and 66 edge cases pass. Not done yet: breaking its rules on purpose to prove the
-tests catch it, and running the two real shadows through it. @oyl hasn't been told about
-part 2.
+every named type reachable from the root is checked. `schemacheck.py` tests the draft: 30
+examples and 82 edge cases pass. Not done yet: breaking most of its rules on purpose to prove
+the tests catch it (only patterns in flow so far), and running the two real shadows through
+it. @oyl hasn't been told about part 2.
+
+**In the working copy, not committed yet** (the user, 2026-11-05): patterns in flow collections
+(part 2, sections 4.3 and 14), a parser builds nothing from a name (part 2, sections 12 and 16),
+and what 2.0 costs object data (part 1, section 13.1). See [rules.md](rules.md).
 Background is in [landscape.md](landscape.md).
 
 ## Open, for the user

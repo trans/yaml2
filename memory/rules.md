@@ -320,9 +320,12 @@ tests settled on, all proposals, left open for the core team:
   checks to the app; the user pushed back (2026-11-04, `!int[0,100]` "or whatever")
   and was right, since an app binding works in one language and a limit in the
   schema works in all of them. Spelling, tested: `!int(0..100)`, `!float(0..1)`,
-  `!str(1..)` for length, `!str(/regex/)`. It must be `..`, not a comma or
-  brackets: `[int[0,100], ...]` won't parse, and `[int(0,100), ...]` silently
-  splits into two items. Not all checks belong here: see the gaps below.
+  `!str(1..)` for length, `!str(/regex/)`. It must be `..`, not a comma or brackets,
+  because a plain scalar in a flow collection ends at `, [ ] { }`. That is part 1,
+  section 6.1, and 1.2 alike: first seen through PyYAML, and rerun on the 2.0 grammar and
+  Psych on 2026-11-05, when the user asked. `[!int(0,100), ...]` splits in two, and the
+  draft refuses it, since `!int(0` is a bad type. Patterns hit the same rule: **Patterns
+  and flow**, below. Not all checks belong here: see the gaps below.
 - **Regex is the risky part.** Dialects differ, so one pattern can match differently
   by language, and a slow pattern in a document's own table is an attack. The user,
   2026-11-04: regex may not be needed at all; something simpler like PIC, or
@@ -407,8 +410,14 @@ tests settled on, all proposals, left open for the core team:
   `flag`. That recovered nearly all of what patterns check, with no regex in the
   schema. An unbound name stays a string. It needs no rule of its own: it's just a
   named type.
-- **Schemas name types; app code binds them to classes.** A schema must never
-  name a class to build, or `!ruby/object` comes back by another door.
+- **Schemas name types; app code binds them to classes.** A parser builds nothing from
+  a name, and only a name the application bound does anything, so the bindings are an
+  allow-list, like Psych's `permitted_classes`. The user challenged the agent's first
+  wording, "a schema must never name a class" (2026-11-05): nothing is wrong with
+  `!ruby/object` for serializing Ruby, only with the file choosing the class. Part 1,
+  section 13.1, now says what 2.0 costs object data, and the user accepted that the same
+  day: no class on a nested node without a schema, no cycles, no shared identity. The
+  real-file sample is config files, so it can't show how much Ruby data depends on these.
 - **How a stream is marked** (the user accepted this, 2026-11-04). `--- &` is the
   lookup table, `--- !name` a named document, `---` a plain one, and only data is
   delivered. Bare `--- !` goes: a shadow's root is a table entry, so a schema file is
@@ -451,7 +460,13 @@ tests settled on, all proposals, left open for the core team:
   agent's view: the gain comes from literal-by-default, not from Unicode. One bracket pair
   with a count and `|` would cover what the table in landscape.md shows is needed, and an
   ASCII form `{0-9}`, with `{{` for a literal brace, costs little: 17 patterns hold a
-  literal brace.
+  literal brace. One point for Unicode, found later that day: `⦃0-9⦄` could sit in a flow
+  collection, which `[0-9]` and `{0-9}` can't. A literal comma still couldn't.
+- **Patterns and flow** (the user accepted this, 2026-11-05). A type expression is a plain
+  scalar first. So in a flow collection a pattern can't hold any of `, [ ] { }` and must be
+  named in the table, and in a block a space before `#` or after `:` is written `[ ]`.
+  Quoting can't help, because a quoted scalar in a schema is a literal. The failures are all
+  loud. The draft's examples always named a pattern first, which hid this.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

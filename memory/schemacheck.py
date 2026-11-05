@@ -273,9 +273,16 @@ if __name__ == '__main__':
     for k, v in no:
         try: typed(H + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, repr(v))
         except REFUSED: pass
-    schemas = ['a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !int(/x/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x']
+    schemas = ['a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !int(/x/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)']
     for t in schemas:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
-    print(f'edge cases: {len(good) + len(no) + len(schemas)} run, {f} fail')
+    # A pattern is a plain scalar first: what still works, and quoting making a literal.
+    forms = [('a: !str(/[0-9]{1,3}/)\n--- !a\n"12"\n', '12'), ('a: !str(/x[ ]#y/)\n--- !a\n"x #y"\n', 'x #y'), ('a: !str(/a#b/)\n--- !a\n"a#b"\n', 'a#b'), ('t: !str(/[a-z]+/)\na: [!t, ...]\n--- !a\n- ab\n', ['ab']), ('a: {!str(/x/): !int}\n--- !a\nx: 1\n', {'x': 1}), ('a: ["!str(/[a-z]+/)", ...]\n--- !a\n- "!str(/[a-z]+/)"\n', ['!str(/[a-z]+/)'])]
+    for t, w in forms:
+        try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
+        except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
+    try: typed('--- &\na: ["!str(/[a-z]+/)", ...]\n--- !a\n- ab\n'); f += 1; print('QUOTED PATTERN NOT A LITERAL')
+    except REFUSED: pass
+    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(forms) + 1} run, {f} fail')
     sys.exit(1 if bad or f else 0)
