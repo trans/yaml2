@@ -28,8 +28,8 @@ examples and 144 edge cases pass, and breaking 21 new rules on purpose fails a t
 Not done yet: the same for the older rules, and running the two real shadows through it. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
 [review.md](review.md). The list of standard types is open, to work out
-with the user. Numbers and `\p{..}` with Unicode 16 or later (the user, 2026-11-05) are in the
-working copy, not committed yet.
+with the user. Numbers and `\p{..}` with Unicode 16 or later (the user, 2026-11-05) are in
+`cc84227`.
 
 **In `7689ea6`** (the user, 2026-11-05): patterns in flow collections (part 2, sections 4.3 and 14),
 a parser builds nothing from a name (part 2, sections 12 and 16), and what 2.0 costs object data
@@ -53,7 +53,7 @@ Background is in [landscape.md](landscape.md).
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
    a second push of `ai` the same day, and a third of both, with the spec, README and
    licenses, also that day, and a fourth of both, with the review applied, also that day, a fifth of both on
-   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, a seventh of both that day, with `7689ea6`, and an eighth of both that day, with `d645ce9`. The spec and README are CC BY 4.0, and the code on `ai` is
+   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, a seventh of both that day, with `7689ea6`, an eighth of both that day, with `d645ce9`, and a ninth of both that day, with `cc84227`. The spec and README are CC BY 4.0, and the code on `ai` is
    MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.

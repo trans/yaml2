@@ -285,7 +285,7 @@ pattern engine, and narrowing alternatives as keys arrive.
   file with a schema in it is stamped, and the sentence that was wrong is "a file can't pick a laxer
   schema". An application's schema stays out of the stream's table, so one schema serves many files
   and a file's data entry can't collide with it by accident.
-- **Numbers: the user's rule (2026-11-05), in section 4.4, not committed yet.** `!int` and `!float` have
+- **Numbers: the user's rule (2026-11-05), in section 4.4, `cc84227`.** `!int` and `!float` have
   no size, and an application keeps them in whatever it has. A parser delivers the number written, or
   refuses, and digits lost mean an error. An application may accept rounding on `!float`. `!decimal`
   stays, and no one can accept rounding on it: keep it exact or refuse. The agent's definitions: digits
@@ -303,7 +303,7 @@ pattern engine, and narrowing alternatives as keys arrive.
   this size can't decide it, so the agent's "`!float32` looks unneeded" is withdrawn. Check the list
   against other type systems, not against real files.
 - **`\p{..}` stays,** with Unicode 16 or later (the user, 2026-11-05, on the measurements below). In
-  section 4.3, not committed yet. Its 2 files are two schemas of one project. I-Regexp
+  section 4.3, `cc84227`. Its 2 files are two schemas of one project. I-Regexp
   is portable. Only the agent's option of letting a parser refuse `\p{..}` would make a schema not
   portable. RFC 9485 leaves two gaps a spec can close: no Unicode version, and limits on counts.
 
