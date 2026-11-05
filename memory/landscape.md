@@ -432,3 +432,9 @@ The draft isn't one, and doesn't say so yet. With `%YAML 2.0` added, 994 of 994 
 JSON files under 300 KB read with the same structure, keys and strings, in the same order.
 Numbers come back as text, and `true` and `null` as the strings. Refused: tab-indented JSON
 (no SchemaStore file has it), `{"a"\n:1}`, a raw U+007F to U+009F, and repeated keys.
+
+A schema that guesses from text alone would break strings: 8,418 of the 369,171 strings in
+those files look like a number, boolean or null, in 431 files, mostly `"type": "null"`. One
+that sees quotes doesn't. Reading a plain scalar as its JSON type and leaving a quoted one a
+string gave exactly `json.loads`'s result, types included, on all 994 files (a test over
+`draftcheck.py`, not in it). So the user's "tiny schema add" does recover JSON.

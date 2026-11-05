@@ -290,8 +290,13 @@ tests settled on, all proposals, left open for the core team:
   by language, and a slow pattern in a document's own table is an attack. The user,
   2026-11-04: regex may not be needed at all; something simpler like PIC, or
   glob-like, may be enough. See **Patterns** below.
+- **The parser uses the schema to parse** (the user, 2026-11-04, correcting the agent,
+  who had written that a schema works on what the parser delivers). So a schema can see
+  how a scalar was written while parsing, as 1.2's schemas do. The prototype still
+  applies a schema afterwards, to strings, and doesn't show this. Whether every schema
+  sees quotes, or only a standard JSON reading, is **open**.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
-  plain string and the parser knows nothing about schemas. So a leftover 1.x tag reads
+  plain string to the grammar. So a leftover 1.x tag reads
   as text, in 137 of 3,544 public files. The agent proposed refusing a plain scalar
   starting with `!` outside the table. **Open:** the user is undecided (2026-11-04), and
   asked for it to go to the core team as an open question, so section 14 of the draft
