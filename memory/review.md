@@ -182,10 +182,13 @@ user**, who moved on to YAML Schema first. Nothing here is in the spec yet.
 
 **The user's rule on joins (2026-11-05), replacing the recommendation above:** only `...` empties the
 table. Whoever joins files decides: independent files get `...` between them, and files sharing one
-table drop `%YAML 2.0` and use `---`. Assumes all are 2.0. The draft already does most of this. Two
-gaps, **proposed by the agent, open:** a `%YAML 2.0` with no `...` before it still reads and shares the
-table, so a plain `cat` makes no decision, and it should be refused. And `...`, `%YAML 2.0`, `b: 2` stops
-and loses `b`, so after `...` that line should start a document as it does at the top of a stream.
+table drop `%YAML 2.0` and use `---`. Assumes all are 2.0. The draft already did most of this.
+
+- **A plain `cat` is refused** (the user, 2026-11-05). `%YAML 2.0` can come again only after `...`, so
+  no one gets a shared table without choosing it. In the working copy, not committed yet.
+- **`...`, `%YAML 2.0`, `b: 2`: open.** The parser stops and `b` is lost with no error. The agent first
+  proposed reading on, and the user objected: text after `...` can say anything (the front matter
+  rule). The agent's next proposal is to refuse that line when no marker follows it.
 
 ## @oyl on part 2, Draft 1 (2026-11-05)
 
