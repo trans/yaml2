@@ -67,12 +67,9 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 These are @oyl's recommendations, and the user hasn't decided. The agent reran the probes
 marked **Checked**. None is in the spec yet.
 
-- **Keep later documents out of it.** A parser may share within what it delivers together,
-  but documents delivered separately share nothing an application can change. Otherwise
-  document 2 no longer follows from the bytes, a test suite can't state its result, and
-  on a parser that reads ahead it's a data race. State the outcome, not frozen nodes, which
-  Python and Go don't have. **Checked:** PyYAML clears its object memo per document. This
-  reverses the agent's advice to accept the leak.
+- **Keep later documents out of it.** **Settled by the user, differently** (rules.md):
+  nothing is writable while parsing, which removes the problem. @oyl's rule limited sharing
+  to what is delivered together. The user's rule doesn't need that limit.
 - **Replace "delivered together".** It can't work: **Checked:** PyYAML's `load_all` is a
   generator, so the caller collects the documents and the parser can't see that. Instead:
   when a document is delivered, its written size leaves the total, and what its references

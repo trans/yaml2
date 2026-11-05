@@ -181,9 +181,14 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   2026-11-04 ("I would not forbid that"): a write through a shared node is how the
   document is spelled, may be wanted, and copying first is easy. It replaces "a copy, so
   the data stays a tree" and "share memory only if no application can tell". A writable
-  tree can offer both kinds of edit. **Not committed yet.** @oyl recommends sharing only
-  within what is delivered together, because a change reaching a later document breaks
-  "same bytes, same data": see review.md. It isn't decided. Part 2
+  tree can offer both kinds of edit. **Not committed yet.** Nothing is writable while
+  parsing (the user, 2026-11-04: a writable structure "should not be wriable until it is
+  manifest -- not while it is parsing"), so a change can't reach a later document, and
+  writable data built afterwards may share across documents. Oyl already works this
+  way: `oyl_parse_tree` gives a read-only tree per document, with no write functions, and
+  an alias is a 32-byte node holding its target's index. Its aliases stay inside one
+  document's tree today, so references into a table that spans documents are new work.
+  Part 2
   will need to allow for it too: a reference under two schema types can't share its
   typed result.
 - A query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
