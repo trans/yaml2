@@ -266,3 +266,23 @@ One call per use. Emitting needs a way back. Today's `oyl_schema_builder_add_typ
 
 **Not covered by @oyl:** named keys, required keys and literals in the timing, the real shadows, a
 pattern engine, and narrowing alternatives as keys arrive.
+
+**The user's answers (2026-11-05):**
+
+- **A stream's own schema applies by default,** which replaces @oyl's proposal that a program must
+  ask. The application can ask for it to be ignored and read the document as it is, and can ask to be
+  given the schema, which is YAML too. Costs the agent raised: a plain load runs a file's own schema,
+  patterns included, so section 16's limits become requirements, and part 1 needs a way to hand over
+  the table, since section 11 keeps it out of delivered data. `--- !port` after `port: 80` stays
+  refused, so part 1's "advisory" needs a word.
+- **The rewording of "applied as a stream is parsed"** is accepted.
+- **`!binary`** allows line breaks.
+- **Dropping prepending: open.** The user asked what it means. Only one way for an application to supply
+  a schema goes, by gluing it on the front of the stream. A stream can still carry its own.
+- **Numbers: open.** The user wants a standard for what `!int` is, perhaps with names like `!uint32`.
+  Measured on 1,015 SchemaStore files: 8,811 integer types, 421 with a width format (`int32` 151, `uint`
+  100, `uint32` 95, `int64` 56, `uint8` 11, `uint64` 5, `uint16` 2, `int` 1), and 174 ranges that are a
+  width. 320 ranges stop at 2^53 - 1, JavaScript's safe limit. No `format: float`. A width is already a
+  limit, so `uint32: !int(0..4294967295)` reads today. Oyl's values hold int64 and uint64, so a floor could
+  reach 2^64 - 1. Section 8's "a name in the table wins" means names can be added later safely.
+- **`\p{..}`: open,** to go over with the agent. Its 2 files are two schemas of one project.
