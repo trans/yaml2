@@ -499,3 +499,5 @@ to ignore this rule, so it needs a case in the test suite.
   ordinary header (103 of 4,213 real blocks have that comment). A key rename shifts the
   column unless the string starts on its own line. It would be an addition, it can't
   replace `|-` (real ones run to 594 lines), and pasted text needs every line touched.
+  The header rule means a margin string can't start with spaces and `#`, which the user
+  sees as a possible reason to allow no comment on a `|` line at all (2026-11-04).
