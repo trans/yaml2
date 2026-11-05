@@ -65,7 +65,8 @@ from 1.2, and section 13.1 what they cost.
 
 - **The language:** Draft 1 is in [`spec/yaml-2.0.md`](spec/yaml-2.0.md). Section 14 lists
   what is still open.
-- **YAML Schema, part 2:** not written yet.
+- **YAML Schema, part 2:** Draft 1 is in [`spec/yaml-schema.md`](spec/yaml-schema.md). Section 15
+  lists what is open.
 - **Reference parser, test suite and converter:** not written yet.
 
 ## Checking it

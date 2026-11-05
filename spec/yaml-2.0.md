@@ -3,7 +3,7 @@
 *Draft 1, 2026-11-04*
 
 This is a proposal to the YAML core team, not the YAML specification. "YAML" and
-its version numbers are theirs. Part 2, YAML Schema, isn't written yet. Section 14
+its version numbers are theirs. Part 2 is [YAML Schema](yaml-schema.md). Section 14
 lists what is still open.
 
 ## 1. Overview
@@ -1207,9 +1207,6 @@ CloudFormation reads its long forms today. The last two need the application to 
   XML 1.0's ranges, and Unicode's own letter classes would be the alternative, at the
   cost of tables in every parser. A domain in Unicode and its `xn--` form are two
   different names.
-- How a schema says "wherever this occurs, interpret it this way". YAML Schema, part 2,
-  needs a rule for every matching node, not one path, so that a reading like JSON's is an
-  ordinary small schema, with nothing built in.
 - Bidirectional controls, U+202A to U+202E and U+2066 to U+2069. This draft allows them.
   Every parser reads them the same way, but they can make a line look unlike what it
   holds, which is how the Trojan Source attacks hid code. Translated text needs them: of
@@ -1277,3 +1274,43 @@ CloudFormation reads its long forms today. The last two need the application to 
   - The same text would be fine in the table and refused in a document.
   - It wouldn't close the gap: a tag in a table entry still reads as text, and a
     reference delivers it.
+
+## 15. Security
+
+A stream often comes from someone else. This section adds no rules. It says what the rules
+above defend against, and what they leave to the application.
+
+**What the rules defend against:**
+
+- **Running code.** A node can't carry a tag, so a stream can't ask a parser to build an
+  object or call a function. A parser delivers strings, sequences and mappings, with a
+  document's name beside them (section 4.3).
+- **Reaching outside the stream.** A parser reads no other file and fetches nothing. A name
+  isn't an address.
+- **Expansion.** A 702-byte chain of references can have a full size of 3.3 trillion. Section
+  10 finds that by addition and refuses before building. A service reading untrusted input
+  should lower the default limit.
+- **Deep nesting.** A few kilobytes of `[`, or a chain of references, can go deeper than a
+  parser's stack. Section 10 counts levels with references followed, and a parser must refuse
+  rather than crash.
+- **Forced collisions.** A parser usually finds repeated keys with a hash table. If its hash
+  is predictable, a stream can hold keys that all collide, so each lookup walks all of them,
+  and 100,000 keys take about 5 billion comparisons. Section 7.4 limits how that time grows,
+  so a hash with a fixed seed isn't enough by itself.
+- **Parsers that disagree.** When one program checks a file and another acts on it, a
+  difference between their parsers is a way past the check. So there is one grammar and no
+  lenient mode (section 2), a repeated key is refused (section 7.4), characters that some
+  parsers treat as line breaks are refused outside double quotes (section 3), and comments
+  are never data (section 11).
+
+**What is left to the application:**
+
+- **Values.** Every scalar is a string, and nothing checks what it says unless a schema does.
+- **Text that misleads.** Keys and names are compared by code point, so `admin` with a Latin
+  `a` and with a Cyrillic one are two keys. Bidirectional controls are allowed (section 3), so
+  a line can display in a different order from how it reads. A tool that shows YAML for
+  review should make both visible.
+- **Names.** A name is advisory and comes from the stream. An application that picks a schema
+  or a behaviour by name should check it against the names it expects (section 4.3).
+- **Text after a stop.** What follows a final `...` isn't read or checked. An application
+  that takes it (section 4.4) has to treat it as untrusted.
