@@ -410,6 +410,15 @@ tests settled on, all proposals, left open for the core team:
   `flag`. That recovered nearly all of what patterns check, with no regex in the
   schema. An unbound name stays a string. It needs no rule of its own: it's just a
   named type.
+- **The file is the truth** (the user, 2026-11-05, replacing "the application's choice wins"). A
+  schema written in with the data stamps it: that is how it is meant to be read, and an
+  application can't make the file lie. Normal use is a data-only file, with the application
+  or library applying a schema from elsewhere, known from the file's name or extension or
+  simply by knowing it. An application can strip a file's schema if it chooses, and whether
+  a library offers such ways out is another matter. A stream's own schema applies by default.
+  So "a file can't pick a laxer schema" was wrong, not prepending: @oyl's three probes aren't
+  holes, and passing and prepending do the same job. The cost: an application checking files
+  it didn't write has to ignore or refuse a file's schema.
 - **Schemas name types; app code binds them to classes.** A parser builds nothing from
   a name, and only a name the application bound does anything, so the bindings are an
   allow-list, like Psych's `permitted_classes`. The user challenged the agent's first
@@ -422,7 +431,8 @@ tests settled on, all proposals, left open for the core team:
   lookup table, `--- !name` a named document, `---` a plain one, and only data is
   delivered. Bare `--- !` goes: a shadow's root is a table entry, so a schema file is
   a table and nothing else. One table at a time: `!job` and `*defaults` look in the
-  same place. An app can supply a schema directly or by prepending it. Moving both
+  same place. An app can supply a schema directly or by prepending it (but see **The file
+  is the truth**, below). Moving both
   shadows' roots into named entries changed no result.
 - **A document names its interpretation with `--- !name`** (the user asked for a
   whole-document tag so any app reading a file knows what it is meant to be, and

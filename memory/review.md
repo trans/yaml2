@@ -183,8 +183,10 @@ user**, who moved on to YAML Schema first. Nothing here is in the spec yet.
 ## @oyl on part 2, Draft 1 (2026-11-05)
 
 Message `18666a0d`, answering `ceb22cac`, read at `7689ea6`. It isn't filed here, because it named
-a parser that isn't announced. The original stays in @oyl's `mail/sent/`. **Open, for the user.
-Nothing here is in the spec yet.**
+a parser that isn't announced. The original stays in @oyl's `mail/sent/`. **Applied in the working
+copy, not committed yet,** except numbers and `\p{..}`, which are open, and with section 3 as the
+user answered it below. The ceiling replaces @oyl's floor, and the count of typing work under
+references is the agent's: neither has been built, and @oyl hasn't seen them.
 
 **Checked by the agent:** every probe below through `schemacheck.py`, the two union changes in a
 private copy (30 examples and 82 edge cases still pass), the walk's arithmetic (6 × 2^n - 3 visits),
@@ -279,8 +281,10 @@ pattern engine, and narrowing alternatives as keys arrive.
   and any schema, so there is nothing to switch off. A schema can't run code, fetch or grow data.
 - **The rewording of "applied as a stream is parsed"** is accepted.
 - **`!binary`** allows line breaks.
-- **Dropping prepending: open.** The user asked what it means. Only one way for an application to supply
-  a schema goes, by gluing it on the front of the stream. A stream can still carry its own.
+- **Prepending stays out of the question.** See **The file is the truth** in [rules.md](rules.md). A
+  file with a schema in it is stamped, and the sentence that was wrong is "a file can't pick a laxer
+  schema". An application's schema stays out of the stream's table, so one schema serves many files
+  and a file's data entry can't collide with it by accident.
 - **Numbers: open.** The user wants a standard for what `!int` is, perhaps with names like `!uint32`.
   Measured on 1,015 SchemaStore files: 8,811 integer types, 421 with a width format (`int32` 151, `uint`
   100, `uint32` 95, `int64` 56, `uint8` 11, `uint64` 5, `uint16` 2, `int` 1), and 174 ranges that are a

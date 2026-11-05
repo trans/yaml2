@@ -5,7 +5,7 @@
 Reads every example with the grammar in draftcheck.py, types each document whose local name
 is in the table, and compares the result with the example's JSON. Then runs edge cases.
 """
-import base64, binascii, datetime, json, os, re, sys
+import base64, binascii, datetime, json, os, re, re._parser, sys
 here = os.path.dirname(os.path.abspath(__file__))
 src = open(here + '/draftcheck.py', encoding='utf-8').read().split("\nspec = open(sys.argv[1]")[0]
 g = {'__name__': 'dc'}; exec(compile(src, 'dc', 'exec'), g)
@@ -19,7 +19,7 @@ for f in ('double', 'single', 'block'):
     setattr(P, f, wrap(getattr(P, f)))
 deliver = P.deliver
 def snapshot(s, name, v):
-    s.__dict__.setdefault('snaps', []).append(dict(s.table)); deliver(s, name, v)
+    s.__dict__.setdefault('snaps', []).append((dict(s.table), s.table)); deliver(s, name, v)
 P.deliver = snapshot
 
 class SchemaError(Exception): pass
@@ -69,6 +69,7 @@ def limit(text, name, whole):
     return ('range', lo, hi)
 def atom(p):
     if p == "''": return ('lit', '')
+    if p[:1] in ('"', "'"): raise SchemaError(f'a part can only start with a quote as two single quotes: {p}')
     if p.startswith('!'):
         m = re.fullmatch(r'!([^\s()\[\],|/]+)(?:\((.*)\))?', p, re.S)
         if not m: raise SchemaError(f'bad type: {p}')
@@ -109,21 +110,38 @@ def strip(v):
     if isinstance(v, list): return [strip(x) for x in v]
     return str(v)
 
+CEILING = 10000
+def size(tree):
+    """Positions in a parsed pattern, after nested counts multiply."""
+    t = 0
+    for op, av in tree:
+        n = str(op)
+        if n in ('MAX_REPEAT', 'MIN_REPEAT'):
+            lo, hi, sub = av
+            t += max(lo if str(hi) == 'MAXREPEAT' else hi, 1) * size(sub)
+        elif n == 'SUBPATTERN': t += size(av[3])
+        elif n == 'BRANCH': t += sum(size(x) for x in av[1])
+        elif n != 'AT': t += 1
+    return t
+
 class Schema:
     def __init__(s, table, root):
-        s.table, s.defs, s.memo, s.seen = table, {}, {}, set()
+        s.table, s.defs, s.memo, s.seen, s.reached = table, {}, {}, set(), {root}
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
     def get(s, name):
         if name not in s.defs: s.defs[name] = to_type(s.table[name])
         return s.defs[name]
-    def flat(s, t, seen=()):
-        if t[0] == 'alt': return [a for x in t[1] for a in s.flat(x, seen)]
+    def flat(s, t, seen=(), done=None):
+        if done is None: done = set()
+        if t[0] == 'alt': return [a for x in t[1] for a in s.flat(x, seen, done)]
         if t[0] != 'name': return [t]
         if t[1] in s.table:
             if t[2] is not None: raise SchemaError(f'{t[3]}: a named type takes no limit')
             if t[1] in seen: raise SchemaError(f'{t[1]} only names itself')
-            return s.flat(s.get(t[1]), seen + (t[1],))
+            if t[1] in done: return []
+            done.add(t[1]); s.reached.add(t[1])
+            return s.flat(s.get(t[1]), seen + (t[1],), done)
         if t[1] not in STD: raise SchemaError(f'unknown type !{t[1]}')
         return [t]
     def alts(s, t):
@@ -134,8 +152,16 @@ class Schema:
                 if x[0] == 'name' and x[2] is not None and not isinstance(x[2], tuple):
                     x = ('name', x[1], limit(x[2], x[1], x[3]), x[3])
                 a.append(x)
+            s.ceiling(a)
             m = s.memo[id(t)] = (t, a)
         return m[1]
+    def ceiling(s, a):
+        n = 0
+        for x in a:
+            if x[0] == 'lit': continue
+            if x[0] == 'name' and x[2] and x[2][0] == 're': n += size(re._parser.parse(x[2][1].pattern))
+            else: n += 1
+        if n > CEILING: raise SchemaError(f'a union of {n} positions')
     def walk(s, t):
         if id(t) in s.seen: return
         s.seen.add(id(t)); a = s.alts(t)
@@ -146,6 +172,7 @@ class Schema:
             elif x[0] == 'map':
                 for ft, _ in x[1].values(): s.walk(ft)
                 for kt, vt in x[2]: s.walk(kt); s.walk(vt)
+                s.ceiling([y for kt, _ in x[2] for y in s.alts(kt)])
     def check(s, v): return s.conv(s.root, v, '')
     def conv(s, t, v, path):
         a = s.alts(t)
@@ -173,6 +200,13 @@ class Schema:
                 continue
             a = s.alts(ft)
             if all(x[0] == 'lit' for x in a) and v[k] not in [x[1] for x in a]: return False
+        for k in v:
+            if k in m[1]: continue
+            for kt, _ in m[2]:
+                try: s.conv(kt, str(k), '')
+                except Bad: continue
+                break
+            else: return False
         return True
     def one(s, x, v, path):
         if x[0] == 'lit':
@@ -213,7 +247,7 @@ class Schema:
             elif name == 'float' and re.fullmatch(INT + r'(\.[0-9]+)?([eE][-+]?[0-9]+)?', t): out = float(t)
             elif name == 'date' and re.fullmatch(DATE, t): datetime.date.fromisoformat(t); out = t
             elif name == 'datetime' and re.fullmatch(DATETIME, t): datetime.datetime.fromisoformat(t.upper().replace('Z', '+00:00')); out = t
-            elif name == 'binary': base64.b64decode(t.encode('ascii'), validate=True); out = t
+            elif name == 'binary': t = t.replace('\n', ''); base64.b64decode(t.encode('ascii'), validate=True); out = t
             else: raise ValueError
         except (ValueError, binascii.Error, UnicodeEncodeError): raise Bad(path, f'expected {name}, got {t[:40]!r}')
         if lim and lim[0] == 're':
@@ -223,12 +257,23 @@ class Schema:
             if (lim[1] is not None and n < lim[1]) or (lim[2] is not None and n > lim[2]): raise Bad(path, f'{t[:40]!r} is out of range')
         return out
 
-def typed(stream):
-    """Type each document with a local name in the table. Others stay strings."""
-    r = read(stream); out = []
-    for (name, v), table in zip(r.docs, getattr(r, 'snaps', [])):
-        if name and '/' not in name and name in table: out.append(Schema(table, name).check(v))
+def typed(stream, app=None):
+    """Type each stamped document by the file's table, others by the application's schema.
+    With neither they stay strings. An application's schema is (schema text, root)."""
+    r = read(stream); out = []; reached = {}; live = None
+    own = None if app is None else Schema(read(app[0]).table, app[1])
+    for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
+        if obj is not live: reached, live = {}, obj
+        for k, e in reached.items():
+            if table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
+        if name and '/' not in name and name in table:
+            sc = Schema(table, name); out.append(sc.check(v))
+            reached.update((k, table[k]) for k in sc.reached)
+        elif own: out.append(own.check(v))
         else: out.append(strip(v))
+    if r.docs and r.table is live:
+        for k, e in reached.items():
+            if r.table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
     if not r.docs:
         for k in r.table: Schema(r.table, k)
     return out
@@ -273,7 +318,7 @@ if __name__ == '__main__':
     for k, v in no:
         try: typed(H + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, repr(v))
         except REFUSED: pass
-    schemas = ['a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !int(/x/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)']
+    schemas = ['a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !int(/x/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)', 'a: !int | "none"', "a: !int | 'none'", 'a: !b | !int\nb: !a | !str', 'a: !str(/(a{1000}){1000}/)', 'a: !str(/a{10001}/)', 'a: !str(/a{6000}/) | !str(/b{6000}/)', 'a:\n  !str(/a{6000}/): !int\n  !str(/b{6000}/): !int']
     for t in schemas:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
@@ -284,5 +329,26 @@ if __name__ == '__main__':
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
     try: typed('--- &\na: ["!str(/[a-z]+/)", ...]\n--- !a\n- ab\n'); f += 1; print('QUOTED PATTERN NOT A LITERAL')
     except REFUSED: pass
-    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(forms) + 1} run, {f} fail')
+    # Who says: the file's stamp, then the application, then strings.
+    J = ('--- &\njob:\n  retries: !int\n', 'job')
+    says = [('retries: 3\n', {'retries': 3}), ('--- &\njob:\n  retries: !any\n--- !job\nretries: abc\n', {'retries': 'abc'}), ('--- &\nint: !str\njob:\n  retries: !int\n--- !job\nretries: abc\n', {'retries': 'abc'}), ('--- &\njob: data\n---\nretries: 3\n', {'retries': 3}), ('--- &\njob: data\n--- !other\nretries: 3\n', {'retries': 3}), ('--- !a.example/job\nretries: 3\n', {'retries': 3})]
+    for t, w in says:
+        try: got = typed(t, J)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
+        except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
+    for t in ('retries: abc\n', '--- &\njob: data\n---\nretries: abc\n'):
+        try: typed(t, J); f += 1; print('NOT REFUSED', repr(t))
+        except REFUSED: pass
+    # Unions: fit is closed, each name counts once, and !any takes what nothing else fits.
+    unions = [('m:\n  x: !int\nu: !m | !m\n--- !u\nx: 1\n', {'x': 1}), ('m:\n  x: !int\nv: !m | !int\nw: !m | !str\nu: !v | !w\n--- !u\nx: 1\n', {'x': 1}), ('a:\n  x?: !int\nb:\n  y?: !int\nu: !a | !b\n--- !u\nx: 1\n', {'x': 1}), ('m:\n  x: !int\nu: !m | !any\n--- !u\ny: 1\n', {'y': '1'}), ('a: !str(/a{10000}/)\n--- !a\n' + 'a' * 10000 + '\n', 'a' * 10000), ('u: !int | one | two\n--- !u\ntwo\n', 'two')]
+    for t, w in unions:
+        try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
+        except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
+    n = 200; chain = '--- &\n' + ''.join(f'a{i}: !a{i+1} | !a{i+1}\n' for i in range(n)) + f'a{n}: !int\n--- !a0\n1\n'
+    f += 0 if typed(chain) == [1] else 1
+    # Reached entries, and what isn't reached.
+    reach = [('--- &\na.example/job:\n  retries: !int\n--- !a.example/job\nretries: 3\n', [{'retries': '3'}]), ('--- &\na: !b\nb: !int\n--- !a\n1\n...\n--- &\nb: !bool\n--- !b\ntrue\n', [1, True]), ('--- &\nbad: !stirng\ngood: !int\n--- !good\n1\n', [1]), ('--- &\na: !int\n--- !a\n1\n--- &\nb: !bool\n--- !b\ntrue\n', [1, True])]
+    for t, w in reach:
+        try: got = typed(t); f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
+        except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
+    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(forms) + 1 + len(says) + 2 + len(unions) + 1 + len(reach)} run, {f} fail')
     sys.exit(1 if bad or f else 0)
