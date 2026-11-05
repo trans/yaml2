@@ -14,7 +14,8 @@ written. Section 14 of the draft lists what is open; the user went through it on
 limit, @oyl's five gaps and the limit on shared tables are in `2d5a90d`, pushed. Section 15,
 Security, is in the working copy, not committed yet. @oyl's four points on section 10 and
 how files join are open for the user ([review.md](review.md)). The user moved on to YAML
-Schema on 2026-11-05.
+Schema on 2026-11-05. The first question there, "wherever this occurs", is in
+[rules.md](rules.md).
 Background is in [landscape.md](landscape.md).
 
 ## Open, for the user

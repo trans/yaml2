@@ -14,6 +14,10 @@ To repeat it, with jsonschema installed:
     python3 compare.py workflows github-workflow.json ~/Projects ~/.config
     python3 compare.py compose compose-spec.json DIR
 
+`schema2.py` reads a schema with the real grammar, through `draftcheck.py`, and tests JSON as
+an ordinary recursive schema (2026-11-05). It matched on all 994 SchemaStore files and on 93
+of 95 in JSONTestSuite; the other 2 are repeated keys.
+
 ## Results: GitHub workflows (2026-11-03)
 
 - **Real files:** 131 unique workflows (580 before removing copies). Shadow and

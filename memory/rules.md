@@ -387,7 +387,21 @@ tests settled on, all proposals, left open for the core team:
   literally is, and found it a bit confusing.
 - **Alternatives** are chosen by shape, never by how text looks: at most one
   scalar type, at most one sequence, and mappings told apart by required keys and
-  literals. All 117 scalar unions in the sample include string.
+  literals. All 117 scalar unions in the sample include string. **Proposed change, open
+  for the user (2026-11-05):** see "Wherever this occurs" just below.
+- **"Wherever this occurs" (proposed by the agent, 2026-11-05, open for the user).** The rule
+  is a recursive named type, which needs no new construct. Two changes make it work: a union
+  may hold several scalar types, tried in the order written, and a quoted scalar matches
+  string types only. JSON is then four lines of ordinary schema (`shadow/schema2.py`):
+  `json: !null | !bool | !int | !float | !str | !array | !object`, `array: [!json, ...]`,
+  and `object:` with `!str: !json`. Read by the real grammar, that matched a JSON parser
+  exactly on all 994 SchemaStore files and on 93 of 95 in JSONTestSuite, the other 2 being
+  repeated keys. It needs a `!null` standard name. The same form gives "every `timeout` key
+  at any depth is an int" in five lines. The cost: `!float | !str` reads `1.10` as 1.1, the
+  old Norway problem, but only where a schema's author asks, and the same on every parser.
+  Quoted-means-string changed no verdict on 408 workflows and 311 Compose files, which is
+  weak evidence: those two shadows use non-string types in 9 places, and no quoted value
+  reached one. It matches what a 1.2 parser with JSON Schema does today.
 - **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
   `flag`. That recovered nearly all of what patterns check, with no regex in the
