@@ -100,9 +100,12 @@ development:
   document being read, not the whole stream, so a long stream can be read one document
   at a time (@oyl's review; the user agreed, since @oyl would know). The count is exact,
   with a worked example in section 10. An interface that delivers several documents
-  together counts them together: the agent's addition, because many small documents
-  that each name a large table are a memory bomb for a load-all reader. The user saw
-  this and approved the push without comment on it (2026-11-04).
+  together counts them together: the agent's addition. **Open.** The agent's first reason
+  was wrong: the user pointed out (2026-11-04) that plain references needn't be copied.
+  In PyYAML, 100 plain references to a 10,000-key map cost nothing extra, and 100 merges
+  took 21.6 MB against 0.8 MB for the map. So the case is merges, and parsers that can't
+  hide sharing because they hand back mutable maps. The sentence in section 10 says such
+  an interface "holds them all", which overstates it. @oyl has been asked.
 - `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.

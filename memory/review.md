@@ -53,9 +53,9 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 - **A minimum nesting depth.** **Fixed in `caece25`:** 256, the agent's pick, tested in block
   and flow. The deepest real file is 21.
 - **Size limit per document** plus the table in scope. **Fixed in `caece25`**, with an exact
-  count, and tests under, at and over a limit. The agent added one rule, which the user
-  saw with no objection: an interface that delivers documents together counts them
-  together.
+  count, and tests under, at and over a limit. The agent added one rule, **Open**: an
+  interface that delivers documents together counts them together. The user questioned
+  it, since plain references can share memory (see rules.md), and @oyl has been asked.
 - **A "What this costs" section.** **Fixed in `caece25`**, as section 13.1.
 - **Whether the first document should need `---`.** **Open**, in section 14, which now
   says the form without it is the one npm `yaml` refuses.
