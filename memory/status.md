@@ -27,8 +27,9 @@ every named type reachable from the root is checked. `schemacheck.py` tests the 
 examples and 108 edge cases pass, and breaking 13 new rules on purpose fails a test each time.
 Not done yet: the same for the older rules, and running the two real shadows through it. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
-[review.md](review.md). Numbers, the list of standard types
-and `\p{..}` are open, to work out with the user.
+[review.md](review.md). Numbers and the list of standard types
+are open, to work out with the user. `\p{..}` stays (the user, 2026-11-05), and naming a Unicode
+version is the step left.
 
 **In `7689ea6`** (the user, 2026-11-05): patterns in flow collections (part 2, sections 4.3 and 14),
 a parser builds nothing from a name (part 2, sections 12 and 16), and what 2.0 costs object data

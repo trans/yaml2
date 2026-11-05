@@ -294,7 +294,9 @@ pattern engine, and narrowing alternatives as keys arrive.
   added later safely. The user (2026-11-05): this is about being thorough, not need, and a sample
   this size can't decide it, so the agent's "`!float32` looks unneeded" is withdrawn. Check the list
   against other type systems, not against real files.
-- **`\p{..}`: open,** to go over with the agent. Its 2 files are two schemas of one project. I-Regexp
+- **`\p{..}` stays** (the user, 2026-11-05, on the measurements below: "we are fine then"). Naming a
+  Unicode version is the step left, and section 15 of part 2 still lists it. Its 2 files are two
+  schemas of one project. I-Regexp
   is portable. Only the agent's option of letting a parser refuse `\p{..}` would make a schema not
   portable. RFC 9485 leaves two gaps a spec can close: no Unicode version, and limits on counts.
 
