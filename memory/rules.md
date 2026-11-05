@@ -438,8 +438,8 @@ a tab on a line with no content stays refused. `%YAML 2.0` may repeat before a m
 Another version on the first line counts as no directive: refuse, or pass it to that
 version's parser if the caller asked ("it can switch parsers, dealer choice"). A block
 scalar with no text is the empty string. A key and its `:` stay on one line in flow.
-`{a}` is refused, which leaves room for sets later, and section 14 says so. Still there:
-U+FEFF.
+`{a}` is refused, which leaves room for sets later, and section 14 says so. U+FEFF is left as an
+open question there.
 
 A lone CR stays refused (the user, 2026-11-04, "But okay"). The reason is that a line
 break tools can't see lets a viewer and a parser disagree. The user expects most parsers

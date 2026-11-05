@@ -9,8 +9,8 @@ ecosystem that has become a minefield.
 rules are in [rules.md](rules.md). The user chose a clean break on
 2026-11-03, so 2.0 need not be readable by existing parsers. Draft 1 of the language is
 `spec/yaml-2.0.md` in the code checkout, not committed yet; YAML Schema, part 2, isn't
-written. Section 14 of the draft lists what is open, including details the agent filled
-in that the user hasn't seen. Background is in [landscape.md](landscape.md).
+written. Section 14 of the draft lists what is open; the user went through it on 2026-11-04.
+Background is in [landscape.md](landscape.md).
 
 ## Open, for the user
 
