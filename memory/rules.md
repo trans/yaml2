@@ -414,6 +414,8 @@ tests settled on, all proposals, left open for the core team:
   written, or refuses. Digits lost are an error, not a warning, unless an application accepts rounding
   on `!float`. `!decimal` says the application keeps it exact or errors. A width is a limit, and byte
   order doesn't arise in text. The user first asked whether names like `uint32` were needed at all.
+  A float that specifies a minimum precision is the one loose end, left in section 15 of part 2 for
+  the core team (the user, 2026-11-05).
 - **The file is the truth** (the user, 2026-11-05, replacing "the application's choice wins"). A
   schema written in with the data stamps it: that is how it is meant to be read, and an
   application can't make the file lie. Normal use is a data-only file, with the application
