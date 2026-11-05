@@ -41,11 +41,11 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
   References work inside entries as anywhere, backward only.
 - **Invisible line breaks.** **Fixed in `caece25`**, for U+0085, U+2028 and U+2029: refused
   outside double quotes.
-- **Bidirectional controls.** **Open: the user should confirm.** The user agreed to refuse
-  them too, on the agent's word that it cost nothing, because 0 of 4,651 files hold one.
+- **Bidirectional controls.** Allowed (the user, 2026-11-04). The user first agreed to
+  refuse them, on the agent's word that it cost nothing, because 0 of 4,651 files hold one.
   That corpus has almost no right-to-left text, and real locale files do use them
-  (landscape.md, Right-to-left text). So the draft allows them, and section 14 leaves
-  them open, with a narrower rule to consider: refuse them in keys and comments only.
+  (landscape.md, Right-to-left text). Section 14 keeps a narrower rule open for the core
+  team: refuse them in keys and comments only.
 - **Spaces-only lines in `|`.** **Open**, in section 14. Five spaces inside `|` keep 3 of
   them in the value, and the same line in `>` is refused. Trailing-space stripping then
   changes data. The agent's earlier attempt to treat them as empty silently changed 3
@@ -53,8 +53,9 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 - **A minimum nesting depth.** **Fixed in `caece25`:** 256, the agent's pick, tested in block
   and flow. The deepest real file is 21.
 - **Size limit per document** plus the table in scope. **Fixed in `caece25`**, with an exact
-  count, and tests under, at and over a limit. The agent added one rule the user hasn't
-  confirmed: an interface that delivers documents together counts them together.
+  count, and tests under, at and over a limit. The agent added one rule, which the user
+  saw with no objection: an interface that delivers documents together counts them
+  together.
 - **A "What this costs" section.** **Fixed in `caece25`**, as section 13.1.
 - **Whether the first document should need `---`.** **Open**, in section 14, which now
   says the form without it is the one npm `yaml` refuses.

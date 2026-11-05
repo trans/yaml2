@@ -10,8 +10,7 @@ rules are in [rules.md](rules.md). The user chose a clean break on
 2026-11-03, so 2.0 need not be readable by existing parsers. Draft 1 of the language is
 `spec/yaml-2.0.md` in the code checkout, committed on 2026-11-04; YAML Schema, part 2, isn't
 written. Section 14 of the draft lists what is open; the user went through it on 2026-11-04.
-@oyl's review is applied in `caece25`, which isn't pushed; [review.md](review.md) has what
-is left, including three points the user hasn't confirmed.
+@oyl's review is applied in `caece25`, and [review.md](review.md) has what is left.
 Background is in [landscape.md](landscape.md).
 
 ## Open, for the user
@@ -30,7 +29,7 @@ Background is in [landscape.md](landscape.md).
    approved the first push of `main` and `ai` on 2026-11-04, with @oyl's figures in
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
    a second push of `ai` the same day, and a third of both, with the spec, README and
-   licenses, also that day. The spec and README are CC BY 4.0, and the code on `ai` is
+   licenses, also that day, and a fourth of both, with the review applied, also that day. The spec and README are CC BY 4.0, and the code on `ai` is
    MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.

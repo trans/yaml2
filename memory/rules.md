@@ -101,14 +101,14 @@ development:
   at a time (@oyl's review; the user agreed, since @oyl would know). The count is exact,
   with a worked example in section 10. An interface that delivers several documents
   together counts them together: the agent's addition, because many small documents
-  that each name a large table are a memory bomb for a load-all reader. **The user
-  hasn't confirmed that addition.**
+  that each name a large table are a memory bomb for a load-all reader. The user saw
+  this and approved the push without comment on it (2026-11-04).
 - `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.
 - Nesting: every parser must accept 256 levels and may refuse past that, but never crash.
-  The user agreed to a minimum on 2026-11-04. **256 is the agent's pick**: the deepest of
-  the 4,241 real files that parse is 21.
+  The user agreed to a minimum on 2026-11-04. 256 is the agent's pick, seen by the user
+  with no objection: the deepest of the 4,241 real files that parse is 21.
 
 **Path syntax** (the user chose `:`). Fewest clashes (landscape.md): keys
 holding `:` in 1 of 2,995 files, `/` in 19, `.` in 160. It needs no new scanner
@@ -457,11 +457,11 @@ to one line, then chose the JSON goal, the same day).
 **Characters outside double quotes** (the user agreed on 2026-11-04, after @oyl's review):
 U+0085, U+2028 and U+2029 are refused, and a double-quoted string can hold them, which
 keeps JSON. They are a real same-bytes-different-data case: PyYAML and go-yaml read
-`- a`, U+2028, `- b` as two items, and a 1.2 parser as one. **Bidirectional controls are
-allowed, and the user hasn't seen that yet:** they agreed to refuse them too, on the
-agent's word that it cost nothing, and the agent then measured that claim false (see
-landscape.md, Right-to-left text). Every parser reads them alike, so they aren't the root
-problem, and section 14 leaves them open.
+`- a`, U+2028, `- b` as two items, and a 1.2 parser as one. **Bidirectional controls stay
+allowed** (the user, 2026-11-04). They first agreed to refuse them, on the agent's word
+that it cost nothing, which the agent then measured false (see landscape.md, Right-to-left
+text). Every parser reads them alike, so they aren't the root problem. Section 14 keeps a
+narrower rule open for the core team: refuse them in keys and comments only.
 
 `{a}` is refused, which leaves room for sets later, and section 14 says so. U+FEFF outside double quotes is left as an
 open question there.
