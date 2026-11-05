@@ -103,9 +103,9 @@ development:
   together counts them together: the agent's addition. **Open.** The agent's first reason
   was wrong: the user pointed out (2026-11-04) that plain references needn't be copied.
   In PyYAML, 100 plain references to a 10,000-key map cost nothing extra, and 100 merges
-  took 21.6 MB against 0.8 MB for the map. So the case is merges, and parsers that can't
-  hide sharing because they hand back mutable maps. The sentence in section 10 says such
-  an interface "holds them all", which overstates it. @oyl has been asked.
+  took 21.6 MB against 0.8 MB for the map, so the case left is merges. The sentence in
+  section 10 says such an interface "holds them all", which overstates it. @oyl has been
+  asked.
 - `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.
@@ -148,8 +148,8 @@ Proposed, left open for the core team unless marked as the user's (see status.md
 - Several `--- &` documents: the user chose, 2026-11-04. A stream's table starts empty,
   and `...` empties it (the user's idea, instead of per-document tables). Between `...`
   lines a later `--- &` replaces an entry it repeats, as a later `<<:` line does, and a
-  repeat inside one `--- &` is refused, as in any mapping. References copy as they are
-  read, so a replacement never changes an earlier document or entry. An entry may name
+  repeat inside one `--- &` is refused, as in any mapping. References take what the
+  entry holds as they are read, so a replacement never changes an earlier document or entry. An entry may name
   the one it replaces, which extends it (the agent's addition, the user agreed the same
   day: it needs no rule, since references look backward and the old entry is still there).
   Two other ways were dropped: refusing every repeat, and each `--- &` replacing the
@@ -177,8 +177,17 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   holding those needs `<...>` inside flow. `[<<: *a, x]` is
   a one-pair mapping item, as in 1.x, unless that form is cut below. Real use of either
   in flow: none (landscape.md).
-- A reference names exactly one node, as a copy, so the data stays a tree. A
-  query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
+- A reference names exactly one node, and a parser may share it or copy it, so an
+  application that changes delivered data can't assume either. The user chose this on
+  2026-11-04 ("I would not forbid that"): a write through a shared node is how the
+  document is spelled, may be wanted, and copying first is easy. It replaces "a copy, so
+  the data stays a tree" and "share memory only if no application can tell". A writable
+  tree can offer both kinds of edit. **Not committed yet, and @oyl has been asked.** The
+  catch: a change reaches later documents too, which 1.x can't do, since anchors end with
+  their document, so a sharing and a copying parser can differ after a write. Part 2
+  will need to allow for it too: a reference under two schema types can't share its
+  typed result.
+- A query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a
   later question.
 - Keys only, no sequence indices (the user, 2026-11-04: fine for now, "it can alwasy
   be revisted"): `*steps:0` would still resolve after someone inserts a step, to the
