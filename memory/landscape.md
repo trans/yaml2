@@ -438,3 +438,12 @@ those files look like a number, boolean or null, in 431 files, mostly `"type": "
 that sees quotes doesn't. Reading a plain scalar as its JSON type and leaving a quoted one a
 string gave exactly `json.loads`'s result, types included, on all 994 files (a test over
 `draftcheck.py`, not in it). So the user's "tiny schema add" does recover JSON.
+
+JSONTestSuite (`nst/JSONTestSuite`), the 95 `y_` files a JSON parser must accept, with that
+reading: 90 exact as the draft stands. The 5 refused are 2 repeated keys and 3 raw
+characters (U+007F, U+FFFF). A scratch copy with three language changes gave 93: tabs as
+white space inside flow, a line break before `:` inside flow, and raw U+007F to U+009F,
+U+FEFF, U+FFFE and U+FFFF inside double quotes, which 1.2 allows as `nb-json`. The 2 left
+are repeated keys, which 1.2 forbids too ("each of the keys is unique"). A lone CR between
+JSON tokens stays refused. No schema can supply `%YAML 2.0`, so the claim has to be "JSON
+with that line on top".

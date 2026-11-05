@@ -297,6 +297,8 @@ tests settled on, all proposals, left open for the core team:
   quotes: the agent proposed only a standard JSON reading, and the user said that "could
   never work". Instead part 2 needs a way to say "wherever this occurs, interpret it this
   way", so a JSON reading is an ordinary small schema. **Open:** the form of that rule.
+  Goal (the user, 2026-11-04): make JSON a subset; "It shouldn't take much." The schema
+  covers types. The syntax needs language changes, see landscape.md, JSON against the draft.
 - **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
   plain string to the grammar. So a leftover 1.x tag reads
   as text, in 137 of 3,544 public files. The agent proposed refusing a plain scalar
