@@ -5,6 +5,10 @@
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
 
+**Nothing is final** (the user, 2026-11-05). Every rule is the user's current choice in a
+proposal, and it's too early to carve anything in stone. Don't call a rule settled, in notes or
+in mail: say "the user chose", and treat it as open to argument.
+
 **Where things stand.** The user is setting the design rule by rule; the
 rules are in [rules.md](rules.md). The user chose a clean break on
 2026-11-03, so 2.0 need not be readable by existing parsers. Draft 1 of the language is
@@ -15,7 +19,7 @@ shared tables are in `2d5a90d`. Section 15, Security, is in `bf225ba`. @oyl's fo
 section 10 and how files join are open for the user ([review.md](review.md)).
 
 **YAML Schema, part 2.** Draft 1 is `spec/yaml-schema.md`, in `bf225ba` (2026-11-05), and its
-section 15 lists what is open. The user decided "wherever this occurs" (see
+section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
 scalar in a schema is always a literal, a reference is typed where it's used, `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
@@ -33,7 +37,7 @@ Background is in [landscape.md](landscape.md).
 ## Open, for the user
 
 1. **The design's open points:** marked as such in [rules.md](rules.md). Merge, the
-   size limit, the syntax cuts and how schemas are named were settled on 2026-11-04,
+   size limit, the syntax cuts and how schemas are named were chosen on 2026-11-04,
    and margin strings are parked for later. Patterns are proposed as I-Regexp. Left:
    whether to refuse leftover tags (the `!` rule), which the user wants left as an open
    question for the core team, with pros and cons in section 14.

@@ -518,7 +518,7 @@ much agree with those"): `|+` and `>+`; `|1` to `|9`; everything but UTF-8; tabs
 strings; one-pair `[a: b]`; escapes JSON doesn't have; multi-line plain; multi-line
 quoted; more-indented lines inside `>`.
 
-The user settled these details on 2026-11-04, reading section 14. A tab after the last
+The user chose these details on 2026-11-04, reading section 14. A tab after the last
 content on a line is ignored, as a space is (their point; the draft had refused it), and
 a tab on a line with no content stays refused, except inside flow. `%YAML 2.0` may repeat before a marker.
 Another version on the first line counts as no directive: refuse, or pass it to that
