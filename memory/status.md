@@ -24,9 +24,9 @@ examples and 82 edge cases pass. Not done yet: breaking most of its rules on pur
 the tests catch it (only patterns in flow so far), and running the two real shadows through
 it. @oyl hasn't been told about part 2.
 
-**In the working copy, not committed yet** (the user, 2026-11-05): patterns in flow collections
-(part 2, sections 4.3 and 14), a parser builds nothing from a name (part 2, sections 12 and 16),
-and what 2.0 costs object data (part 1, section 13.1). See [rules.md](rules.md).
+**In `7689ea6`** (the user, 2026-11-05): patterns in flow collections (part 2, sections 4.3 and 14),
+a parser builds nothing from a name (part 2, sections 12 and 16), and what 2.0 costs object data
+(part 1, section 13.1). See [rules.md](rules.md).
 Background is in [landscape.md](landscape.md).
 
 ## Open, for the user
@@ -46,7 +46,7 @@ Background is in [landscape.md](landscape.md).
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
    a second push of `ai` the same day, and a third of both, with the spec, README and
    licenses, also that day, and a fourth of both, with the review applied, also that day, a fifth of both on
-   2026-11-05, with `2d5a90d`, and a sixth of both that day, with `bf225ba`. The spec and README are CC BY 4.0, and the code on `ai` is
+   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, and a seventh of both that day, with `7689ea6`. The spec and README are CC BY 4.0, and the code on `ai` is
    MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.
