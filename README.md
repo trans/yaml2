@@ -41,9 +41,9 @@ job:
 
 - **Everything is a string.** Types come from the application or a schema, never from a
   parser guessing by how text looks.
-- **A stream says what it is.** It starts with `%YAML 2.0`. A 2.0 parser refuses anything
-  else, and PyYAML, Psych and go-yaml v3 all refuse a 2.0 stream, so neither can misread
-  the other's files.
+- **A stream says what it is.** It starts with `%YAML 2.0`, and a 2.0 parser refuses
+  anything else. PyYAML, Psych and go-yaml v3 refuse a 2.0 stream too, but not every 1.x
+  parser does: npm `yaml` warns and reads it as 1.2.
 - **Reuse is explicit.** Definitions live in a table, `--- &`, that is never delivered.
   References are paths into it, and they replace anchors and tags.
 - **Merge is part of the language**, for mappings and sequences.
@@ -59,7 +59,7 @@ comparison is rough.
 
 This is a clean break. Of 4,651 public YAML files, 3,558 read as written. The rest need
 converting, and no converter exists yet. `spec/yaml-2.0.md`, section 13, lists every change
-from 1.2.
+from 1.2, and section 13.1 what they cost.
 
 ## Status
 
@@ -71,7 +71,7 @@ from 1.2.
 ## Checking it
 
 The draft's examples and edge cases run through a small checker built from the grammar. It
-is a test of the draft, not a reference parser, and it doesn't implement the size limit.
+is a test of the draft, not a reference parser.
 It's on the `ai` branch, with the working notes behind each decision and the measurements
 on real files:
 

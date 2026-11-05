@@ -46,7 +46,8 @@ A parser must refuse any stream that the grammar (section 12) doesn't produce or
 breaks a rule in this document. There is no error recovery and no lenient mode.
 
 A refusal must give the line and column. A parser reading a stream incrementally may
-already have delivered earlier documents, but must not deliver the document in error.
+already have delivered earlier documents, but must not deliver the document in error as
+complete: an event interface reports the error before the document's end.
 
 The one setting is the size limit (section 10). It can only cause a refusal, so it
 can't make two parsers give different data.
@@ -56,22 +57,24 @@ can't make two parsers give different data.
 A stream is UTF-8. Any other encoding, invalid UTF-8, and a leading byte order mark are
 refused.
 
-A stream may contain only these characters, the printable characters of YAML 1.2
-without U+FEFF:
+A stream may contain only these characters, the printable characters of YAML 1.2 without
+U+FEFF and the line breaks YAML 1.1 had:
 
 | Characters | What they are |
 |---|---|
 | U+0009, U+000A, U+000D | tab, line feed, and carriage return as part of a line break |
 | U+0020 to U+007E | printable ASCII |
-| U+0085 | next line |
-| U+00A0 to U+D7FF | |
+| U+00A0 to U+D7FF, except U+2028 and U+2029 | |
 | U+E000 to U+FFFD, except U+FEFF | |
 | U+10000 to U+10FFFF | |
 
-That refuses the other control characters (U+0000 to U+001F and U+007F to U+009F), the
-byte order mark U+FEFF, and U+FFFE and U+FFFF. A double-quoted scalar can hold U+007F to
-U+009F, U+FEFF, U+FFFE and U+FFFF directly, as a JSON string can, and can produce any
-of the others with an escape.
+That refuses the other control characters (U+0000 to U+001F and U+007F to U+009F,
+including next line U+0085), the line and paragraph separators U+2028 and U+2029, the
+byte order mark U+FEFF, and U+FFFE and U+FFFF. U+0085, U+2028 and U+2029 are refused
+because YAML 1.1 parsers still read them as line breaks: `- a`, U+2028, `- b` is two items
+to PyYAML and go-yaml, and one item to a 1.2 parser. A double-quoted scalar can hold all of
+these except U+0000 to U+001F directly, as a JSON string can, and can produce those with
+an escape.
 
 A line ends with LF or CR LF, and either one reads as LF. A lone CR is refused. The
 last line needn't end with a break.
@@ -114,7 +117,7 @@ one.
 
 After `---` or `--- !name`, a document may start on the same line if it is a scalar, a
 flow collection, a reference or a block scalar header. A block collection starts on
-the next line. After `--- &`, nothing but a comment may follow.
+the next line. After `--- &`, only a comment or a flow mapping may follow.
 
 A document with no content is the empty string.
 
@@ -142,14 +145,16 @@ second
 `--- !name` says what a document is meant to be. A name is letters and digits in any
 script, and `.`, `_`, `-` and `/`, so `--- !配置` is a name. The characters beyond ASCII
 are the ones XML 1.0 allows in a name (section 12): a short list of ranges, which needs
-no Unicode tables and leaves out spaces and invisible controls.
+no Unicode tables and leaves out spaces and bidirectional controls. It keeps U+200C and
+U+200D, which can't be seen, because Persian and some Indic words need them.
 
 A parser compares names by code point, with no normalization, as it does keys. A name
 has no `:`, which keeps URI schemes out, so `github.com/a/b` and `https://github.com/a/b`
 can't both name one thing. It has no `%` escapes: any character a name may hold can be
 written directly, and `%3A` is refused for the same reason `:` is.
 
-A name with a `/` is global and starts with a domain: `github.com/actions/workflow`.
+A name with a `/` is global. By convention it starts with a domain, which a parser doesn't
+check: `github.com/actions/workflow`.
 There is no `tag:` form and no year. A format with versions puts one in the path:
 `github.com/actions/workflow/v1`. A name without a `/` is local to the stream or the
 application.
@@ -210,9 +215,9 @@ This gives front matter a specified form. Today it is only a convention: a tool 
 the closing `---` itself and cuts the file in two before any parser sees it. Here the
 parser reads the whole file, stops at `...`, and reports where the body starts.
 
-A line starting a marker or `...` at column 0 is never inside a node, because block
-scalar text is always indented and other scalars are one line. So a tool can split a
-stream into documents without parsing it.
+A line starting a marker or `...` at column 0 is never inside a node: block scalar text
+is always indented, other scalars are one line, and a flow collection can't hold such a
+line. So a tool can split a stream into documents without parsing it.
 
 ## 5. Data model
 
@@ -522,7 +527,7 @@ a: b
 
 A stream's table starts empty. Each `--- &` document adds entries to it: its top-level
 keys. A `--- &` document is a mapping, block or flow, or empty, and it is never
-delivered.
+delivered. A block mapping there starts at column 0.
 
 A key repeated inside one `--- &` document is refused, as in any mapping. A key that an
 earlier `--- &` document defined replaces that entry. A `...` empties the table, so the
@@ -664,10 +669,11 @@ c: *steps:0
 
 ### 8.4 Inside the table
 
-The only references allowed in a `--- &` document are `<<:` and `-<<` at the top level
-of an entry, naming earlier entries. That stops an entry from growing by nesting. A
-`<<:` at the top of the `--- &` document itself isn't in an entry, and is refused. An
-entry that replaces another may name the one it replaces, which extends it.
+A reference inside an entry works as it does anywhere else: it looks backward, at earlier
+entries. An entry that replaces another may name the one it replaces, which extends it.
+An entry can't name itself, so nothing can loop, and the size limit bounds what
+references can build. A `<<:` at the top of the `--- &` document itself isn't in an
+entry, and is refused.
 
 ```yaml
 --- &
@@ -688,19 +694,25 @@ t: *t
 {"b": {"p": "1", "q": "2"}, "t": ["x", "y"]}
 ```
 
-```yaml refused
+```yaml
 --- &
-a: {p: 1}
-b:
-  c: *a
+.setup: [apt-get update]
+.build:
+  script:
+    -<< *.setup
+    - make
+---
+build: *.build
+```
+
+```json
+{"build": {"script": ["apt-get update", "make"]}}
 ```
 
 ```yaml refused
 --- &
-a: {p: 1}
-b:
-  c:
-    <<: *a
+a:
+  b: *a
 ```
 
 ## 9. Merge
@@ -841,21 +853,51 @@ a: {p: 1}
 
 ## 10. The size limit
 
-A parser keeps one running total per stream, and refuses the stream when the total
-passes the limit. It must count and refuse before allocating, because running out of
-memory usually kills a process with nothing to catch.
+A parser keeps a running total, and refuses the stream when the total passes the limit.
+It must count and refuse before allocating, because running out of memory usually kills
+a process with nothing to catch.
 
-The total is 1 for each node, keys included, plus the UTF-8 bytes of each scalar and
-key. A reference or merge adds the full size of what it names, with no deduplication.
-The table counts too, since `-<<` can double an entry there.
+The total covers what a reader holds at one time: the table in scope and the document
+being read. A delivered document leaves the total, so a long stream can be read one
+document at a time. An interface that delivers several documents together holds them
+all, so it counts them together.
+
+Each node counts 1, and a scalar adds its UTF-8 bytes. A key counts as a scalar does. A
+reference adds the size of the node it names, and nothing for itself. `<<:` adds the size
+of the pairs it names, and `-<<` of the items, without the collection's own 1. Nothing is
+deduplicated, so a merged key that a later line replaces still counts. An entry adds its
+key and value to the table, a replacement takes the old entry's size off, and `...` takes
+the table to 0.
+
+```yaml
+--- &
+a: [x, yy]
+m: {k: v}
+---
+b: *a
+c:
+  -<< *a
+  - z
+d:
+  <<: *m
+```
+
+```json
+{"b": ["x", "yy"], "c": ["x", "yy", "z"], "d": {"k": "v"}}
+```
+
+The entry `a` counts 8: 2 for the key, 1 for the sequence, 2 for `x` and 3 for `yy`. The
+entry `m` counts 7, so the table is 15. The document counts 26: 1 for the mapping, 8 for
+`b`, 10 for `c` and 7 for `d`. The total is 41, which a limit of 41 allows and a limit of
+40 refuses.
 
 The default limit is 64 MiB of this size. An application may set it higher or lower.
 A large plain file counts, and needs its application to raise the limit. A small file
 can reach it through references, so a service reading untrusted input should lower it.
 
 The size limit doesn't bound nesting: a few kilobytes of `[` can be deeper than a parser
-can go. A parser must refuse such a stream rather than crash. This document sets no
-depth, so parsers may differ on how deep they go, but only by refusing.
+can go. Every parser must accept 256 levels. Past that it may refuse, and it must refuse
+rather than crash, so parsers can differ on how deep they go, but only by refusing.
 
 ## 11. What a parser delivers
 
@@ -880,7 +922,10 @@ So that such tools agree, a comment at the end of a line belongs to the last nod
 that line. A run of comment lines belongs to the key or item on the next line, if no
 blank line comes between. Any other comment belongs to no node.
 
-An emitter writes `%YAML 2.0` first and never sorts keys.
+An emitter writes `%YAML 2.0` first and never sorts keys. An emitter of typed data needs
+the same schema, so that it can quote a string the schema would read as something else.
+With no schema, changing how a scalar is quoted is always safe. With one, it can change
+the data.
 
 ## 12. Grammar
 
@@ -889,7 +934,7 @@ exactly `n` spaces, and `A - B` is A but not B. `[> x]` means x must follow, and
 consumed, `[!> x]` means it must not, and `[< x]` means x must come before. `EOF` is
 the end of the stream.
 
-Rules the grammar can't state: an entry's own rules in section 8, duplicate keys,
+Rules the grammar can't state: a `<<:` at the top of a table, duplicate keys,
 reference resolution, and the size limit. A line starting a marker or `...` at column
 0 is only matched by `document`, `table`, `later` and `finish`, and a line starting
 with `%` at column 0 only by `directive`.
@@ -897,7 +942,7 @@ with `%` at column 0 only by `directive`.
 ### Characters
 
 ```ebnf
-printable  ::= #x9 | [#x20-#x7E] | #x85 | [#xA0-#xD7FF] | [#xE000-#xFEFE]
+printable  ::= #x9 | [#x20-#x7E] | [#xA0-#x2027] | [#x202A-#xD7FF] | [#xE000-#xFEFE]
              | [#xFF00-#xFFFD] | [#x10000-#x10FFFF]
 break      ::= #xA | #xD #xA
 space      ::= #x20
@@ -992,7 +1037,7 @@ plain-rest(s)  ::= s - ":" - "#" - space - #x9
                  | (space | #x9)+ [> plain-rest(s) - space - #x9]
 
 double         ::= '"' (string-char - '"' - "\" | escape)* '"'
-string-char    ::= printable | [#x7F-#x84] | [#x86-#x9F] | #xFEFF | #xFFFE | #xFFFF
+string-char    ::= printable | [#x7F-#x9F] | #x2028 | #x2029 | #xFEFF | #xFFFE | #xFFFF
 escape         ::= "\" ('"' | "\" | "/" | "b" | "f" | "n" | "r" | "t"
                  | "u" hex hex hex hex)
 hex            ::= [0-9A-Fa-f]
@@ -1029,6 +1074,7 @@ Removed:
 - `|+`, `>+`, `|1` to `|9`, and more-indented lines inside `>`.
 - UTF-16, UTF-32, and the byte order mark outside double quotes.
 - A lone CR as a line break.
+- U+0085, U+2028 and U+2029, outside double quotes.
 - Tabs as whitespace, except in a flow collection and after the last content on a line.
 - One-pair `[a: b]`, and `{a}` with no `:`.
 - Escapes JSON doesn't have.
@@ -1049,6 +1095,11 @@ Added:
 Kept: block and flow collections, plain, quoted and block scalars, comments, several
 documents in a stream, trailing commas and compact forms like `- - x` and `- a: 1`.
 
+### 13.1 What this costs
+
+Existing files need converting. Of 4,651 public files, 3,558 read as written once
+`%YAML 2.0` is added. The rest hit one of the changes above.
+
 JSON is a subset of 2.0 once `%YAML 2.0` is on top, apart from repeated keys, which YAML
 1.2 forbids too, and a lone CR between tokens. Without a schema, numbers, `true`, `false`
 and `null` are text. A small schema restores them: a plain scalar takes its JSON type,
@@ -1056,13 +1107,31 @@ and a quoted scalar stays a string. That matched a JSON parser exactly on 994 re
 files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept. The
 other 2 are repeated keys.
 
+A tool that turns YAML into JSON and decodes the result into typed structures, as
+`sigs.k8s.io/yaml` does for Kubernetes, gets `replicas: 3` as a string unless it applies
+a schema.
+
+Formats built on tags each need a 2.0 spelling:
+
+| 1.x | 2.0 |
+|---|---|
+| CloudFormation `!Ref name` | `Ref: name`, its long form |
+| CloudFormation `!Sub "${a}-b"` | `Fn::Sub: ${a}-b`, its long form |
+| GitLab `!reference [.setup, script]` | `*.setup:script`, or `-<< *.setup:script` in a list |
+| Home Assistant `!include lights.yaml` | a key it would read, such as `include: lights.yaml` |
+| Ansible `!vault \|` and its block | a key it would read, such as `vault: \|` and its block |
+
+CloudFormation reads its long forms today. The last two need the application to change.
+
 ## 14. Open points
 
 **Left open on purpose:**
 
 - Whether a null value is needed. So far, `key:` is the empty string, and a schema can
   give it a meaning.
-- Whether the first document should need `---`.
+- Whether the first document should need `---`. Leaving it optional has one use: npm
+  `yaml` 2.9.0 reads a 2.0 stream as 1.2, with only a warning, but refuses one whose first
+  document has no `---`.
 - Sequence indices in paths. Allowing them later breaks no file, since a step through
   a sequence is an error today.
 - Reference keys, `*foo: x`, which could serve Hashes with complex keys. Allowing them
@@ -1085,6 +1154,15 @@ other 2 are repeated keys.
 - How a schema says "wherever this occurs, interpret it this way". YAML Schema, part 2,
   needs a rule for every matching node, not one path, so that a reading like JSON's is an
   ordinary small schema, with nothing built in.
+- Bidirectional controls, U+202A to U+202E and U+2066 to U+2069. This draft allows them.
+  Every parser reads them the same way, but they can make a line look unlike what it
+  holds, which is how the Trojan Source attacks hid code. Translated text needs them: of
+  32 right-to-left locale files from Rails, Mastodon and Discourse, 3 hold them in 38
+  values, 33 of those around a placeholder, and 9 outside double quotes. None is in a
+  key or a comment, so a rule could refuse them there and cost none of these.
+- Lines of only spaces inside `|`. Spaces past the indent stay in the value, invisibly,
+  so an editor that strips trailing spaces changes the data, and the same line in `>` is
+  refused. Treating such lines as empty silently changed 3 real files when tried.
 - The byte order mark. This draft refuses U+FEFF outside double quotes. YAML 1.2 also
   allows it at the start of a document, and 3 of 4,651 public files start with one.
 - Margin strings, a block form that keeps its text exact. They aren't in this draft, so
