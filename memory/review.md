@@ -308,3 +308,9 @@ pattern engine, and narrowing alternatives as keys arrive.
   fewer, 99.9% 772, and the largest 9,131. A ceiling of 10,000 refuses none.
 - By reasoning, not run: remembering (node, type) leaves entry size times number of types, so a file can
   use many types on one big entry. That work should count against the size limit.
+- **`\p{..}` tables, Unicode 16.** All categories: 16.4 KB as sorted runs, about 21 KB three-stage, 46 KB
+  two-stage with 256-entry blocks. Compiled to one class: `\p{L}` 677 ranges, about 4 KB; `\p{Nd}` 71
+  ranges, 426 bytes. Lookup over `[a-zA-Z]`, per character, C at `-O2`, one pinned core, best of 15, on six
+  synthetic 1-million-character texts: two-stage adds 0.1 to 0.2 ns, binary search over sorted runs 10 to
+  27 ns. Three-stage wasn't timed. This is the lookup alone, not an engine. Only a pattern using `\p{..}`
+  pays, so size and speed aren't the issue, and the Unicode version is.
