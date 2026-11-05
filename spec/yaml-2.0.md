@@ -76,6 +76,9 @@ to PyYAML and go-yaml, and one item to a 1.2 parser. A double-quoted scalar can 
 these except U+0000 to U+001F directly, as a JSON string can, and can produce those with
 an escape.
 
+Bidirectional controls, U+202A to U+202E and U+2066 to U+2069, are allowed, because
+translated text uses them (section 14).
+
 A line ends with LF or CR LF, and either one reads as LF. A lone CR is refused. The
 last line needn't end with a break.
 
