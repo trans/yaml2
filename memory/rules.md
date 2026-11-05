@@ -443,6 +443,15 @@ tests settled on, all proposals, left open for the core team:
   Patterns in real schemas): PIC and glob write 15% of real patterns, and neither can
   say one or more of a class. Proposed with it: the whole string always matches, and
   `^` and `$` are refused outside a class. The rest goes to a named type and app code.
+- **Patterns, an idea for later (the user, 2026-11-05, "just a thought").** Everything in a
+  pattern is literal except what sits in rare Unicode brackets: `⦃0-9⦄` a class, `⟦A999⟧` a
+  PIC, perhaps `⦅ ⦆` a glob, with an ASCII way to type them. I-Regexp stays the proposal.
+  Measured: none of the six characters appears in 1,015 SchemaStore schemas or 4,651 YAML
+  files, and 341 of 1,271 unique patterns escape punctuation, which this would end. The
+  agent's view: the gain comes from literal-by-default, not from Unicode. One bracket pair
+  with a count and `|` would cover what the table in landscape.md shows is needed, and an
+  ASCII form `{0-9}`, with `{{` for a literal brace, costs little: 17 patterns hold a
+  literal brace.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 
