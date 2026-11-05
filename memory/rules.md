@@ -125,10 +125,13 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   object can be a table.
 - A document name stays stricter than YAML's URI characters (the user, 2026-11-04): at
   the very least no `:`, which would let schemes back in and give one thing several
-  names, and no `%` escapes, since `%3A` would put the `:` back. The agent first said
-  escapes give one name two spellings, which the user rightly doubted: 1.2 decodes them
-  (`%41` is `A` in PyYAML and Psych), and it has them to write characters a tag can't
-  otherwise hold. The rest of the narrow set is open in section 14 of the draft.
+  names, and no `%` escapes. The agent first said escapes give one name two spellings,
+  which the user rightly doubted: 1.2 decodes them (`%41` is `A`), and has them to write
+  characters a tag can't otherwise hold. ASCII-only names were dropped the same day: "we
+  can't do that. not fair to the chinese." So other scripts are written directly, using
+  XML 1.0's name ranges (the agent's pick, no Unicode tables), which leaves escapes
+  nothing to do, and `%3A` is refused "for the same reason `:` is". The other URI marks
+  are open in section 14 of the draft.
 - It stays in scope until the next `...`, so several documents can share it, and
   prepending one shares definitions across files with no include feature.
 - Several `--- &` documents: the user chose, 2026-11-04. A stream's table starts empty,

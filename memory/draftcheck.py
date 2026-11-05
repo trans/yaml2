@@ -8,6 +8,7 @@ import json, re, sys
 class No(Exception): pass
 FLOWI = ',[]{}'
 IND = ",[]{}#&*|>'\""
+NAME = re.compile('[A-Za-z0-9._/\\-\u00b7\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u037d\u037f-\u1fff\u200c-\u200d\u203f-\u2040\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufefe\uff00-\ufffd\U00010000-\U000effff]')
 class P:
     def __init__(s, t):
         if '\r' in t.replace('\r\n', ''): raise No('lone CR')
@@ -90,7 +91,7 @@ class P:
         name = None
         if n and s.ch() == '!':
             s.i += 1; b = s.i
-            while re.match(r'[A-Za-z0-9._/-]', s.ch() or ' '): s.i += 1
+            while NAME.match(s.ch() or ' '): s.i += 1
             name = s.t[b:s.i]
             if not name: s.bad('no name')
             j = s.i; n = s.spaces()
@@ -487,6 +488,9 @@ good = [
  ('a:\t\n', [{"a": ""}]),
  ('- x\t\n', [["x"]]),
  ('-\t\n', [[""]]),
+ ('--- !配置\na: 1\n', [{"a": "1"}]),
+ ('--- !例え.jp/設定/v1\na: 1\n', [{"a": "1"}]),
+ ('--- &\n配置: {键: 值}\n---\na: *配置:键\nb: *<配置>:键\n', [{"a": "值", "b": "值"}]),
  ('--- & {a: 1}\n---\nb: *a\n', [{"b": "1"}]),
  ('--- &\n{a: 1, b: {x: 2}}\n---\nc: *b:x\n', [{"c": "2"}]),
  ('--- &\n  {a: 1}\n---\nb: *a\n', [{"b": "1"}]),
@@ -514,7 +518,7 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: {p: 1}, b: {c: *a}}\n', '--- &\n{a: {p: 1}, b: *a}\n', '--- &\n{a: {p: 1}, b: {c: {<<: *a}}}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '[a\t, b]\n', '[a, b\t]\n', '{a:\tb}\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '"a\ufeffb"\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: {p: 1}, b: {c: *a}}\n', '--- &\n{a: {p: 1}, b: *a}\n', '--- &\n{a: {p: 1}, b: {c: {<<: *a}}}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '[a\t, b]\n', '[a, b\t]\n', '{a:\tb}\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '"a\ufeffb"\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
  '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
  'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', '--- &\na: 1\nb:\n  - *a\n', '--- &\ns: [x]\nt:\n  u:\n    -<< *s\n',
@@ -533,5 +537,6 @@ for t in refused:
 for t in ('a: 1\n', '%YAML 1.2\na: 1\n', '# c\n%YAML 2.0\n', '\ufeff%YAML 2.0\n'):
     try: P(t).stream(); print('NOT REFUSED', repr(t)); f += 1
     except No: pass
+assert read('--- !配置\na: 1\n').docs[0][0] == '配置'
 r = read('---\nt: 1\n...\n# H\n'); assert r.stopped == len('%YAML 2.0\n---\nt: 1\n...\n'), r.stopped
 print(f'edge cases: {len(good) + len(refused) + 4 - sum(1 for g in good if g[1] is None)} run, {f} fail')
