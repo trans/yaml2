@@ -27,8 +27,9 @@ every named type reachable from the root is checked. `schemacheck.py` tests the 
 examples and 144 edge cases pass, and breaking 21 new rules on purpose fails a test each time.
 Not done yet: the same for the older rules, and running the two real shadows through it. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
-[review.md](review.md). The list of standard types is open, to work out
-with the user. Numbers and `\p{..}` with Unicode 16 or later (the user, 2026-11-05) are in
+[review.md](review.md). The list of standard types stays open in section 15: the user
+judged on 2026-11-05 that the draft is far enough along for the core team to work out final details
+such as this, if they take it up. Numbers and `\p{..}` with Unicode 16 or later (the user, 2026-11-05) are in
 `cc84227`.
 
 **In `7689ea6`** (the user, 2026-11-05): patterns in flow collections (part 2, sections 4.3 and 14),
