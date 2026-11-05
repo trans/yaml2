@@ -490,7 +490,7 @@ to ignore this rule, so it needs a case in the test suite.
   `- - x` (3 files, but `- key:` stays, so cutting it would add a rule, not remove one).
 - Margin strings, the user's idea from a Ruby literal (2026-11-04). **Parked** as a
   proposal to work out later: not in 2.0 for now, so `|text` stays an error (the user,
-  2026-11-04, on the agent's recommendation). The idea:
+  2026-11-04, on the agent's recommendation). Section 14 of the draft shows it. The idea:
   `a: |this is the text` then `   |  more`. The first `|` sets a column, each later line
   has `|` there, and all after it is literal, so a `|` in the text or a leading space is
   fine, and `#` isn't a comment. Line breaks fall between lines, so an empty last `|`
