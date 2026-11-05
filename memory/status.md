@@ -23,13 +23,13 @@ section 15 lists what is open. The user chose an answer to "wherever this occurs
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
 scalar in a schema is always a literal, a reference is typed where it's used, `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
-every named type reachable from the root is checked. `schemacheck.py` tests the draft: 34
-examples and 108 edge cases pass, and breaking 13 new rules on purpose fails a test each time.
+every named type reachable from the root is checked. `schemacheck.py` tests the draft: 37
+examples and 144 edge cases pass, and breaking 21 new rules on purpose fails a test each time.
 Not done yet: the same for the older rules, and running the two real shadows through it. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
-[review.md](review.md). Numbers and the list of standard types
-are open, to work out with the user. `\p{..}` stays, with Unicode 16 or later (the user,
-2026-11-05), in the working copy, not committed yet.
+[review.md](review.md). The list of standard types is open, to work out
+with the user. Numbers and `\p{..}` with Unicode 16 or later (the user, 2026-11-05) are in the
+working copy, not committed yet.
 
 **In `7689ea6`** (the user, 2026-11-05): patterns in flow collections (part 2, sections 4.3 and 14),
 a parser builds nothing from a name (part 2, sections 12 and 16), and what 2.0 costs object data

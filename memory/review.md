@@ -285,7 +285,15 @@ pattern engine, and narrowing alternatives as keys arrive.
   file with a schema in it is stamped, and the sentence that was wrong is "a file can't pick a laxer
   schema". An application's schema stays out of the stream's table, so one schema serves many files
   and a file's data entry can't collide with it by accident.
-- **Numbers: open.** The user wants a standard for what `!int` is, perhaps with names like `!uint32`.
+- **Numbers: the user's rule (2026-11-05), in section 4.4, not committed yet.** `!int` and `!float` have
+  no size, and an application keeps them in whatever it has. A parser delivers the number written, or
+  refuses, and digits lost mean an error. An application may accept rounding on `!float`. `!decimal`
+  stays, and no one can accept rounding on it: keep it exact or refuse. The agent's definitions: digits
+  are lost if the value, written back to as many significant digits, differs, since nearly every
+  decimal is inexact in binary. Each parser holds -2^63 to 2^64-1 and binary64 at least. A number that
+  can't be held refuses the document, and isn't a failed match. Limits may have an exponent. JSONTestSuite
+  stays 93 of 95, and no SchemaStore file holds a number that loses digits. No width names: a width
+  is a limit, and float80 and binary128 need nothing, since a size isn't named. The figures behind that:
   Measured on 1,015 SchemaStore files: 8,811 integer types, 421 with a width format (`int32` 151, `uint`
   100, `uint32` 95, `int64` 56, `uint8` 11, `uint64` 5, `uint16` 2, `int` 1), and 174 ranges that are a
   width. 320 ranges stop at 2^53 - 1, JavaScript's safe limit. A width is already a limit, so

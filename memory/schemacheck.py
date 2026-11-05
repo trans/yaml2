@@ -5,7 +5,8 @@
 Reads every example with the grammar in draftcheck.py, types each document whose local name
 is in the table, and compares the result with the example's JSON. Then runs edge cases.
 """
-import base64, binascii, datetime, json, os, re, re._parser, sys
+import base64, binascii, datetime, json, math, os, re, re._parser, sys
+from decimal import Decimal, InvalidOperation
 here = os.path.dirname(os.path.abspath(__file__))
 src = open(here + '/draftcheck.py', encoding='utf-8').read().split("\nspec = open(sys.argv[1]")[0]
 g = {'__name__': 'dc'}; exec(compile(src, 'dc', 'exec'), g)
@@ -25,8 +26,18 @@ P.deliver = snapshot
 class SchemaError(Exception): pass
 class Bad(Exception):
     def __init__(s, path, msg): super().__init__(f'{path or "/"}: {msg}')
+class Cant(Exception):
+    """A number that can't be held. It refuses the document, and isn't a failed match."""
+def lost(t, f):
+    """Does the value, written back to as many significant digits, come out different?"""
+    d = Decimal(t)
+    if d == 0: return False
+    if f == 0 or math.isinf(f): return True
+    g = ''.join(map(str, d.as_tuple().digits)).strip('0')
+    return Decimal(format(f, f'.{len(g) - 1}e')) != d
 
-STD = {'str', 'int', 'float', 'bool', 'null', 'any', 'date', 'datetime', 'binary'}
+STD = {'str', 'int', 'float', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary'}
+FLOAT = r'-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?'
 INT = r'-?(0|[1-9][0-9]*)'
 DATE = r'[0-9]{4}-[0-9]{2}-[0-9]{2}'
 DATETIME = DATE + r'[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([Zz]|[-+][0-9]{2}:[0-9]{2})'
@@ -58,13 +69,13 @@ def pattern(p, whole):
         i += 1
     return ('re', re.compile(p))
 def limit(text, name, whole):
-    if name not in ('str', 'int', 'float'): raise SchemaError(f'{whole}: only str, int and float take a limit')
+    if name not in ('str', 'int', 'float', 'decimal'): raise SchemaError(f'{whole}: only str and numbers take a limit')
     if len(text) > 1 and text[0] == '/' and text[-1] == '/':
         if name != 'str': raise SchemaError(f'{whole}: only str takes a pattern')
         return pattern(text[1:-1], whole)
-    m = re.fullmatch(r'(-?[0-9]+(?:\.[0-9]+)?)?\.\.(-?[0-9]+(?:\.[0-9]+)?)?', text)
+    m = re.fullmatch(r'(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?\.\.(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?', text)
     if not m or not (m[1] or m[2]): raise SchemaError(f'bad limit: {whole}')
-    lo, hi = (None if x is None else float(x) for x in m.groups())
+    lo, hi = (None if x is None else Decimal(x) for x in m.groups())
     if lo is not None and hi is not None and lo > hi: raise SchemaError(f'bad limit: {whole}')
     return ('range', lo, hi)
 def atom(p):
@@ -125,8 +136,8 @@ def size(tree):
     return t
 
 class Schema:
-    def __init__(s, table, root):
-        s.table, s.defs, s.memo, s.seen, s.reached = table, {}, {}, set(), {root}
+    def __init__(s, table, root, accept=False):
+        s.table, s.defs, s.memo, s.seen, s.reached, s.accept = table, {}, {}, set(), {root}, accept
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
     def get(s, name):
@@ -237,14 +248,18 @@ class Schema:
     def scalar(s, name, lim, v, path):
         if name == 'any': return strip(v)
         if not isinstance(v, str): raise Bad(path, f'expected {name}')
-        if name in ('int', 'float', 'bool', 'null') and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
+        if name in ('int', 'float', 'decimal', 'bool', 'null') and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
         t = str(v); out = None
         try:
             if name == 'str': out = t
             elif name == 'bool' and t in ('true', 'false'): out = t == 'true'
             elif name == 'null' and t == 'null': out = None
             elif name == 'int' and re.fullmatch(INT, t): out = int(t)
-            elif name == 'float' and re.fullmatch(INT + r'(\.[0-9]+)?([eE][-+]?[0-9]+)?', t): out = float(t)
+            elif name == 'float' and re.fullmatch(FLOAT, t):
+                out = float(t)
+                if math.isinf(out): raise Cant(f'{path or "/"}: {t[:40]} is too large to hold')
+                if lost(t, out) and not s.accept: raise Cant(f'{path or "/"}: {t[:40]} would lose digits')
+            elif name == 'decimal' and re.fullmatch(FLOAT, t): out = Decimal(t)
             elif name == 'date' and re.fullmatch(DATE, t): datetime.date.fromisoformat(t); out = t
             elif name == 'datetime' and re.fullmatch(DATETIME, t): datetime.datetime.fromisoformat(t.upper().replace('Z', '+00:00')); out = t
             elif name == 'binary': t = t.replace('\n', ''); base64.b64decode(t.encode('ascii'), validate=True); out = t
@@ -257,17 +272,17 @@ class Schema:
             if (lim[1] is not None and n < lim[1]) or (lim[2] is not None and n > lim[2]): raise Bad(path, f'{t[:40]!r} is out of range')
         return out
 
-def typed(stream, app=None):
+def typed(stream, app=None, accept=False):
     """Type each stamped document by the file's table, others by the application's schema.
     With neither they stay strings. An application's schema is (schema text, root)."""
     r = read(stream); out = []; reached = {}; live = None
-    own = None if app is None else Schema(read(app[0]).table, app[1])
+    own = None if app is None else Schema(read(app[0]).table, app[1], accept)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
         if obj is not live: reached, live = {}, obj
         for k, e in reached.items():
             if table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
         if name and '/' not in name and name in table:
-            sc = Schema(table, name); out.append(sc.check(v))
+            sc = Schema(table, name, accept); out.append(sc.check(v))
             reached.update((k, table[k]) for k in sc.reached)
         elif own: out.append(own.check(v))
         else: out.append(strip(v))
@@ -277,8 +292,9 @@ def typed(stream, app=None):
     if not r.docs:
         for k in r.table: Schema(r.table, k)
     return out
-REFUSED = (No, Bad, SchemaError)
+REFUSED = (No, Bad, SchemaError, Cant)
 def same(a, b):
+    if isinstance(a, Decimal): return a == Decimal(repr(b) if isinstance(b, float) else str(b))
     if type(a) is not type(b): return False
     if isinstance(a, dict): return list(a) == list(b) and all(same(a[k], b[k]) for k in a)
     if isinstance(a, list): return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
@@ -350,5 +366,15 @@ if __name__ == '__main__':
     for t, w in reach:
         try: got = typed(t); f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
-    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(forms) + 1 + len(says) + 2 + len(unions) + 1 + len(reach)} run, {f} fail')
+    # Numbers: the number written, or a refusal.
+    N = '--- &\nf: !float\nd: !decimal\ni: !int\nu: !float | !str\nw: !int | !float\nc: !decimal(0..100)\nq: !float(..3.4e38)\nv: !int(0..18446744073709551615)\n'
+    nums = [('f', '0.1', 0.1, 0), ('f', '0.10000000000000001', 0.1, 0), ('f', '0.30000000000000004', 0.30000000000000004, 0), ('f', '1e23', 1e23, 0), ('f', '1.10', 1.1, 0), ('f', '100', 100.0, 0), ('f', '1.7976931348623157e308', 1.7976931348623157e308, 0), ('f', '5e-324', 5e-324, 0), ('f', '0', 0.0, 0), ('f', '0.000', 0.0, 0), ('f', '3.14159265358979323846', 3.141592653589793, 1), ('f', '1e-999', 0.0, 1), ('d', '19.99', 19.99, 0), ('d', '3.14159265358979323846', '3.14159265358979323846', 1), ('d', '1e999999999', '1e999999999', 1), ('i', '340282366920938463463374607431768211456', 2**128, 0), ('u', '"1e999"', '1e999', 0), ('u', '1.5', 1.5, 0), ('w', '3', 3, 0), ('w', '3.5', 3.5, 0), ('c', '100', 100, 0), ('q', '3.4e38', 3.4e38, 0), ('v', '18446744073709551615', 2**64 - 1, 0)]
+    for k, v, w, acc in nums:
+        try: got = typed(N + f'--- !{k}\n{v}\n', accept=bool(acc))[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', k, v, got)
+        except REFUSED as e: f += 1; print('REFUSED', k, v, e)
+    nope = [('f', '3.14159265358979323846', 0), ('f', '9007199254740993.0', 0), ('f', '1e999', 0), ('f', '1e999', 1), ('f', '1e-999', 0), ('u', '1e999', 0), ('u', '1e999', 1), ('u', '3.14159265358979323846', 0), ('d', '"19.99"', 0), ('c', '100.01', 0), ('q', '3.5e38', 0), ('v', '18446744073709551616', 0), ('v', '-1', 0)]
+    for k, v, acc in nope:
+        try: typed(N + f'--- !{k}\n{v}\n', accept=bool(acc)); f += 1; print('NOT REFUSED', k, v)
+        except REFUSED: pass
+    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(forms) + 1 + len(says) + 2 + len(unions) + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
     sys.exit(1 if bad or f else 0)
