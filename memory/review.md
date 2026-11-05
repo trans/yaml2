@@ -316,3 +316,10 @@ pattern engine, and narrowing alternatives as keys arrive.
   synthetic 1-million-character texts: two-stage adds 0.1 to 0.2 ns, binary search over sorted runs 10 to
   27 ns. Three-stage wasn't timed. This is the lookup alone, not an engine. Only a pattern using `\p{..}`
   pays, so size and speed aren't the issue, and the Unicode version is.
+- **Unicode versions, 6.0 to 16.0** (2010 to 2024), from `UnicodeData.txt` of nine versions. The user
+  expected change by adding, rarely replacing, and that holds. No character was removed, and the
+  stability policy forbids it. 190 of 248,965 changed category (0.076%), mostly inside letters. 2 left
+  `L` (U+1885, U+1886), 21 joined it, and none left `Nd`. Since 12.0, 2 changed, neither across `L` or
+  `Nd`. The policy doesn't promise a category stays, only that it keeps its fundamental identity, and the
+  list of categories is fixed. **Proposal, open:** a minimum, "Unicode 16 or later", as levels have.
+  A pattern only says yes or no, so a gap between parsers is a refusal, not different data.
