@@ -98,7 +98,11 @@ development:
   service reading untrusted input should lower it. Shared nodes aren't the answer: a
   merge copies its key list anyway, see landscape.md. They stay a parser's choice.
   `-<<` can go at the top of a `--- &` entry too, since this stops doubling (the user,
-  2026-11-04, "yes"), and nothing deeper.
+  2026-11-04, "yes"), and nothing deeper. "Top" here means depth: it can go at any
+  position among the entry's items. Several in a chain of entries can still double each
+  time. The user and the agent left that to the size limit (2026-11-04): banning `-<<`
+  in the table, or allowing one per entry, would stop it, but costs real use, and the
+  limit refuses by adding up sizes, before allocating anything.
 - Data documents can use `<<` at any depth: what it points at holds no nested
   references, so each use adds at most one entry.
 
