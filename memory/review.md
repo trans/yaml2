@@ -185,9 +185,9 @@ table. Whoever joins files decides: independent files get `...` between them, an
 table drop `%YAML 2.0` and use `---`. Assumes all are 2.0. The draft already did most of this.
 
 - **A plain `cat` is refused** (the user, 2026-11-05). `%YAML 2.0` can come again only after `...`, so
-  no one gets a shared table without choosing it. In the working copy, not committed yet.
+  no one gets a shared table without choosing it. In `e1eef1b`.
 - **Every file starts `%YAML 2.0`, then `---`** (the user, 2026-11-05: "require it", and let the core team
-  wrestle with it if they want it changed). In the working copy, not committed yet, with the reasons
+  wrestle with it if they want it changed). In `e1eef1b`, with the reasons
   in section 4.2 and the case against in section 14. `...`, `%YAML 2.0`, `b: 2` was the problem: the
   parser stops and `b` is lost with no error. The agent proposed reading on, then refusing. The user
   objected to both, since text after `...` can say anything, and saw that only a `---` should decide.

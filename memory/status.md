@@ -54,7 +54,7 @@ Background is in [landscape.md](landscape.md).
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
    a second push of `ai` the same day, and a third of both, with the spec, README and
    licenses, also that day, and a fourth of both, with the review applied, also that day, a fifth of both on
-   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, a seventh of both that day, with `7689ea6`, an eighth of both that day, with `d645ce9`, and a ninth of both that day, with `cc84227`. The spec and README are CC BY 4.0, and the code on `ai` is
+   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, a seventh of both that day, with `7689ea6`, an eighth of both that day, with `d645ce9`, a ninth of both that day, with `cc84227`, and a tenth of both that day, with `e1eef1b`. The spec and README are CC BY 4.0, and the code on `ai` is
    MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.
