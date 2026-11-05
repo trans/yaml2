@@ -103,9 +103,8 @@ development:
   together counts them together: the agent's addition. **Open.** The agent's first reason
   was wrong: the user pointed out (2026-11-04) that plain references needn't be copied.
   In PyYAML, 100 plain references to a 10,000-key map cost nothing extra, and 100 merges
-  took 21.6 MB against 0.8 MB for the map, so the case left is merges. The sentence in
-  section 10 says such an interface "holds them all", which overstates it. @oyl has been
-  asked.
+  took 21.6 MB against 0.8 MB for the map. @oyl's answer replaces the rule with a count
+  on the stream: see review.md. It isn't decided.
 - `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.
@@ -182,9 +181,9 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   2026-11-04 ("I would not forbid that"): a write through a shared node is how the
   document is spelled, may be wanted, and copying first is easy. It replaces "a copy, so
   the data stays a tree" and "share memory only if no application can tell". A writable
-  tree can offer both kinds of edit. **Not committed yet, and @oyl has been asked.** The
-  catch: a change reaches later documents too, which 1.x can't do, since anchors end with
-  their document, so a sharing and a copying parser can differ after a write. Part 2
+  tree can offer both kinds of edit. **Not committed yet.** @oyl recommends sharing only
+  within what is delivered together, because a change reaching a later document breaks
+  "same bytes, same data": see review.md. It isn't decided. Part 2
   will need to allow for it too: a reference under two schema types can't share its
   typed result.
 - A query (YPATH proper: wildcards, filters, many nodes) is for tools, and is a

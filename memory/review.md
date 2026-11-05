@@ -61,3 +61,43 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
   says the form without it is the one npm `yaml` refuses.
 - **A security section for the quadratic rule, and what "column" counts.** **Open**, and
   not yet taken to the user.
+
+## @oyl on sharing and load-all (2026-11-04, **Open: for the user**)
+
+These are @oyl's recommendations, and the user hasn't decided. The agent reran the probes
+marked **Checked**. None is in the spec yet.
+
+- **Keep later documents out of it.** A parser may share within what it delivers together,
+  but documents delivered separately share nothing an application can change. Otherwise
+  document 2 no longer follows from the bytes, a test suite can't state its result, and
+  on a parser that reads ahead it's a data race. State the outcome, not frozen nodes, which
+  Python and Go don't have. **Checked:** PyYAML clears its object memo per document. This
+  reverses the agent's advice to accept the leak.
+- **Replace "delivered together".** It can't work: **Checked:** PyYAML's `load_all` is a
+  generator, so the caller collects the documents and the parser can't see that. Instead:
+  when a document is delivered, its written size leaves the total, and what its references
+  and merges added stays until the stream ends, and `...` doesn't clear that. One total, so
+  every parser and interface refuses the same file at the same point. **Checked:** with
+  `a: [x, yy]` and the documents `b: *a`, `c: *a`, the table is 8, each document 9 (3
+  written, 6 added), and the total is 23. Cost: a long stream heavy with references reaches
+  the limit even when read one document at a time. The largest real total is 233,872, 287
+  times under the limit, but 1.x anchors end with their document, so no real file shows
+  this pattern. The corpus can't speak for it.
+- **Merges aren't the only case.** With the rule above, a caller that collects documents
+  holds real copies of plain references. So the agent's "only merges" was wrong too.
+  **Checked:** go-yaml v3 copies, and refuses 100 plain references with "excessive
+  aliasing".
+- **"Reading can't tell them apart" is wrong.** An identity check can, and dumpers make
+  one. **Checked:** PyYAML writes `&id001` and Psych `&1` for a shared node. 2.0 has no
+  anchors in a document, so section 11 should have an emitter write a shared node in full.
+- **"Copies a node first" should say a deep copy.** **Checked:** a merged mapping is new,
+  but PyYAML and Psych share its values.
+- **"Turns that one into a copy" fits only `*a`.** Under `<<:` the edit is a written key.
+  `-<<` has no override, so a change expands the whole splice. A copy must be by value:
+  **Checked:** after a later `b: 2`, `c: *a` gives `["1"]` and `[*b]` written at `c` gives
+  `["2"]`. A change to an entry can break a later line, **Checked** in three cases, so a
+  tool must read its result again. @oyl's wording: "a change at one reference replaces it
+  with its value, or for a merged key, with a written key, and the tool reads the result
+  again, since a change to an entry can break a later line."
+
+Oyl's own default accepts 256 levels and refuses 257, which matches the minimum.
