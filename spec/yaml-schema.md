@@ -38,7 +38,7 @@ are types, and `!name` names one. A schema adds nothing to the data but types: a
 is written in the file, as a merge (section 11).
 
 Each example shows a stream, then what it delivers, one line of JSON per document. Examples
-leave out the `%YAML 2.0` line. An example marked `refused` must be refused.
+leave out `%YAML 2.0` and the plain `---` after it. An example marked `refused` must be refused.
 
 ## 2. Conformance
 

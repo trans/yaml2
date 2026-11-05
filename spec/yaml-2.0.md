@@ -37,7 +37,7 @@ development:
 ```
 
 Each example shows a stream, then what it delivers, one line of JSON per document.
-Examples leave out the `%YAML 2.0` line, except where it matters. An example marked
+Examples leave out `%YAML 2.0` and the plain `---` after it, except where they matter. An example marked
 `refused` must be refused.
 
 ## 2. Conformance
@@ -101,8 +101,19 @@ there, including a later 2.x, a stream isn't 2.0: a 2.0 parser must refuse it, o
 it to a parser for that version if its caller asked for that. It must never read it as
 2.0. Any other directive is refused.
 
-The line may appear again directly before a marker line, where it means nothing, so
-that files can be joined. Any other version there is refused.
+The line may appear again after `...`, directly before a marker line (section 4.4).
+Anywhere else it is refused, and so is any other version. So whoever joins files has to
+choose. Independent files take `...` between them, and files sharing one table drop the
+line and use `---`.
+
+```yaml refused
+%YAML 2.0
+---
+a: 1
+%YAML 2.0
+---
+b: 2
+```
 
 ### 4.2 Markers
 
@@ -115,8 +126,24 @@ that files can be joined. Any other version there is refused.
 A marker starts at column 0, and `---` is followed by a space, a tab or the end of the
 line.
 
-The first document may follow the directive with no marker. Every later document needs
-one.
+Every document needs a marker, the first one too, so a file starts with `%YAML 2.0` and
+then `---`. That costs a line in every file, and it is a judgement call. This draft requires
+it for two reasons:
+
+- **There is one form.** A document always starts the same way, so the first one is no
+  special case, and a tool can split a stream on its markers alone (section 4.4).
+- **Files can be joined without losing one.** Text after `...` isn't YAML unless a marker
+  comes next. If a file could start with no marker, joining it after `...` would lose it
+  with no error, because a parser would take it for that text. With a marker, every valid
+  file can follow `...`, and text after `...` can still say anything, as front matter needs
+  (section 4.4).
+
+Section 14 gives the case against.
+
+```yaml refused
+%YAML 2.0
+title: first
+```
 
 After `---` or `--- !name`, a document may start on the same line if it is a scalar, a
 flow collection, a reference or a block scalar header. A block collection starts on
@@ -126,6 +153,7 @@ A document with no content is the empty string.
 
 ```yaml
 %YAML 2.0
+---
 title: first
 ---
 second
@@ -1013,10 +1041,9 @@ gap        ::= (space* comment? break)* (space* comment? EOF)?
 ### Streams
 
 ```ebnf
-stream     ::= directive gap (first gap)? later* finish?
+stream     ::= directive gap ((document | table) gap later*)? finish?
 directive  ::= "%YAML 2.0" eol
-first      ::= node(-1)
-later      ::= ("..." eol blank*)? (directive gap)? (document | table) gap
+later      ::= ("..." eol blank* (directive gap)?)? (document | table) gap
 finish     ::= "..." eol
 document   ::= "---" (ws "!" name)? (ws line-node(0) | eol gap node(-1)?)
 table      ::= "---" ws "&" (ws flow-map eol | eol gap (map(0) | space* flow-map eol)?)
@@ -1116,7 +1143,7 @@ bare-char(s)   ::= s - ":" - space - #x9
 colons         ::= ":" ":"+
 ```
 
-That is 59 productions. YAML 1.2 has 211, written at a finer grain, so the comparison
+That is 58 productions. YAML 1.2 has 211, written at a finer grain, so the comparison
 is rough.
 
 ## 13. Changes from YAML 1.2
@@ -1142,7 +1169,7 @@ Removed:
 
 Added:
 
-- A required `%YAML 2.0`.
+- A required `%YAML 2.0`, and a required `---` after it.
 - The table, `--- &`, and references as paths, with `<...>` for literal keys.
 - Document names, `--- !name`.
 - `<<:` as a defined part of the language, and `-<<`.
@@ -1155,9 +1182,9 @@ documents in a stream, trailing commas and compact forms like `- - x` and `- a: 
 ### 13.1 What this costs
 
 Existing files need converting. Of 4,651 public files, 3,558 read as written once
-`%YAML 2.0` is added. The rest hit one of the changes above.
+`%YAML 2.0`, and `---` where it's missing, are added. The rest hit one of the changes above.
 
-JSON is a subset of 2.0 once `%YAML 2.0` is on top, apart from repeated keys, which YAML
+JSON is a subset of 2.0 once `%YAML 2.0` and `---` are on top, apart from repeated keys, which YAML
 1.2 forbids too, and a lone CR between tokens. Without a schema, numbers, `true`, `false`
 and `null` are text. A small schema restores them: a plain scalar takes its JSON type,
 and a quoted scalar stays a string. That matched a JSON parser exactly on 994 real JSON
@@ -1203,9 +1230,11 @@ A whole object graph, cycles included, is a job for a language's own format, suc
 
 - Whether a null value is needed. So far, `key:` is the empty string, and a schema can
   give it a meaning.
-- Whether the first document should need `---`. Leaving it optional has one use: npm
-  `yaml` 2.9.0 reads a 2.0 stream as 1.2, with only a warning, but refuses one whose first
-  document has no `---`.
+- Whether the first document should need `---`. This draft requires it, for the reasons in
+  section 4.2. The case against: every file gets one more line, JSON needs two lines on top
+  and not one, and npm `yaml` 2.9.0 reads a 2.0 stream as 1.2 with only a warning, but
+  refuses one whose first document has no `---`, so an optional marker would give some
+  files a louder failure on that parser.
 - Sequence indices in paths. Allowing them later breaks no file, since a step through
   a sequence is an error today.
 - Reference keys, `*foo: x`, which could serve Hashes with complex keys. Allowing them

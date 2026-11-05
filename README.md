@@ -41,7 +41,7 @@ job:
 
 - **Everything is a string.** Types come from the application or a schema, never from a
   parser guessing by how text looks.
-- **A stream says what it is.** It starts with `%YAML 2.0`, and a 2.0 parser refuses
+- **A stream says what it is.** It starts with `%YAML 2.0` and `---`, and a 2.0 parser refuses
   anything else. PyYAML, Psych and go-yaml v3 refuse a 2.0 stream too, but not every 1.x
   parser does: npm `yaml` warns and reads it as 1.2.
 - **Reuse is explicit.** Definitions live in a table, `--- &`, that is never delivered.
@@ -49,15 +49,16 @@ job:
 - **Merge is part of the language**, for mappings and sequences.
 - **Keys are strings**, each one once, and their order is kept.
 - **One size limit** stops a small file from expanding into a huge one.
-- **JSON is a subset** once `%YAML 2.0` is on top, apart from repeated keys and a lone CR
+- **JSON is a subset** once `%YAML 2.0` and `---` are on top, apart from repeated keys and a lone CR
   between tokens. A small schema restores JSON's types.
 
-The grammar has 59 productions. YAML 1.2 has 211, written at a finer grain, so the
+The grammar has 58 productions. YAML 1.2 has 211, written at a finer grain, so the
 comparison is rough.
 
 ## What it costs
 
-This is a clean break. Of 4,651 public YAML files, 3,558 read as written. The rest need
+This is a clean break. Of 4,651 public YAML files, 3,558 read as written once the first two
+lines are added. The rest need
 converting, and no converter exists yet. `spec/yaml-2.0.md`, section 13, lists every change
 from 1.2, and section 13.1 what they cost.
 
