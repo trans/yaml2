@@ -96,15 +96,21 @@ development:
   counts too, and needs the app to raise it. A small file can reach the limit, so a
   service reading untrusted input should lower it. Shared nodes aren't the answer: a
   merge copies its key list anyway, see landscape.md. They stay a parser's choice.
-- **Size limit, changed 2026-11-04.** The total now covers the table in scope and the
-  document being read, not the whole stream, so a long stream can be read one document
-  at a time (@oyl's review; the user agreed, since @oyl would know). The count is exact,
-  with a worked example in section 10. An interface that delivers several documents
-  together counts them together: the agent's addition. **Open.** The agent's first reason
-  was wrong: the user pointed out (2026-11-04) that plain references needn't be copied.
-  In PyYAML, 100 plain references to a 10,000-key map cost nothing extra, and 100 merges
-  took 21.6 MB against 0.8 MB for the map. @oyl's answer replaces the rule with a count
-  on the stream: see review.md. It isn't decided.
+- **Size limit, two numbers.** The user chose this on 2026-11-05 ("why not track actual
+  memory? and maybe enve what it would cost to fully instantiate"). Held is the data as
+  written, with a reference, `<<:` and `-<<` each counting 1. Full is the size with no
+  references left, worked out by addition, so nothing is built: a 702-byte doubling chain
+  came to 3.3 trillion in under a millisecond. Both cover the table in scope and the
+  document being read, and a delivered document leaves both. A normal load applies the
+  limit to full and refuses up front, because its program will usually walk the data. An
+  interface that keeps references applies it to held, and whatever expands them later
+  checks full first. An interface delivering several documents at once adds up their full
+  sizes. It is still one setting. This replaces the count per stream and then per document,
+  and @oyl's count on the stream. A reference costs one node in Oyl's tree, so a stream
+  naming a 1 MB entry 1,000 times holds almost nothing and should read. Held stands in for
+  real memory so that every parser gets the same number: Oyl could track real memory,
+  since every allocation in a parse goes through `oyl_arena.c`, but another parser's figure
+  would differ.
 - `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.

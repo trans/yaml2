@@ -1,6 +1,6 @@
 # Review of Draft 1
 
-*Updated 2026-11-04*
+*Updated 2026-11-05*
 
 @oyl reviewed Draft 1 at the user's request (2026-11-04, against `f9727d5`). Its view:
 strong, nothing changes the core design. The agent reran the probes marked **Checked**
@@ -62,39 +62,21 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 - **A security section for the quadratic rule, and what "column" counts.** **Open**, and
   not yet taken to the user.
 
-## @oyl on sharing and load-all (2026-11-04, **Open: for the user**)
+## @oyl on sharing and load-all (2026-11-04, decided 2026-11-05)
 
-These are @oyl's recommendations, and the user hasn't decided. The agent reran the probes
-marked **Checked**. None is in the spec yet.
+@oyl answered three questions, and the agent reran its probes. The results are in the
+working copy of the spec, **not committed yet**. @oyl was told the outcome on 2026-11-05.
 
-- **Keep later documents out of it.** **Settled by the user, differently** (rules.md):
-  nothing is writable while parsing, which removes the problem. @oyl's rule limited sharing
-  to what is delivered together. The user's rule doesn't need that limit.
-- **Replace "delivered together".** It can't work: **Checked:** PyYAML's `load_all` is a
-  generator, so the caller collects the documents and the parser can't see that. Instead:
-  when a document is delivered, its written size leaves the total, and what its references
-  and merges added stays until the stream ends, and `...` doesn't clear that. One total, so
-  every parser and interface refuses the same file at the same point. **Checked:** with
-  `a: [x, yy]` and the documents `b: *a`, `c: *a`, the table is 8, each document 9 (3
-  written, 6 added), and the total is 23. Cost: a long stream heavy with references reaches
-  the limit even when read one document at a time. The largest real total is 233,872, 287
-  times under the limit, but 1.x anchors end with their document, so no real file shows
-  this pattern. The corpus can't speak for it.
-- **Merges aren't the only case.** With the rule above, a caller that collects documents
-  holds real copies of plain references. So the agent's "only merges" was wrong too.
-  **Checked:** go-yaml v3 copies, and refuses 100 plain references with "excessive
-  aliasing".
-- **"Reading can't tell them apart" is wrong.** An identity check can, and dumpers make
-  one. **Checked:** PyYAML writes `&id001` and Psych `&1` for a shared node. 2.0 has no
-  anchors in a document, so section 11 should have an emitter write a shared node in full.
-- **"Copies a node first" should say a deep copy.** **Checked:** a merged mapping is new,
-  but PyYAML and Psych share its values.
-- **"Turns that one into a copy" fits only `*a`.** Under `<<:` the edit is a written key.
-  `-<<` has no override, so a change expands the whole splice. A copy must be by value:
-  **Checked:** after a later `b: 2`, `c: *a` gives `["1"]` and `[*b]` written at `c` gives
-  `["2"]`. A change to an entry can break a later line, **Checked** in three cases, so a
-  tool must read its result again. @oyl's wording: "a change at one reference replaces it
-  with its value, or for a merged key, with a written key, and the tool reads the result
-  again, since a change to an entry can break a later line."
+- **Later documents.** @oyl would limit sharing to what is delivered together. The user's
+  rule replaced that: nothing is writable while parsing (rules.md).
+- **Load-all.** @oyl showed "delivered together" can't see a caller's own loop, and proposed
+  counting growth across the stream. The user chose two numbers instead, held and full
+  (rules.md), because that stream holds almost nothing and should read.
+- **Fixes taken.** A deep copy to change one place. An emitter writes a shared node in full,
+  since which nodes are shared isn't data. In section 11, a change at one reference replaces
+  it with its value, or for a merged key with a written key, and the tool reads the result
+  again, since a change to an entry can break a later line.
+- **Blind spot.** 1.x anchors end with their document, so no real file shows a table named
+  across many documents. The corpus can't speak for that pattern.
 
 Oyl's own default accepts 256 levels and refuses 257, which matches the minimum.

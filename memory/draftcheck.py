@@ -3,7 +3,7 @@
     python3 -I draftcheck.py SPEC
 
 Runs every example in the draft, then edge cases. The size limit is counted after each
-document and table entry, and is off by default.
+document and table entry, both held and full, and is off by default.
 """
 import json, re, sys
 class No(Exception): pass
@@ -12,8 +12,8 @@ sys.setrecursionlimit(20000)
 IND = ",[]{}#&*|>'\""
 NAME = re.compile('[A-Za-z0-9._/\\-\u00b7\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u037d\u037f-\u1fff\u200c-\u200d\u203f-\u2040\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufefe\uff00-\ufffd\U00010000-\U000effff]')
 class P:
-    def __init__(s, t, limit=None, together=False):
-        s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.held = 0; s.sizes = []
+    def __init__(s, t, limit=None, together=False, keep=False):
+        s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.held = 0; s.sizes = []; s.keep = keep; s.theld = {}; s.saved = 0; s.helds = []
         s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None
     def nsize(s, v):
         """A node's size. A shared object counts in full at every use."""
@@ -27,11 +27,21 @@ class P:
         if s.limit is not None and n > s.limit: s.bad('past the size limit')
     def entry(s, k, v):
         s.tsize[k] = s.nsize(k) + s.nsize(v) + s.extra; s.extra = 0
-        s.check(sum(s.tsize.values()))
+        s.theld[k] = s.tsize[k] - s.saved; s.saved = 0
+        s.check(sum((s.theld if s.keep else s.tsize).values()))
+    def plainref(s, flow):
+        v = s.ref(flow); s.saved += s.nsize(v) - 1
+        return v
+    def spliced(s, src):
+        s.saved += s.nsize(src) - 2
+        if not s.keep: s.check(s.nsize(src))
     def deliver(s, name, v):
         n = s.nsize(v) + s.extra; s.extra = 0; t = sum(s.tsize.values())
-        s.sizes.append((t, n)); s.held += n
-        s.check(t + (s.held if s.together else n))
+        h = n - s.saved; s.saved = 0; th = sum(s.theld.values())
+        s.sizes.append((t, n)); s.helds.append((th, h))
+        s.held += h if s.keep else n
+        a, b = (th, h) if s.keep else (t, n)
+        s.check(a + (s.held if s.together else b))
         s.docs.append((name, v))
     def finish(s):
         """Characters, over what was read: nothing after a final `...` counts."""
@@ -91,7 +101,7 @@ class P:
         if not s.t.startswith('%YAML 2.0'): s.bad('no directive')
         s.i = 9; s.eol(); s.gap()
         if not s.eof() and not s.marker() and not s.dots() and not s.directive_then_marker():
-            s.docs.append((None, s.node(-1, top=True)))
+            s.deliver(None, s.node(-1, top=True))
         while True:
             s.gap()
             if s.eof(): return s
@@ -104,7 +114,7 @@ class P:
                 if s.eof(): return s
                 if not (s.marker() or s.directive_then_marker()):
                     s.stopped = after; return s
-                s.table = {}; s.tsize = {}
+                s.table = {}; s.tsize = {}; s.theld = {}
             if s.directive_then_marker():
                 s.i += 9; s.eol(); s.gap()
             if not s.marker(): s.bad('expected a marker')
@@ -208,6 +218,7 @@ class P:
                 if not s.spaces(): s.bad('merge needs a reference')
                 src = s.ref(False); s.eol()
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
+                s.saved += s.nsize(src) - 2
                 for k, v in src.items():
                     if k in out: s.extra += s.nsize(k) + s.nsize(out[k])
                     out[k] = v
@@ -252,7 +263,7 @@ class P:
             if s.ch(1) == '<':
                 s.i += 3; s.spaces(); src = s.ref(False); s.eol()
                 if not isinstance(src, list): s.bad('-<< needs a sequence')
-                s.check(s.nsize(src)); out += src
+                s.spliced(src); out += src
             else:
                 s.i += 1; k0 = s.i; k = s.spaces()
                 if k and s.ch() not in ('#', '\n', ''):
@@ -267,7 +278,7 @@ class P:
         c = s.ch()
         if c in '|>' and c: return s.block(n)
         if c in '[{' and c: v = s.flow()
-        elif c == '*': v = s.ref(False)
+        elif c == '*': v = s.plainref(False)
         elif c == '"': v = s.double()
         elif c == "'": v = s.single()
         else: v = s.plain(False)
@@ -364,7 +375,7 @@ class P:
         if c and c in '[{': return s.flow()
         if c == '"': return s.double()
         if c == "'": return s.single()
-        if c == '*': return s.ref(True)
+        if c == '*': return s.plainref(True)
         return s.plain(True)
     def fseq(s):
         s.i += 1; o = []; s.fs()
@@ -372,7 +383,7 @@ class P:
             if re.match(r'-<< +\*', s.t[s.i:s.i + 40]):
                 s.i += 3; s.spaces(); src = s.ref(True)
                 if not isinstance(src, list): s.bad('-<< needs a sequence')
-                s.check(s.nsize(src)); o += src
+                s.spliced(src); o += src
             else: o.append(s.fnode())
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
@@ -385,6 +396,7 @@ class P:
                 if started: s.bad('merge after a key')
                 s.i += 3; s.spaces(); src = s.ref(True)
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
+                s.saved += s.nsize(src) - 2
                 for k, v in src.items():
                     if k in o: s.extra += s.nsize(k) + s.nsize(o[k])
                     o[k] = v
@@ -438,9 +450,9 @@ class P:
             v = v[k]
         return v
 
-def read(t, limit=None, together=False):
+def read(t, limit=None, together=False, keep=False):
     if not t.startswith('%YAML'): t = '%YAML 2.0\n' + t
-    return P(t, limit, together).stream().finish()
+    return P(t, limit, together, keep).stream().finish()
 
 spec = open(sys.argv[1], encoding='utf-8').read()
 ok = bad = 0
@@ -581,12 +593,24 @@ assert read('--- !配置\na: 1\n').docs[0][0] == '配置'
 def size_tests():
     ex = '--- &\na: [x, yy]\nm: {k: v}\n---\nb: *a\nc:\n  -<< *a\n  - z\nd:\n  <<: *m\n'
     assert read(ex).sizes == [(15, 26)], read(ex).sizes
+    assert read(ex).helds == [(15, 14)], read(ex).helds
     read(ex, 41)
     def no(*a):
         try: read(*a)
         except No: return
         raise AssertionError(a)
     no(ex, 40)
+    read(ex, 29, False, True)
+    try: read(ex, 28, False, True); raise AssertionError('held')
+    except No: pass
+    r = read('--- &\nm: {k: v}\n---\nc:\n  <<: *m\n  k: w\n')
+    assert r.sizes == [(7, 12)] and r.helds == [(7, 9)], (r.sizes, r.helds)
+    big = '--- &\nbig: [' + ', '.join(['x'] * 1000) + ']\n' + '---\na: *big\n' * 100
+    r = read(big); assert r.sizes[0] == (2005, 2004) and r.helds[0] == (2005, 4), (r.sizes[0], r.helds[0])
+    read(big, 4009); no(big, 4008); no(big, 4009, True)
+    read(big, 2009, False, True); no(big, 2008, False, True); read(big, 2405, True, True); no(big, 2404, True, True)
+    plain = '[' + 'x, ' * 1000 + ']\n'
+    read(plain, 2001); no(plain, 2000); read(plain, 2001, False, True); no(plain, 2000, False, True)
     st = '---\na: 1\n---\nb: 2\n---\nc: 3\n'
     m = max(n for _, n in read(st).sizes); read(st, m); no(st, m, True); read(st, 3 * m, True)
     assert read('--- &\nm: {k: v}\n---\nc:\n  <<: *m\n  k: w\n').sizes[0][1] == 12
@@ -595,7 +619,7 @@ def size_tests():
     dbl = '--- &\na: [x, x]\n' + ''.join(f'a{i}:\n  -<< *{"a" if i == 0 else "a" + str(i - 1)}\n  -<< *{"a" if i == 0 else "a" + str(i - 1)}\n' for i in range(40))
     no(dbl, 100000)
     ref = '--- &\na: [x, x]\n' + ''.join(f'a{i}: [*{"a" if i == 0 else "a" + str(i - 1)}, *{"a" if i == 0 else "a" + str(i - 1)}]\n' for i in range(40))
-    no(ref, 100000)
+    no(ref, 100000); read(ref, 100000, False, True)
     assert read('[' * 256 + ']' * 256 + '\n').docs
     assert read(''.join(' ' * i + 'k:\n' for i in range(256)) + ' ' * 256 + 'v\n').docs
 size_tests()

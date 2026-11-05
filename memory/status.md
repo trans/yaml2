@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-04*
+*Updated 2026-11-05*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -10,7 +10,8 @@ rules are in [rules.md](rules.md). The user chose a clean break on
 2026-11-03, so 2.0 need not be readable by existing parsers. Draft 1 of the language is
 `spec/yaml-2.0.md` in the code checkout, committed on 2026-11-04; YAML Schema, part 2, isn't
 written. Section 14 of the draft lists what is open; the user went through it on 2026-11-04.
-@oyl's review is applied in `caece25`, and [review.md](review.md) has what is left.
+@oyl's review is applied in `caece25`. The later decisions on shared nodes and the size
+limit are in the working copy, not committed yet ([review.md](review.md)).
 Background is in [landscape.md](landscape.md).
 
 ## Open, for the user
