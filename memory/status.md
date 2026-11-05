@@ -11,8 +11,10 @@ rules are in [rules.md](rules.md). The user chose a clean break on
 `spec/yaml-2.0.md` in the code checkout, committed on 2026-11-04; YAML Schema, part 2, isn't
 written. Section 14 of the draft lists what is open; the user went through it on 2026-11-04.
 @oyl's review is applied in `caece25`. The later decisions on shared nodes and the size
-limit, @oyl's five gaps and the limit on shared tables are in `2d5a90d`, pushed
-([review.md](review.md)).
+limit, @oyl's five gaps and the limit on shared tables are in `2d5a90d`, pushed. Section 15,
+Security, is in the working copy, not committed yet. @oyl's four points on section 10 and
+how files join are open for the user ([review.md](review.md)). The user moved on to YAML
+Schema on 2026-11-05.
 Background is in [landscape.md](landscape.md).
 
 ## Open, for the user

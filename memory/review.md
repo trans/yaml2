@@ -59,8 +59,9 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 - **A "What this costs" section.** **Fixed in `caece25`**, as section 13.1.
 - **Whether the first document should need `---`.** **Open**, in section 14, which now
   says the form without it is the one npm `yaml` refuses.
-- **A security section for the quadratic rule, and what "column" counts.** **Open**, and
-  not yet taken to the user.
+- **A security section for the quadratic rule.** The user approved it on 2026-11-05. It is
+  section 15 of the working copy, **not committed yet**, and adds no rules.
+- **What "column" counts.** **Open**, and not yet taken to the user.
 
 ## @oyl on sharing and load-all (2026-11-04, decided 2026-11-05)
 
@@ -141,3 +142,40 @@ once. Python integers don't wrap, so `size_tests` works the chain out at 64 bits
 `P.expand` is what a tool checks before expanding. Breaking each new rule on purpose, eight
 ways, fails a test each time. The path rule has no test, because the checker's table is a
 Python dict.
+
+## @oyl on section 10 at `2d5a90d` (2026-11-05)
+
+Message `993df806`. @oyl found no way around held for the table cases, and both worked
+examples hold. Four points in the wording. The agent reproduced all four. **Open, for the
+user**, who moved on to YAML Schema first. Nothing here is in the spec yet.
+
+1. **Names and comments count in neither number.** A 100,000-byte name reads at a limit of
+   100, and 1,000 documents with 1,000-byte names read together at 10,000. Names don't
+   amplify, but section 10 says a large plain file counts. Proposal: a document's name counts
+   as a scalar does, and a tree that keeps comments adds their bytes to held.
+2. **When the old entry comes off full.** `--- &`, `a: [x, yy]`, `--- &`, then `a:` with
+   `-<< *a` and `- z` has held 14 and full 10. A parser taking the old entry off only after
+   reading the new one reaches 18, and refuses at limits 14 to 17. Proposal: it comes off when
+   the key is read, which is the checker's result. A parser that expands entries as it reads
+   holds both for that moment, up to twice the limit.
+3. **"As written" invites counting the source.** The checker counts the value: `"\u00e9"` adds
+   2 bytes, not 8. Proposal: "a scalar adds the UTF-8 bytes of its value", and drop "as
+   written" from held.
+4. **Joined files now need `...`.** The repeated `%YAML 2.0` line means nothing, so each file's
+   table stays in held. A file whose table counts 8 reads 63 times over at a limit of 512, and
+   the 64th copy is refused. @oyl offers two ways out: a sentence telling files to end with
+   `...`, or having the line empty the table, which it leaves to the user.
+
+**The agent's own findings on joins:**
+
+- **Ending files with `...` can lose a file with no error.** After `...`, a `%YAML 2.0` line not
+  followed by a marker isn't a marker, so a parser stops there. `%YAML 2.0`, `---`, `a: 1`,
+  `...`, `%YAML 2.0`, `b: 2` delivers only `a`, and reports where it stopped. Without the `...`
+  the same join is refused. So @oyl's sentence alone would make this worse.
+- **A file can be refused alone and read when joined.** A file naming `*x` that it never defined
+  is refused, but reads if an earlier file in the join defined `x`.
+- **Recommendation:** a `%YAML 2.0` line starts a fresh file. It empties the table, as `...`
+  does, and the first document after it may have no marker, as at the top of a stream. Then
+  each joined file should read as it does alone. Not prototyped yet.
+- **A limit on that:** a file with no final line break joins badly whatever we choose.
+  `a: 1` then `%YAML 2.0` on the same line gives `a` the value `1%YAML 2.0`, with no error.
