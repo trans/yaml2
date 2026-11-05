@@ -105,6 +105,7 @@ retries: 3
 | `!str` | any scalar | its text |
 | `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)` | an integer |
 | `!float` | a plain scalar: an integer, which may have `.digits`, an exponent or both | a number |
+| `!decimal` | a plain scalar, spelled as `!float` is | that exact number |
 | `!bool` | a plain `true` or `false` | a boolean |
 | `!null` | a plain `null` | null |
 | `!date` | any scalar: an RFC 3339 full-date | a date |
@@ -114,7 +115,7 @@ retries: 3
 
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans.
 
-`!int`, `!float`, `!bool` and `!null` match plain scalars only. So `3` can be an integer, and
+`!int`, `!float`, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can be an integer, and
 `"3"` never is. A block scalar isn't plain. This is what a YAML 1.2 parser with JSON Schema
 does today.
 
@@ -165,8 +166,9 @@ blob: !binary
 
 ### 4.2 Limits
 
-`!int`, `!float` and `!str` can carry a limit. For `!str`, a range counts code points. Both
-ends are inclusive, and either can be left out.
+`!int`, `!float`, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
+Both ends are inclusive, and either can be left out. A limit may have an exponent, as
+`!float(..3.4e38)` does.
 
 ```yaml
 --- &
@@ -202,6 +204,10 @@ scalar in a flow collection (part 1, section 6.1).
 match the whole string. I-Regexp has literals, `.`, classes, counts, groups, `|` and `\p{..}`.
 It has no lookaround, no backreferences, no captures and no `\d`, `\w` or `\s`, which is why
 it means the same in every language.
+
+`\p{..}` uses Unicode 16 or later, since RFC 9485 names no version. Unicode never removes a
+character, and a later version mostly adds letters, so two parsers can differ only on a character
+one of them doesn't know yet.
 
 `^` and `$` are refused outside a class. RFC 9485 reads them as ordinary characters, so a
 writer who means an anchor would get a pattern that never matches. A pattern ends at the first
@@ -252,6 +258,60 @@ note: !str(/x:[ ]y/)
 ```yaml refused
 --- &
 tags: [!str(/[a-z]+/), ...]
+```
+
+### 4.4 Numbers
+
+A number has no size in a schema. `!int` and `!float` say what is written, and each application
+keeps it in whatever it has, so a program with 128-bit floats or big integers needs nothing
+special. A width is a limit: `uint32: !int(0..4294967295)`. YAML writes digits, so byte order
+doesn't arise.
+
+A parser delivers the number written, or refuses. It never wraps an integer, and never loses
+digits without saying so. A value loses digits if, once stored and written back to as many
+significant digits as it was written with, it comes out different. Binary64 can't hold `0.1`
+exactly, but `0.1` survives. `3.14159265358979323846` doesn't, and up to 15 significant digits
+always do. A value too large to hold, or so small it would become 0, loses its digits too.
+
+An application can ask to accept rounding on `!float`, because the digits may not matter to it.
+A value then takes the nearest one it can hold, and one too large to hold is still refused.
+
+`!decimal` allows no rounding, and an application can't ask for it. It is for money and anything
+else where a rounded value is a wrong one. A parser keeps the digits and exponent as written and
+never expands them, so `1e999999999` stays small. An application that can't keep the exact value
+refuses it.
+
+```yaml
+--- &
+order:
+  price: !decimal(0..)
+  ratio: !float
+--- !order
+price: 19.99
+ratio: 0.1
+```
+
+```json
+{"price": 19.99, "ratio": 0.1}
+```
+
+```yaml refused
+--- &
+pi: !float
+--- !pi
+3.14159265358979323846
+```
+
+Every parser holds integers from -2^63 to 2^64-1 and binary64 floats at least, and past that it may
+refuse. A number that can't be held refuses the document: it doesn't count as no match, so
+`!int | !float` can't round on one parser only, and `1e999` under `!float | !str` doesn't become a
+string.
+
+```yaml refused
+--- &
+n: !float | !str
+--- !n
+1e999
 ```
 
 ## 5. Literals
@@ -675,7 +735,7 @@ part       ::= type | sequence | "''" | literal
 type       ::= "!" name limit?
 limit      ::= "(" (range | "/" pattern "/") ")"
 range      ::= number? ".." number?
-number     ::= "-"? digit+ ("." digit+)?
+number     ::= "-"? digit+ ("." digit+)? (("e" | "E") ("-" | "+")? digit+)?
 sequence   ::= "[" expression ("," " "* expression)* ("," " "* "...")? "]"
 literal    ::= any text, not starting with "!", "[", "{", '"' or "'", holding no " | "
 name       ::= a table key, or a standard type, with no "/", "(", ")", "[", "]", "," or "|"
@@ -693,14 +753,11 @@ and a plain key ending in `?` is optional.
   proposal, not yet decided.
 - **Quoted scalars as literals.** Section 5 removes two warts, and hasn't been tried on a real
   schema. It means a type expression can't be quoted.
-- **The standard types.** The list is short so far, and it should be thorough: widths such as
-  `!uint32` and `!float32`, exact decimals, times and durations, and names such as `!uri` and
-  `!uuid`, checked against other type systems. Names can be added later, as section 8 says.
-- **What a number is.** `!int` and `!float` have no stated range. Open: what every parser must read,
-  whether a parser may refuse past that but never round or wrap, how `!float` rounds, and whether a
-  value out of range refuses the document, so that `!int | !float` can't round on one parser only.
-- **`\p{..}`.** It needs Unicode's tables, about 16 KB, the first such tables in the design, and RFC
-  9485 names no Unicode version.
+- **A minimum precision on `!float`.** A schema can't yet say that a value needs a certain number of
+  digits, so that an application holding fewer refuses it even where the written value survives.
+- **The standard types.** The list is short so far, and it should be thorough: times and durations,
+  and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
+  later, as section 8 says.
 - **The ceiling on a union.** Section 9's 10,000 refuses none of 1,247 real patterns. A lower figure
   would make a schema of many overlapping unions quicker to load.
 - **Typing under kept references.** Section 11's count hasn't been built or tried.
