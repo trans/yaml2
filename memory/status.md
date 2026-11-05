@@ -8,7 +8,7 @@ ecosystem that has become a minefield.
 **Where things stand.** The user is setting the design rule by rule; the
 rules are in [rules.md](rules.md). The user chose a clean break on
 2026-11-03, so 2.0 need not be readable by existing parsers. Draft 1 of the language is
-`spec/yaml-2.0.md` in the code checkout, not committed yet; YAML Schema, part 2, isn't
+`spec/yaml-2.0.md` in the code checkout, committed on 2026-11-04; YAML Schema, part 2, isn't
 written. Section 14 of the draft lists what is open; the user went through it on 2026-11-04.
 Background is in [landscape.md](landscape.md).
 
@@ -27,7 +27,9 @@ Background is in [landscape.md](landscape.md).
 3. **Publishing.** `origin` is `trans/yaml2` on GitHub, public. The user added it and
    approved the first push of `main` and `ai` on 2026-11-04, with @oyl's figures in
    `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
-   and a second push of `ai` the same day. So the `ai` branch is public: write nothing
+   a second push of `ai` the same day, and a third of both, with the spec, README and
+   licenses, also that day. The spec and README are CC BY 4.0, and the code on `ai` is
+   MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.
 
