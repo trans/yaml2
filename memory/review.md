@@ -271,10 +271,12 @@ pattern engine, and narrowing alternatives as keys arrive.
 
 - **A stream's own schema applies by default,** which replaces @oyl's proposal that a program must
   ask. The application can ask for it to be ignored and read the document as it is, and can ask to be
-  given the schema, which is YAML too. Costs the agent raised: a plain load runs a file's own schema,
-  patterns included, so section 16's limits become requirements, and part 1 needs a way to hand over
-  the table, since section 11 keeps it out of delivered data. `--- !port` after `port: 80` stays
-  refused, so part 1's "advisory" needs a word.
+  given the schema, which is YAML too. Part 1 needs a way to hand over the table, since section 11
+  keeps it out of delivered data. `--- !port` after `port: 80` stays refused, so part 1's "advisory"
+  needs a word. The agent then said section 16's limits become requirements and a service should
+  switch schemas off. The user objected: if applying a schema is dangerous, that's what to correct.
+  **Target, proposed by the agent, open:** typing time grows in line with the input, for any file
+  and any schema, so there is nothing to switch off. A schema can't run code, fetch or grow data.
 - **The rewording of "applied as a stream is parsed"** is accepted.
 - **`!binary`** allows line breaks.
 - **Dropping prepending: open.** The user asked what it means. Only one way for an application to supply
@@ -282,7 +284,23 @@ pattern engine, and narrowing alternatives as keys arrive.
 - **Numbers: open.** The user wants a standard for what `!int` is, perhaps with names like `!uint32`.
   Measured on 1,015 SchemaStore files: 8,811 integer types, 421 with a width format (`int32` 151, `uint`
   100, `uint32` 95, `int64` 56, `uint8` 11, `uint64` 5, `uint16` 2, `int` 1), and 174 ranges that are a
-  width. 320 ranges stop at 2^53 - 1, JavaScript's safe limit. No `format: float`. A width is already a
-  limit, so `uint32: !int(0..4294967295)` reads today. Oyl's values hold int64 and uint64, so a floor could
-  reach 2^64 - 1. Section 8's "a name in the table wins" means names can be added later safely.
-- **`\p{..}`: open,** to go over with the agent. Its 2 files are two schemas of one project.
+  width. 320 ranges stop at 2^53 - 1, JavaScript's safe limit. A width is already a limit, so
+  `uint32: !int(0..4294967295)` reads today. If `!uint64` is standard, every parser must read its whole
+  range, so a floor must reach 2^64 - 1. Section 8's "a name in the table wins" means names can be
+  added later safely. The user (2026-11-05): this is about being thorough, not need, and a sample
+  this size can't decide it, so the agent's "`!float32` looks unneeded" is withdrawn. Check the list
+  against other type systems, not against real files.
+- **`\p{..}`: open,** to go over with the agent. Its 2 files are two schemas of one project. I-Regexp
+  is portable. Only the agent's option of letting a parser refuse `\p{..}` would make a schema not
+  portable. RFC 9485 leaves two gaps a spec can close: no Unicode version, and limits on counts.
+
+**Measured for that target (2026-11-05), on a private copy with each name counted once:**
+
+- That rule alone isn't enough. `aN: !aN+1 | !aN+2`, with every union in use, took 0.06, 0.35 and 2.7 s
+  at 250, 500 and 1,000 names (30 KB). A real parser would do better than this checker, but it would
+  still grow faster than the input. Proposal: a ceiling on one union once expanded, the same for every
+  parser, in place of @oyl's floor, so all agree on whether a schema loads.
+- Patterns after counts multiply, 1,247 of SchemaStore's 1,271 unique patterns: 50% hold 14 positions or
+  fewer, 99.9% 772, and the largest 9,131. A ceiling of 10,000 refuses none.
+- By reasoning, not run: remembering (node, type) leaves entry size times number of types, so a file can
+  use many types on one big entry. That work should count against the size limit.
