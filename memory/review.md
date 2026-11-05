@@ -180,6 +180,13 @@ user**, who moved on to YAML Schema first. Nothing here is in the spec yet.
 - **A limit on that:** a file with no final line break joins badly whatever we choose.
   `a: 1` then `%YAML 2.0` on the same line gives `a` the value `1%YAML 2.0`, with no error.
 
+**The user's rule on joins (2026-11-05), replacing the recommendation above:** only `...` empties the
+table. Whoever joins files decides: independent files get `...` between them, and files sharing one
+table drop `%YAML 2.0` and use `---`. Assumes all are 2.0. The draft already does most of this. Two
+gaps, **proposed by the agent, open:** a `%YAML 2.0` with no `...` before it still reads and shares the
+table, so a plain `cat` makes no decision, and it should be refused. And `...`, `%YAML 2.0`, `b: 2` stops
+and loses `b`, so after `...` that line should start a document as it does at the top of a stream.
+
 ## @oyl on part 2, Draft 1 (2026-11-05)
 
 Message `18666a0d`, answering `ceb22cac`, read at `7689ea6`. It isn't filed here, because it named
