@@ -329,7 +329,7 @@ dedicated implementation can run in linear time, and existing engines may not.
 
 [draftcheck.py](draftcheck.py) is a throwaway parser written from the grammar in
 `spec/yaml-2.0.md`, not a reference. It passes all the draft's examples and its edge
-cases; the size limit isn't implemented. Run on the 4,651 public files with `%YAML 2.0`
+cases, and it counts the size limit, off by default. Run on the 4,651 public files with `%YAML 2.0`
 added, skipping files over 200 KB:
 
 - PyYAML reads 4,164. The draft reads 3,544 of those as written, 85.1%.
@@ -425,6 +425,27 @@ Parsers: libyaml, pure PyYAML, Psych, go-yaml v3. Files: the 4,651 public ones.
   are dropped (the other has `@`). None of the 4,163 files that compose tags a whole
   document. Of 721 node tags, 304 add only `:`, the commonest being `!!python/name:`, 179
   are a bare `!`, and 238 fit.
+
+- Line breaks 1.2 dropped: PyYAML (both loaders) and go-yaml v3 read `- a`, then U+0085,
+  U+2028 or U+2029, then `- b`, as two items. A 1.2 reader sees one. 0 of 4,651 files hold
+  any of the three.
+- Nesting: the deepest of the 4,241 files that parse is 21 levels, in an OpenAPI file.
+  3,968 are under 10, 272 are 10 to 19, and 1 is 20 or more.
+
+## Right-to-left text (2026-11-04)
+
+The 4,651 files can't speak for it: 1 holds Arabic letters and none hold Hebrew. They show
+no bidirectional control, U+200E or U+200F, and that means little. A `grep -P` over bytes
+in the C locale found nothing even for `é`, so it is no check: use Python on bytes, and
+run a positive control.
+
+So 32 real locale files, from rails-i18n, Mastodon and Discourse, in Arabic, Hebrew,
+Persian, Central Kurdish and Urdu: 3 hold U+202A to U+202C or U+2068 and U+2069, in 38
+values, none in keys or comments. 33 of the 38 open before a placeholder, as in
+`U+2068 %{username} U+2069`. By style: 29 double-quoted, 7 plain, 1 single, 1 block. U+200E
+or U+200F is in 6 files, U+200C or U+200D in 11, and U+0085, U+2028 and U+2029 in none.
+Refusing bidirectional controls outside double quotes refused 1 of the 32. As drafted, 20
+of the 32 read, and the other 12 hit rules that have nothing to do with characters.
 
 ## JSON against the draft (2026-11-04)
 

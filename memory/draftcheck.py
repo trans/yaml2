@@ -2,17 +2,37 @@
 
     python3 -I draftcheck.py SPEC
 
-Runs every example in the draft, then edge cases. The size limit isn't implemented.
+Runs every example in the draft, then edge cases. The size limit is counted after each
+document and table entry, and is off by default.
 """
 import json, re, sys
 class No(Exception): pass
 FLOWI = ',[]{}'
+sys.setrecursionlimit(20000)
 IND = ",[]{}#&*|>'\""
 NAME = re.compile('[A-Za-z0-9._/\\-\u00b7\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u037d\u037f-\u1fff\u200c-\u200d\u203f-\u2040\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufefe\uff00-\ufffd\U00010000-\U000effff]')
 class P:
-    def __init__(s, t):
-        s.dq = []
-        s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.td = None; s.stopped = None
+    def __init__(s, t, limit=None, together=False):
+        s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.held = 0; s.sizes = []
+        s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None
+    def nsize(s, v):
+        """A node's size. A shared object counts in full at every use."""
+        if isinstance(v, str): return 1 + len(v.encode('utf-8', 'surrogatepass'))
+        m = s.memo.get(id(v))
+        if m is None:
+            m = (v, 1 + (sum(s.nsize(x) for x in v) if isinstance(v, list) else sum(s.nsize(k) + s.nsize(x) for k, x in v.items())))
+            s.memo[id(v)] = m
+        return m[1]
+    def check(s, n):
+        if s.limit is not None and n > s.limit: s.bad('past the size limit')
+    def entry(s, k, v):
+        s.tsize[k] = s.nsize(k) + s.nsize(v) + s.extra; s.extra = 0
+        s.check(sum(s.tsize.values()))
+    def deliver(s, name, v):
+        n = s.nsize(v) + s.extra; s.extra = 0; t = sum(s.tsize.values())
+        s.sizes.append((t, n)); s.held += n
+        s.check(t + (s.held if s.together else n))
+        s.docs.append((name, v))
     def finish(s):
         """Characters, over what was read: nothing after a final `...` counts."""
         t = s.t if s.stopped is None else s.t[:s.stopped]
@@ -23,7 +43,7 @@ class P:
             if a < last or b > len(t): continue
             out.append(t[last:a]); last = b
         out.append(t[last:])
-        if re.search('[^\t\n\x20-\x7e\x85\xa0-\ud7ff\ue000-\ufefe\uff00-\ufffd\U00010000-\U0010ffff]', ''.join(out)): raise No('character not allowed')
+        if re.search('[^\t\n\x20-\x7e\xa0-\u2027\u202a-\ud7ff\ue000-\ufefe\uff00-\ufffd\U00010000-\U0010ffff]', ''.join(out)): raise No('character not allowed')
         return s
     def ch(s, k=0): return s.t[s.i + k] if s.i + k < len(s.t) else ''
     def eof(s): return s.i >= len(s.t)
@@ -84,7 +104,7 @@ class P:
                 if s.eof(): return s
                 if not (s.marker() or s.directive_then_marker()):
                     s.stopped = after; return s
-                s.table = {}
+                s.table = {}; s.tsize = {}
             if s.directive_then_marker():
                 s.i += 9; s.eol(); s.gap()
             if not s.marker(): s.bad('expected a marker')
@@ -107,11 +127,11 @@ class P:
             if not name: s.bad('no name')
             j = s.i; n = s.spaces()
         if n and s.ch() not in ('#', '\n', ''):
-            s.docs.append((name, s.line_node(0)))
+            s.deliver(name, s.line_node(0))
         else:
-            s.i = j; s.eol(); s.gap(); s.docs.append((name, s.node(-1, top=True)))
+            s.i = j; s.eol(); s.gap(); s.deliver(name, s.node(-1, top=True))
     def tableflow(s):
-        s.td = 0; here = set(); s.i += 1; s.fs()
+        here = set(); s.i += 1; s.fs()
         while s.ch() != '}':
             if s.t.startswith('<<:', s.i): s.bad('merge outside an entry')
             q = s.ch() in ('"', "'")
@@ -124,12 +144,13 @@ class P:
             if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
             s.fs()
             s.table[k] = '' if s.ch() in (',', '}') else s.fnode()
+            s.entry(k, s.table[k])
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
             elif s.ch() != '}': s.bad('expected , or }')
-        s.i += 1; s.td = None
+        s.i += 1
     def tablemap(s):
-        s.td = 0; here = set()
+        here = set()
         while True:
             s.gap()
             if s.eof() or s.marker() or s.dots() or s.ch() == '%': break
@@ -139,8 +160,8 @@ class P:
             if k in here: s.bad('key repeated in one table document')
             here.add(k)
             s.table[k] = s.value(0, True)
+            s.entry(k, s.table[k])
             s.gap()
-        s.td = None
     def is_seq(s):
         c = s.ch()
         if c != '-': return False
@@ -174,10 +195,8 @@ class P:
             if s.indent_here() != m: return False
             s.i += m; return True
         return s.col() == m
-    def enter(s):
-        if s.td is not None: s.td += 1
-    def leave(s):
-        if s.td is not None: s.td -= 1
+    def enter(s): pass
+    def leave(s): pass
     def map(s, m):
         s.enter(); out = {}; written = set(); started = False
         while True:
@@ -185,17 +204,19 @@ class P:
             if not s.at(m): s.i = j; break
             if s.t.startswith('<<:', s.i) and s.ch(3) in (' ', '\n', ''):
                 if started: s.bad('merge after a key')
-                if s.td is not None and s.td != 1: s.bad('merge deep in the table')
                 s.i += 3
                 if not s.spaces(): s.bad('merge needs a reference')
                 src = s.ref(False); s.eol()
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
-                for k, v in src.items(): out[k] = v
+                for k, v in src.items():
+                    if k in out: s.extra += s.nsize(k) + s.nsize(out[k])
+                    out[k] = v
             else:
                 if not s.is_map(): s.bad('expected a key')
                 k = s.key(); s.colon()
                 if k in written: s.bad('duplicate key')
                 written.add(k); started = True
+                if k in out: s.extra += s.nsize(k) + s.nsize(out[k])
                 out[k] = s.value(m, True)
             s.gap()
         s.leave(); return out
@@ -229,10 +250,9 @@ class P:
             if not s.at(m): s.i = j; break
             if not s.is_seq(): s.i = j; break
             if s.ch(1) == '<':
-                if s.td is not None and s.td != 1: s.bad('merge deep in the table')
                 s.i += 3; s.spaces(); src = s.ref(False); s.eol()
                 if not isinstance(src, list): s.bad('-<< needs a sequence')
-                out += src
+                s.check(s.nsize(src)); out += src
             else:
                 s.i += 1; k0 = s.i; k = s.spaces()
                 if k and s.ch() not in ('#', '\n', ''):
@@ -332,6 +352,7 @@ class P:
     def fs(s):
         while True:
             c = s.ch()
+            if s.bol() and (s.marker() or s.dots()): s.bad('marker inside a flow collection')
             if c in (' ', '\t', '\n') and c: s.i += 1
             elif c == '#' and (s.bol() or s.t[s.i - 1] in ' \t\n'):
                 while s.ch() not in ('\n', ''): s.i += 1
@@ -349,10 +370,9 @@ class P:
         s.i += 1; o = []; s.fs()
         while s.ch() != ']':
             if re.match(r'-<< +\*', s.t[s.i:s.i + 40]):
-                if s.td is not None and s.td != 1: s.bad('merge deep in the table')
                 s.i += 3; s.spaces(); src = s.ref(True)
                 if not isinstance(src, list): s.bad('-<< needs a sequence')
-                o += src
+                s.check(s.nsize(src)); o += src
             else: o.append(s.fnode())
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
@@ -363,10 +383,11 @@ class P:
         while s.ch() != '}':
             if s.t.startswith('<<:', s.i) and s.ch(3) == ' ':
                 if started: s.bad('merge after a key')
-                if s.td is not None and s.td != 1: s.bad('merge deep in the table')
                 s.i += 3; s.spaces(); src = s.ref(True)
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
-                o.update(src)
+                for k, v in src.items():
+                    if k in o: s.extra += s.nsize(k) + s.nsize(o[k])
+                    o[k] = v
             else:
                 q = s.ch() in ('"', "'")
                 k = s.double() if s.ch() == '"' else s.single() if q else s.plain(True)
@@ -376,6 +397,7 @@ class P:
                 if k in w: s.bad('duplicate key')
                 if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
                 w.add(k); started = True; s.fs()
+                if k in o: s.extra += s.nsize(k) + s.nsize(o[k])
                 o[k] = '' if s.ch() in (',', '}') else s.fnode()
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
@@ -415,19 +437,10 @@ class P:
             if k not in v: s.bad(f'no key {k}')
             v = v[k]
         return v
-    # plain references are banned in the table; only merges call ref directly there
-    _line_node = line_node
-    def line_node(s, n):
-        if s.td is not None and s.ch() == '*': s.bad('reference in the table')
-        return s._line_node(n)
-    _fnode = fnode
-    def fnode(s):
-        if s.td is not None and s.ch() == '*': s.bad('reference in the table')
-        return s._fnode()
 
-def read(t):
+def read(t, limit=None, together=False):
     if not t.startswith('%YAML'): t = '%YAML 2.0\n' + t
-    return P(t).stream().finish()
+    return P(t, limit, together).stream().finish()
 
 spec = open(sys.argv[1], encoding='utf-8').read()
 ok = bad = 0
@@ -495,6 +508,16 @@ good = [
  ('a:\t\n', [{"a": ""}]),
  ('- x\t\n', [["x"]]),
  ('-\t\n', [[""]]),
+ ('--- &\n{a: {p: 1}, b: {c: *a}, d: *a}\n---\n[*b, *d]\n', [[{"c": {"p": "1"}}, {"p": "1"}]]),
+ ('--- &\na: {p: 1}\nb: {c: {<<: *a, q: 2}}\n---\nd: *b:c\n', [{"d": {"p": "1", "q": "2"}}]),
+ ('a: [\n  ---,\n  ...\n]\n', [{"a": ["---", "..."]}]),
+ ('--- &\na: 1\nb:\n  - *a\n---\n*b\n', [["1"]]),
+ ('--- &\ns: [x]\nt:\n  u:\n    -<< *s\n---\n*t\n', [{"u": ["x"]}]),
+ ('--- &\na: {p: 1}\nb: {c: {<<: *a}}\n---\n*b\n', [{"c": {"p": "1"}}]),
+ ('--- &\n.setup: {script: [apt-get update]}\n.build:\n  script:\n    -<< *.setup:script\n    - make\n---\nbuild: *.build\n', [{"build": {"script": ["apt-get update", "make"]}}]),
+ ('a:\n  Ref: name\nb:\n  Fn::Sub: ${a}-b\nc:\n  vault: |\n    $ANSIBLE\n', [{"a": {"Ref": "name"}, "b": {"Fn::Sub": "${a}-b"}, "c": {"vault": "$ANSIBLE\n"}}]),
+ ('"\u2028\u202e\x85\u2066"\n', ["\u2028\u202e\x85\u2066"]),
+ ('a: \u2068b\u2069\nc: |\n  \u202bd\u202c\n# \u202e\n', [{"a": "\u2068b\u2069", "c": "\u202bd\u202c\n"}]),
  ('[a\t, b\t]\n', [["a", "b"]]),
  ('{\n\t"a": 1,\n\t"b": [\n\t\t1,\n\t\t2\n\t]\n}\n', [{"a": "1", "b": ["1", "2"]}]),
  ('{a:\tb, c\t: d}\n', [{"a": "b", "c": "d"}]),
@@ -535,11 +558,11 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: {p: 1}, b: {c: *a}}\n', '--- &\n{a: {p: 1}, b: *a}\n', '--- &\n{a: {p: 1}, b: {c: {<<: *a}}}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['--- &\na:\n  b: *a\n', '--- &\n{a: {b: *a}}\n', 'a: [\n  1,\n---\n]\n', 'a: [\n  1,\n--- a\n]\n', 'a: [\n  1,\n...\n]\n', 'a: x\x85y\n', 'a: x\u2028y\n', 'a\u2029b: 1\n', "'\u2028'\n", 'a: |\n  \u2029\n', '--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
  '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
- 'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', '--- &\na: 1\nb:\n  - *a\n', '--- &\ns: [x]\nt:\n  u:\n    -<< *s\n',
- '--- &\na: {p: 1}\nb: {c: {<<: *a}}\n', 'a: "\\ud83d"\n', 'a: "x\n', "a: 'x\n", 'a: *nope\n', '[1, 2\n---\n', '{a: 1, a: 2}\n', '{"a": 1 "b": 2}\n', '[,]\n', '{,}\n', ': x\n', '- x\ny: 1\n', 'a: 1\n- x\n', 'a: 1\n  b: 2\n']
+ 'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', 
+ 'a: "\\ud83d"\n', 'a: "x\n', "a: 'x\n", 'a: *nope\n', '[1, 2\n---\n', '{a: 1, a: 2}\n', '{"a": 1 "b": 2}\n', '[,]\n', '{,}\n', ': x\n', '- x\ny: 1\n', 'a: 1\n- x\n', 'a: 1\n  b: 2\n']
 f = 0
 for t, want in good:
     if want is None: continue
@@ -555,5 +578,26 @@ for t in ('a: 1\n', '%YAML 1.2\na: 1\n', '# c\n%YAML 2.0\n', '\ufeff%YAML 2.0\n'
     try: P(t).stream(); print('NOT REFUSED', repr(t)); f += 1
     except No: pass
 assert read('--- !配置\na: 1\n').docs[0][0] == '配置'
+def size_tests():
+    ex = '--- &\na: [x, yy]\nm: {k: v}\n---\nb: *a\nc:\n  -<< *a\n  - z\nd:\n  <<: *m\n'
+    assert read(ex).sizes == [(15, 26)], read(ex).sizes
+    read(ex, 41)
+    def no(*a):
+        try: read(*a)
+        except No: return
+        raise AssertionError(a)
+    no(ex, 40)
+    st = '---\na: 1\n---\nb: 2\n---\nc: 3\n'
+    m = max(n for _, n in read(st).sizes); read(st, m); no(st, m, True); read(st, 3 * m, True)
+    assert read('--- &\nm: {k: v}\n---\nc:\n  <<: *m\n  k: w\n').sizes[0][1] == 12
+    assert read('--- &\na: x\n--- &\na: yyy\n---\nb: 1\n').sizes[0][0] == 6
+    assert read('--- &\na: x\n...\n---\nb: 1\n').sizes[0][0] == 0
+    dbl = '--- &\na: [x, x]\n' + ''.join(f'a{i}:\n  -<< *{"a" if i == 0 else "a" + str(i - 1)}\n  -<< *{"a" if i == 0 else "a" + str(i - 1)}\n' for i in range(40))
+    no(dbl, 100000)
+    ref = '--- &\na: [x, x]\n' + ''.join(f'a{i}: [*{"a" if i == 0 else "a" + str(i - 1)}, *{"a" if i == 0 else "a" + str(i - 1)}]\n' for i in range(40))
+    no(ref, 100000)
+    assert read('[' * 256 + ']' * 256 + '\n').docs
+    assert read(''.join(' ' * i + 'k:\n' for i in range(256)) + ' ' * 256 + 'v\n').docs
+size_tests()
 r = read('---\nt: 1\n...\n# H\n'); assert r.stopped == len('%YAML 2.0\n---\nt: 1\n...\n'), r.stopped
 print(f'edge cases: {len(good) + len(refused) + 4 - sum(1 for g in good if g[1] is None)} run, {f} fail')

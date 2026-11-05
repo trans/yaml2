@@ -75,15 +75,14 @@ development:
 
 - Every reference, not just merge, targets an earlier `--- &` document. Any
   other `&` is an error, so 1.x anchors fail loudly.
-- In a `--- &` document the only reference allowed is `<<` at the top of an
-  entry, merging earlier entries (the user, 2026-11-03, which refines "no
-  references inside"). Nothing deeper. A merge there only combines keys already
-  written, so no entry can outgrow the file, and a merge nested under a new key,
-  which is what doubles, stays banned.
-- **Corrected 2026-11-04:** this makes growth quadratic, not small, so "no size
-  limit needed" was wrong. A 1 MB file with a 500 KB entry and 100,000 `- *a` lines
-  expands to about 50 GB. A limit on expanded size, or nodes shared in memory,
-  is probably still needed. The user is concerned about this and wants to revisit.
+- In a `--- &` document a reference works as it does anywhere: it looks backward, at
+  earlier entries, so an entry can't name itself, and one that replaces another may
+  name the old one. A `<<:` at the top of the `--- &` document itself is refused. The
+  user agreed on 2026-11-04, after @oyl's review. This replaces the rule of 2026-11-03,
+  which allowed only `<<` at the top of an entry: the size limit now bounds growth, and
+  that rule refused GitLab's `.build:` with `script:` holding `-<< *.setup`.
+- Structure alone doesn't bound growth: a 1 MB file with a 500 KB entry and 100,000
+  `- *a` lines expands to about 50 GB. Hence the size limit.
 - Size limit: one total, the user's choice (2026-11-04, "set a total upper limit, and
   no matter what one stream has or is, if it passes that mem limit it errors out"),
   replacing the proposed 100 times `written`, which bounded growth but not memory: a
@@ -97,14 +96,19 @@ development:
   counts too, and needs the app to raise it. A small file can reach the limit, so a
   service reading untrusted input should lower it. Shared nodes aren't the answer: a
   merge copies its key list anyway, see landscape.md. They stay a parser's choice.
-  `-<<` can go at the top of a `--- &` entry too, since this stops doubling (the user,
-  2026-11-04, "yes"), and nothing deeper. "Top" here means depth: it can go at any
-  position among the entry's items. Several in a chain of entries can still double each
-  time. The user and the agent left that to the size limit (2026-11-04): banning `-<<`
-  in the table, or allowing one per entry, would stop it, but costs real use, and the
-  limit refuses by adding up sizes, before allocating anything.
-- Data documents can use `<<` at any depth: what it points at holds no nested
-  references, so each use adds at most one entry.
+- **Size limit, changed 2026-11-04.** The total now covers the table in scope and the
+  document being read, not the whole stream, so a long stream can be read one document
+  at a time (@oyl's review; the user agreed, since @oyl would know). The count is exact,
+  with a worked example in section 10. An interface that delivers several documents
+  together counts them together: the agent's addition, because many small documents
+  that each name a large table are a memory bomb for a load-all reader. **The user
+  hasn't confirmed that addition.**
+- `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
+  time, and the user and the agent left that to the size limit (2026-11-04), which
+  refuses by adding up sizes, before allocating anything.
+- Nesting: every parser must accept 256 levels and may refuse past that, but never crash.
+  The user agreed to a minimum on 2026-11-04. **256 is the agent's pick**: the deepest of
+  the 4,241 real files that parse is 21.
 
 **Path syntax** (the user chose `:`). Fewest clashes (landscape.md): keys
 holding `:` in 1 of 2,995 files, `/` in 19, `.` in 160. It needs no new scanner
@@ -162,9 +166,8 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   `- <<: *a` (an item that is a mapping with merged keys) then differs from `-<< *a`
   by more than a space. A shape check also tells them apart: `<<:` needs a mapping,
   `-<<` a sequence.
-  In a `--- &` entry it goes at the top of the entry, as `<<:` does. Two `-<<` of the
-  entry before double each time, unlike `<<:`, whose keys collapse, so the size limit
-  above is what stops that.
+  In a `--- &` entry, two `-<<` of the entry before double each time, unlike `<<:`,
+  whose keys collapse, so the size limit above is what stops that.
 - Flow collections, **proposed** (the user asked, 2026-11-04): both work, by the same
   rules, if flow stays, as proposed below. `{<<: *a, x: 1}` with `<<:` first, and
   `[-<< *s, x]` at any position. A reference ends at `,`, `]` or `}`, so a path key
@@ -342,8 +345,8 @@ tests settled on, all proposals, left open for the core team:
   as in a data file. `!flag` looks up the key `flag` there. `*flag` would paste the
   value in, and the parser would do it; `!flag` is a plain string to the parser,
   and the schema layer resolves it and keeps the name. `*` can't replace it: a
-  reference is a whole value, so it can't sit in `![job*]` or `!str | job`, it
-  can't nest in a `--- &` document, and recursive types would never end. Use `<<`
+  reference is a whole value, so it can't sit in `![job*]` or `!str | job`,
+  and recursive types would never end. Use `<<`
   to paste a shape and `!name` to use a type. A key above the `---` is a name;
   below it, a key in the document. That takes reading with care: the user read
   `flag: !str` as a key with a string value (2026-11-03), which is what it
@@ -361,7 +364,7 @@ tests settled on, all proposals, left open for the core team:
 - **How a stream is marked** (the user accepted this, 2026-11-04). `--- &` is the
   lookup table, `--- !name` a named document, `---` a plain one, and only data is
   delivered. Bare `--- !` goes: a shadow's root is a table entry, so a schema file is
-  a table and nothing else. One table per stream: `!job` and `*defaults` look in the
+  a table and nothing else. One table at a time: `!job` and `*defaults` look in the
   same place. An app can supply a schema directly or by prepending it. Moving both
   shadows' roots into named entries changed no result.
 - **A document names its interpretation with `--- !name`** (the user asked for a
@@ -451,6 +454,15 @@ version's parser if the caller asked ("it can switch parsers, dealer choice"). A
 scalar with no text is the empty string. A plain key and its `:` stay on one line in
 flow, and a quoted key may have a line break before `:`, for JSON (the user first agreed
 to one line, then chose the JSON goal, the same day).
+**Characters outside double quotes** (the user agreed on 2026-11-04, after @oyl's review):
+U+0085, U+2028 and U+2029 are refused, and a double-quoted string can hold them, which
+keeps JSON. They are a real same-bytes-different-data case: PyYAML and go-yaml read
+`- a`, U+2028, `- b` as two items, and a 1.2 parser as one. **Bidirectional controls are
+allowed, and the user hasn't seen that yet:** they agreed to refuse them too, on the
+agent's word that it cost nothing, and the agent then measured that claim false (see
+landscape.md, Right-to-left text). Every parser reads them alike, so they aren't the root
+problem, and section 14 leaves them open.
+
 `{a}` is refused, which leaves room for sets later, and section 14 says so. U+FEFF outside double quotes is left as an
 open question there.
 

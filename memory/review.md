@@ -1,14 +1,14 @@
 # Review of Draft 1
 
-*Updated 2026-11-05*
+*Updated 2026-11-04*
 
-@oyl reviewed Draft 1 at the user's request (2026-11-05, against `f9727d5`). Its view:
+@oyl reviewed Draft 1 at the user's request (2026-11-04, against `f9727d5`). Its view:
 strong, nothing changes the core design. The agent reran the probes marked **Checked**
-and they hold. These are recommendations until the user decides. The original wasn't
+and they hold. The user agreed to the agent's recommendations on 2026-11-04. The original wasn't
 filed here, because it names private Oyl notes and reference-parser plans and this
 repository is public. It stays in @oyl's `mail/sent/`, with the advice for the parser.
 
-## Errors, the agent would just fix (**Open**)
+## Errors (**Fixed in `caece25`**)
 
 - **Checked:** npm `yaml` 2.9.0 reads a 2.0 stream as 1.2 with only a warning:
   `port: 80`, `enabled: true` and `mode: 0755` come out typed, and `--- !job` passes. It
@@ -35,26 +35,28 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 - Section 11 should say an emitter of typed data needs the same schema, to quote a
   string the schema would read as a number.
 
-## Decisions for the user (**Open**)
+## Decisions (the user, 2026-11-04)
 
-- **Drop the ban on references deep in table entries (section 8.4).** **Checked:** a
-  GitLab-style `.build:` with `script:` holding `-<< *.setup` is refused, and `-<<` chains
-  in the table already double, so the ban no longer protects anything now the size limit
-  exists. The agent agrees. This also corrects its advice of 2026-11-04: the 38 of 123
-  GitLab list reuses inside definitions are mostly refused by this ban already.
-- **Invisible line breaks.** **Checked:** raw U+0085, U+2028 and U+2029 are accepted in
-  plain values, keys and comments, and U+202E in comments. It's the lone CR argument again.
-  They could be refused outside double quotes, which keeps JSON. Refusing them inside too
-  would cost 2 of the 93 JSONTestSuite files. Bidirectional controls need a sentence.
-- **Spaces-only lines in `|`.** **Checked:** five spaces inside `|` keep 3 of them in the
-  value, and the same line in `>` is refused. Trailing-space stripping then changes data.
-  The agent's earlier attempt to treat them as empty silently changed 3 real files.
-- **A minimum nesting depth** every parser must accept, with a test at that depth.
-- **Size limit per document** plus the table in scope, rather than per stream, so a long
-  stream can be read one document at a time.
-- A security section for the quadratic rule, and what "column" counts.
-- A "What this costs" section: JSON's line and schema, YAML-to-JSON consumers such as
-  sigs.k8s.io/yaml, and a 2.0 spelling for CloudFormation, GitLab `!reference`, Home
-  Assistant `!include` and Ansible `!vault`.
-- Whether the first document should need `---`: the form without it is the one npm `yaml`
-  refuses, which argues for keeping it optional.
+- **Drop the ban on references deep in table entries (section 8.4).** **Fixed in `caece25`.**
+  References work inside entries as anywhere, backward only.
+- **Invisible line breaks.** **Fixed in `caece25`**, for U+0085, U+2028 and U+2029: refused
+  outside double quotes.
+- **Bidirectional controls.** **Open: the user should confirm.** The user agreed to refuse
+  them too, on the agent's word that it cost nothing, because 0 of 4,651 files hold one.
+  That corpus has almost no right-to-left text, and real locale files do use them
+  (landscape.md, Right-to-left text). So the draft allows them, and section 14 leaves
+  them open, with a narrower rule to consider: refuse them in keys and comments only.
+- **Spaces-only lines in `|`.** **Open**, in section 14. Five spaces inside `|` keep 3 of
+  them in the value, and the same line in `>` is refused. Trailing-space stripping then
+  changes data. The agent's earlier attempt to treat them as empty silently changed 3
+  real files.
+- **A minimum nesting depth.** **Fixed in `caece25`:** 256, the agent's pick, tested in block
+  and flow. The deepest real file is 21.
+- **Size limit per document** plus the table in scope. **Fixed in `caece25`**, with an exact
+  count, and tests under, at and over a limit. The agent added one rule the user hasn't
+  confirmed: an interface that delivers documents together counts them together.
+- **A "What this costs" section.** **Fixed in `caece25`**, as section 13.1.
+- **Whether the first document should need `---`.** **Open**, in section 14, which now
+  says the form without it is the one npm `yaml` refuses.
+- **A security section for the quadratic rule, and what "column" counts.** **Open**, and
+  not yet taken to the user.
