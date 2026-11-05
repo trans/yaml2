@@ -119,13 +119,13 @@ development:
   references and delivering several documents takes nothing off at `...`, since its documents
   still name the old tables. Held stays linear: an entry grown by one item per document adds
   a few units each time. A fixed-width full stops at its largest value
-  and never wraps. **Not committed yet.** See [review.md](review.md).
+  and never wraps. In `2d5a90d`. See [review.md](review.md).
 - `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.
 - Nesting: every parser must accept 256 levels and may refuse past that, but never crash.
   Levels count with references followed, by addition, the outermost collection being the
-  first (the user, 2026-11-05, **not committed yet**).
+  first (the user, 2026-11-05, in `2d5a90d`).
   The user agreed to a minimum on 2026-11-04. 256 is the agent's pick, and the user
   accepted it as a minimum (2026-11-04): the deepest of the 4,241 real files that parse is 21.
 
@@ -198,7 +198,7 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   2026-11-04 ("I would not forbid that"): a write through a shared node is how the
   document is spelled, may be wanted, and copying first is easy. It replaces "a copy, so
   the data stays a tree" and "share memory only if no application can tell". A writable
-  tree can offer both kinds of edit. **Not committed yet.** Nothing is writable while
+  tree can offer both kinds of edit. In `2d5a90d`. Nothing is writable while
   parsing (the user, 2026-11-04: a writable structure "should not be wriable until it is
   manifest -- not while it is parsing"), so a change can't reach a later document. Data
   built one document at a time shares nothing between documents, and sharing across them

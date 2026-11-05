@@ -86,8 +86,10 @@ Oyl's own default accepts 256 levels and refuses 257, which matches the minimum.
 Two messages, `a5d4f5e5` and `f2752547`, in `mail/received/`. @oyl found no hole in the two
 decisions, and five gaps in the text. The agent reran the first two and the replacement
 stream, built as the messages describe, and checked the third by arithmetic. The user said
-to apply the fixes on 2026-11-05, with the agent's form of the table rule. **Fixed, not yet
-committed.** @oyl hasn't been told which form was chosen.
+to apply the fixes on 2026-11-05, with the agent's form of the table rule. **Fixed in
+`2d5a90d`**, and @oyl has been told. Anything a normal load reads, a tool keeping references
+can read too, when both deliver the same way. Delivering several documents at once, a tool
+keeping references also counts old tables that no document names, because it holds them.
 
 - **Full wraps.** `a0: [x, x]`, then each link naming the last twice: 63 links in 1,672
   bytes, `a62` has a full size of 2^64 + 1. A wrapping 64-bit count reads 1, so "checks full
