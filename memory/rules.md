@@ -420,7 +420,12 @@ a tab on a line with no content stays refused. `%YAML 2.0` may repeat before a m
 Another version on the first line counts as no directive: refuse, or pass it to that
 version's parser if the caller asked ("it can switch parsers, dealer choice"). A block
 scalar with no text is the empty string. A key and its `:` stay on one line in flow.
-`{a}` is refused, which leaves room for sets later, and section 14 says so. Still there: lone CR, U+FEFF, and the characters of a name.
+`{a}` is refused, which leaves room for sets later, and section 14 says so. Still there:
+U+FEFF and the characters of a name.
+
+A lone CR stays refused (the user, 2026-11-04, "But okay"). The reason is that a line
+break tools can't see lets a viewer and a parser disagree. The user expects most parsers
+to ignore this rule, so it needs a case in the test suite.
 
 - Multi-line plain scalars go: a plain scalar is one line. The user's earlier idea
   (yaml/YAML2#5, 2016) was to keep their line breaks, since an app can remove lines
