@@ -1179,6 +1179,23 @@ Formats built on tags each need a 2.0 spelling:
 
 CloudFormation reads its long forms today. The last two need the application to change.
 
+Data that names its own classes changes most. 1.x can put a class on any node, as
+`!ruby/object:Point`, so a language can dump an object it knows nothing about. In 2.0 only a
+document has a name:
+
+- **A known shape,** such as a gem's metadata, works through a schema, which says which type
+  sits where. The application binds each name to a class (YAML Schema, section 12).
+- **A known set of classes** works the same way, with a union that lists them.
+- **Any object, with no schema,** has nowhere to carry its class on a nested node. A dumper
+  writes a key such as `class: Point`, and its loader checks that key against a list of its own.
+- **A document name** can't hold `:`, so `--- !ruby/object:Gem::Specification` is refused, and
+  `--- !rubygems.org/specification` reads.
+- **Cycles** can't be written, because references only point backward.
+- **Shared objects** read as copies, so which values were one object isn't kept.
+
+A whole object graph, cycles included, is a job for a language's own format, such as Ruby's
+`Marshal`.
+
 ## 14. Open points
 
 **Left open on purpose:**

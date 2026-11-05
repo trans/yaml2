@@ -165,7 +165,8 @@ percent: !int(0..100)
 101
 ```
 
-A limit is written with `..`, because a comma would split the item in a flow sequence.
+A limit is written with `..` everywhere. A comma would work in a block, but it ends a plain
+scalar in a flow collection (part 1, section 6.1).
 
 ### 4.3 Patterns
 
@@ -201,6 +202,28 @@ web1
 ```yaml refused
 --- &
 tag: !str(/^[a-z]+$/)
+```
+
+A type expression is a plain scalar first, so it ends where any plain scalar ends (part 1,
+section 6.1). A pattern can't get around that, and quoting one makes it a literal (section 5).
+In a block, a space before `#` or after `:` is written `[ ]`. In a flow collection, a pattern
+can't hold any of `, [ ] { }`, so a pattern that needs one is named in the table, as `tag` is
+above, and the name goes in the collection.
+
+```yaml
+--- &
+note: !str(/x:[ ]y/)
+--- !note
+'x: y'
+```
+
+```json
+"x: y"
+```
+
+```yaml refused
+--- &
+tags: [!str(/[a-z]+/), ...]
 ```
 
 ## 5. Literals
@@ -496,12 +519,15 @@ nested default takes its own `<<` at that level.
 
 ## 12. Application types
 
-A schema names types, and application code binds them. A schema must never name a class to
-build, or `!ruby/object` comes back by another door.
+A schema names types, and application code binds them. A parser builds nothing from a name,
+whatever the name says. Only a name the application bound does anything, so its bindings are the
+list of what a stream can get built. A stream can carry its own table (section 3), and that still
+doesn't let a file choose a class and have its code run while loading.
 
-An application binds code to a name in the table. The code takes what the entry delivers, and
-returns a value of the application's own, or refuses. An unbound name stays what its entry says,
-so the same document still reads as plain data in any other language.
+This is how a language serializes objects. An application binds code to a name in the table. The
+code takes what the entry delivers, and returns a value of the application's own, or refuses. An
+unbound name stays what its entry says, so the same document still reads as plain data in any
+other language.
 
 ```yaml
 --- &
@@ -514,6 +540,28 @@ total: 19.99
 
 ```json
 {"total": "19.99"}
+```
+
+A known set of classes is a union, which lists them. Ruby can bind `point` to its `Point` class
+and `sweep` to `Sweep`, and another language reads the same mappings. Part 1, section 13.1, says
+what this can't carry.
+
+```yaml
+--- &
+point:
+  x: !int
+  y: !int
+sweep:
+  target: !int
+shape: !point | !sweep
+shapes: [!shape, ...]
+--- !shapes
+- {x: 1, y: 2}
+- target: 3
+```
+
+```json
+[{"x": 1, "y": 2}, {"target": 3}]
 ```
 
 A bound name is also how to keep a check that a schema can't state: a rule on two scalar forms,
@@ -530,8 +578,9 @@ that keeps comments can show it. Part 1, section 11, says which key a comment be
 
 ## 14. Grammar
 
-A type expression is what a plain scalar in a schema holds. The block and flow forms of sequences
-and mappings are part 1's.
+A type expression is what a plain scalar in a schema holds, so `pattern` and `literal` below can
+only hold what a plain scalar can hold where it is written (section 4.3). The block and flow forms
+of sequences and mappings are part 1's.
 
 ```ebnf
 expression ::= part (" | " part)*
@@ -564,6 +613,8 @@ and a plain key ending in `?` is optional.
 - **More than one limit on a type.** A range and a pattern can't be combined today.
 - **Patterns.** I-Regexp is proposed. An alternative worth weighing makes every character literal
   except what sits in brackets, so `v{0-9}.{0-9}` needs no escapes, and `{{` is a literal brace.
+  With brackets outside ASCII, such as `⦃0-9⦄`, a pattern could also sit in a flow collection,
+  which `[0-9]` can't, at the cost of being hard to type. A literal comma still couldn't.
 - **Rules a schema can't state.** Rules across keys, such as "not both" or "if this then that".
   Limits on a sequence's or a mapping's size, beyond one or more. Two alternatives of one shape,
   told apart by content. These go to application code today.
@@ -572,9 +623,12 @@ and a plain key ending in `?` is optional.
 
 ## 16. Security
 
-A schema adds no way to run code: it names types, it can't name a class, and it never fetches
-anything. Part 1, section 15, covers the data.
+A schema adds no way to run code: a name does nothing unless the application bound it, and a
+schema never fetches anything. Part 1, section 15, covers the data.
 
+- **A binding is a list of what may be built.** A library that binds every name to the class of
+  that name, as Ruby's `unsafe_load` does with tags, hands the choice back to the file, which
+  section 12 rules out.
 - **A schema in the stream is a claim.** A stream that carries its own schema can make it as lax
   as it likes. An application that relies on a check supplies the schema itself (section 3).
 - **Patterns can be slow.** A dedicated I-Regexp engine can run in linear time, but RFC 9485 warns
