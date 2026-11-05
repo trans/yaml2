@@ -179,3 +179,90 @@ user**, who moved on to YAML Schema first. Nothing here is in the spec yet.
   each joined file should read as it does alone. Not prototyped yet.
 - **A limit on that:** a file with no final line break joins badly whatever we choose.
   `a: 1` then `%YAML 2.0` on the same line gives `a` the value `1%YAML 2.0`, with no error.
+
+## @oyl on part 2, Draft 1 (2026-11-05)
+
+Message `18666a0d`, answering `ceb22cac`, read at `7689ea6`. It isn't filed here, because it named
+a parser that isn't announced. The original stays in @oyl's `mail/sent/`. **Open, for the user.
+Nothing here is in the spec yet.**
+
+**Checked by the agent:** every probe below through `schemacheck.py`, the two union changes in a
+private copy (30 examples and 82 edge cases still pass), the walk's arithmetic (6 × 2^n - 3 visits),
+RFC 9485 and RFC 4648, the Oyl API it names, and 4,099 Unicode category runs on Unicode 16. **Not
+reproduced:** its timings, which are @oyl's, on Oyl's 1.x events and tree with an outside typer, using
+the JSON schema only.
+
+**Speed.** No rule needs dropping. Typing with the JSON schema adds 7 to 32% over reading strings.
+Delivering values is what costs: +112% on a numbers input, which is `strtod`. The real concern is
+what a hostile stream can make a parser spend.
+
+**Time a stream can force,** for section 16:
+
+- Forced collisions in typing: section 7.4 doesn't name a data key against a type's keys, `!name`
+  in the table, or the memo below. By arithmetic, not run. A shared compiled schema needs its own key.
+- Reference walks: 632 bytes and 28 levels took 1.6 billion visits, doubling per level. Remembering
+  (node, type) took 88. So section 16's "bounded by the data" holds only with that memo. Proposal:
+  an interface keeping references types each node once under each type.
+- Unions read literally: `a0: !a1 | !a1` and so on is 2^n. Reproduced: 338 bytes took 0.9 s at n=20.
+  Proposal: each name counts once in a union, at its first place. Then n=200 takes 5 ms.
+- Patterns: `(a{1000}){1000}` is a million positions in 15 bytes.
+- Many alternatives: data times schema, unless merged into one automaton.
+
+**Section 3 is wrong as written.** "A file can't pick a laxer schema" fails for a prepended schema,
+since a file can replace `job`, replace `int`, or end the table with `...`. All three read
+`retries: abc`. Proposal: drop "or prepend it to the stream". One compiled schema then serves many
+streams. The agent's note: this also fits the joined-files recommendation, where a `%YAML 2.0` line
+empties the table, so a prepended file couldn't work anyway.
+
+**Related proposals:**
+
+- A stream's own schema should need the application to ask. Today `--- !port` after a data entry
+  `port: 80` is refused, though part 1 calls a name advisory.
+- An entry a type has reached can't be replaced until `...`. Today `b: !bool` replacing `b: !int` makes
+  one `--- !a` read and the next refuse, against section 8.1 of part 1.
+- Section 2 against reachability: the added rule stands, and section 2's sentence changes. An entry
+  nothing reaches isn't a type, since `motd: !important` is a fine data entry.
+- "Applied as a stream is parsed" should say a schema sees how each scalar was written, and runs over
+  what the parser read. As written, a load that types a tree looks non-conforming. This rewords the
+  user's correction of 2026-11-04, so it's the user's call.
+
+**Unions of mappings.** An event interface must buffer, which is fine: `<<` already can't stream. Keep
+"no alternative is tried by typing its children". Proposal: a mapping also fails to fit if it has a
+key it doesn't take. Today `{x: 1, y: 2, z: 3}` under `!p | !q`, where `q` adds `z`, is refused, as is
+`{x: 1}` under `{x?}` or `{y?}`. Both read with the change. Today's `!m | !m` and a diamond also read.
+
+**A reference typed where it is used.** Keep it: one bit per node. A refusal through a reference
+should give the use, with the entry's line beside it.
+
+**Sizes and numbers.** A type changes no count. A cycle of names with no collection is refused: the
+checker does, and the text doesn't say. `!int` and `!float` have no range, and the checker reads 400
+digits and gives infinity for `1e999`. Proposal: 64-bit signed integers at least, past that a parser
+may refuse but never rounds or wraps, and `!float` is binary64, with overflow refused.
+
+The agent's additions: `!float` needs correct rounding too, or the same bytes differ. A range failure
+must refuse the document, not count as no match, or `!int | !float` rounds on one parser and
+not another, and an overflow falls through to `!str`. Underflow isn't covered. All the huge numbers in
+JSONTestSuite are `i_` files, so none of this touches the 93 of 95.
+
+**Patterns.** A parser carries its own engine, so every language agrees. RFC 9485 section 8 lets
+implementations refuse nested or very large counts, so two parsers can disagree on whether a schema
+loads. Proposal: a floor, say 1,000 after nested counts multiply, and linear time as a rule. RFC 9485
+names no Unicode version, so name one. `\p{..}` needs tables, about 16 KB, the first such tables in the
+design. The agent's count: 2 SchemaStore files use `\p{..}`.
+
+**Bindings.** Two layers: typed events saying which type each node took, and a callback with an arena.
+Three rules to add: a binding that refuses, refuses the document, with no trying the next alternative.
+One call per use. Emitting needs a way back. Today's `oyl_schema_builder_add_type` can't build a struct.
+
+**Smaller:**
+
+- `!float` in 4.1 excludes `2`, which examples need: say "which may have".
+- `!int | "none"` reads the quote marks as part of a literal: refuse a part starting with a quote,
+  other than `''`.
+- `!any` in a union takes a mapping that fits no alternative. The checker does; write it down.
+- `!binary` refuses wrapped base64 in `|`. RFC 4648 sections 3.1 and 3.3 let a referring spec allow
+  line breaks, so say it's meant or skip them.
+- `a?` and `a` in one mapping: later wins.
+
+**Not covered by @oyl:** named keys, required keys and literals in the timing, the real shadows, a
+pattern engine, and narrowing alternatives as keys arrive.
