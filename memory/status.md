@@ -22,7 +22,8 @@ scalar in a schema is always a literal, a reference is typed where it's used, `!
 every named type reachable from the root is checked. `schemacheck.py` tests the draft: 30
 examples and 82 edge cases pass. Not done yet: breaking most of its rules on purpose to prove
 the tests catch it (only patterns in flow so far), and running the two real shadows through
-it. @oyl hasn't been told about part 2.
+it. @oyl was told about part 2 on 2026-11-05 and asked to weigh in, on seven points where a
+parser feels it. No answer yet.
 
 **In `7689ea6`** (the user, 2026-11-05): patterns in flow collections (part 2, sections 4.3 and 14),
 a parser builds nothing from a name (part 2, sections 12 and 16), and what 2.0 costs object data
