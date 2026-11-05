@@ -496,8 +496,8 @@ A key is a plain or quoted scalar on one line, of any length. A key is a string,
 and `"1"` are the same key, and two keys that are the same are refused. Keys are
 compared by code point, with no normalization.
 
-The time to find repeated keys must not grow with the square of the number of keys,
-even in a stream written to force it.
+The time to find repeated keys, and to follow references through keys, must not grow with
+the square of the number of keys and references, even in a stream written to force it.
 
 An empty key must be quoted. A collection or a reference can't be a key, and `?` isn't
 an indicator. A Hash with non-string keys is written as a sequence of pairs, and a
@@ -534,13 +534,14 @@ delivered. A block mapping there starts at column 0.
 
 A key repeated inside one `--- &` document is refused, as in any mapping. A key that an
 earlier `--- &` document defined replaces that entry. A `...` empties the table, so the
-documents after it start fresh.
+documents after it start fresh. A replaced entry still counts against the size limit until
+that `...` (section 10).
 
 An entry stays in scope until the next `...`, so several documents can share it.
 Putting a `--- &` document ahead of a file shares definitions without any include
 feature.
 
-A reference copies what it names when it is read, so a replacement never changes a
+A reference takes what its entry holds when it is read, so a replacement never changes a
 document or an entry that came before it.
 
 ```yaml
@@ -640,8 +641,16 @@ f: *<.deps:rocm>:before_script
 
 ### 8.3 Resolving
 
-A reference names exactly one node, and delivers a copy of it, so the data stays a
-tree. A parser may share memory only if no application can tell.
+A reference names exactly one node, and delivers its value. Nothing can loop, so the data
+always reads as a tree.
+
+What a parser delivers while it is reading can't be changed, so nothing an application
+does can reach what is still to be read. Writable data is built from that afterwards, and
+there a reference may stay one shared node or become a copy. A change to a shared node
+reaches every place that names it, so to change one place only, a program takes a deep
+copy of it first. Data built one document at a time shares nothing between documents, so a
+change can't reach a document still to be read. Sharing across documents takes one build,
+after the stream has been read.
 
 A reference is allowed as a value, a sequence item or a whole document, and never as a
 key. It must name an entry already in the table: references only look backward, so a
@@ -856,21 +865,40 @@ a: {p: 1}
 
 ## 10. The size limit
 
-A parser keeps a running total, and refuses the stream when the total passes the limit.
-It must count and refuse before allocating, because running out of memory usually kills
-a process with nothing to catch.
+A parser tracks two numbers as it reads, and refuses the stream when one that applies
+passes the limit. It must refuse before allocating, because running out of memory usually
+kills a process with nothing to catch.
 
-The total covers what a reader holds at one time: the table in scope and the document
-being read. A delivered document leaves the total, so a long stream can be read one
-document at a time. An interface that delivers several documents together holds them
-all, so it counts them together.
+**Held** is what the data takes as written, which is close to what a parser that keeps
+references has in memory. Each node counts 1, and a scalar adds its UTF-8 bytes. A key
+counts as a scalar does. A reference, a `<<:` and a `-<<` each count 1.
 
-Each node counts 1, and a scalar adds its UTF-8 bytes. A key counts as a scalar does. A
-reference adds the size of the node it names, and nothing for itself. `<<:` adds the size
-of the pairs it names, and `-<<` of the items, without the collection's own 1. Nothing is
-deduplicated, so a merged key that a later line replaces still counts. An entry adds its
-key and value to the table, a replacement takes the old entry's size off, and `...` takes
-the table to 0.
+**Full** is what the data would take with no references left. A reference adds the size of
+the node it names, and nothing for itself. `<<:` adds the size of the pairs it names, and
+`-<<` of the items, without the collection's own 1. Nothing is deduplicated, so a merged
+key that a later line replaces still counts. Full is worked out by addition, so finding
+it builds nothing. A short chain of references can pass 2^64, so a fixed-width sum must stop
+at its largest value and never wrap.
+
+Both cover the table in scope and the document being read. An entry adds its key and value
+to both. A replacement takes the old entry's size off full, where nothing can reach it
+again, but not off held, because a delivered document that keeps references can still name
+it. `...` takes the table to 0 in both. A delivered document leaves both numbers, so a long
+stream can be read one document at a time.
+
+Every interface applies the limit to held. So a stream that keeps replacing entries has to
+write `...` now and then, and an emitter should write one before replacing an entry in a
+long stream.
+
+An interface that delivers data with no references left also applies the limit to full,
+because a program that loads a file usually walks it, and a chain of references that fits
+in a kilobyte can take terabytes to walk. An interface that keeps references, such as a
+syntax tree (section 11), applies it to held alone. Whatever expands those references later
+checks full and levels first, and refuses before building.
+
+An interface that delivers several documents at once adds up their sizes in each number it
+applies. If it keeps references, `...` takes nothing off held either, because its documents
+still name the old tables.
 
 ```yaml
 --- &
@@ -889,18 +917,39 @@ d:
 {"b": ["x", "yy"], "c": ["x", "yy", "z"], "d": {"k": "v"}}
 ```
 
-The entry `a` counts 8: 2 for the key, 1 for the sequence, 2 for `x` and 3 for `yy`. The
-entry `m` counts 7, so the table is 15. The document counts 26: 1 for the mapping, 8 for
-`b`, 10 for `c` and 7 for `d`. The total is 41, which a limit of 41 allows and a limit of
-40 refuses.
+The entry `a` counts 8 in both numbers: 2 for the key, 1 for the sequence, 2 for `x` and 3
+for `yy`. The entry `m` counts 7, so the table is 15. The document's full size is 26: 1 for
+the mapping, 8 for `b`, 10 for `c` and 7 for `d`. Its held size is 14: 1 for the mapping, 3
+for `b`, 6 for `c` and 4 for `d`. So full is 41, which a limit of 41 allows and a limit of
+40 refuses, and held is 29, which an interface keeping references allows at a limit of 29.
 
-The default limit is 64 MiB of this size. An application may set it higher or lower.
+```yaml
+--- &
+a: [x, yy]
+--- &
+a: [z]
+---
+b: *a
+```
+
+```json
+{"b": ["z"]}
+```
+
+The second `a` replaces the first, so the table counts 5 in full and 13 in held. The
+document counts 6 in full and 4 in held. So full is 11 and held is 17, and every interface
+refuses this stream at a limit of 16.
+
+The default limit is 64 MiB. An application may set it higher or lower.
 A large plain file counts, and needs its application to raise the limit. A small file
 can reach it through references, so a service reading untrusted input should lower it.
 
 The size limit doesn't bound nesting: a few kilobytes of `[` can be deeper than a parser
-can go. Every parser must accept 256 levels. Past that it may refuse, and it must refuse
-rather than crash, so parsers can differ on how deep they go, but only by refusing.
+can go, and so can a chain of references written two levels deep. So levels count with
+references followed, worked out by addition as full is. Each collection is a level, the
+outermost being the first. Every parser must accept 256 levels. Past that it may refuse,
+and it must refuse rather than crash, so parsers can differ on how deep they go, but only
+by refusing.
 
 ## 11. What a parser delivers
 
@@ -919,13 +968,17 @@ differently. With no schema, they are the same value.
 
 A parser may also offer a syntax tree that keeps all of them, with their exact
 positions, for tools that edit files. It isn't required, and it is separate from the
-delivered data.
+delivered data. Because it keeps references, it can offer both kinds of edit. A change to
+an entry reaches every reference to it. A change at one reference replaces it with its
+value, or for a merged key, with a written key. The tool then reads the result again,
+since a change to an entry can break a later line.
 
 So that such tools agree, a comment at the end of a line belongs to the last node on
 that line. A run of comment lines belongs to the key or item on the next line, if no
 blank line comes between. Any other comment belongs to no node.
 
-An emitter writes `%YAML 2.0` first and never sorts keys. An emitter of typed data needs
+An emitter writes `%YAML 2.0` first and never sorts keys. It writes a shared node in full
+at each place, because which nodes are shared isn't data. An emitter of typed data needs
 the same schema, so that it can quote a string the schema would read as something else.
 With no schema, changing how a scalar is quoted is always safe. With one, it can change
 the data.
