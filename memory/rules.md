@@ -233,7 +233,9 @@ emitter never sorts them. Proposed consequences, left open for the core team:
 - Merge order. The user on `<<` as the first key of a mapping: "I think so"
   (2026-11-04), replacing "where it is written". "Top" had two meanings: depth (the
   `--- &` rule) and position (this one). Why: a late `<<` already gives different
-  values, see landscape.md.
+  values, see landscape.md. The user expects this to be debated, since it may be stricter
+  than needed if the rule for each place is clear. It stays the proposed rule, and
+  section 14 of the draft says so (2026-11-04).
   - Override in place: the user's "I am good with it" (2026-11-04). `<<: *base` (x,
     y), `name: a`, `y: 3` gives `x, y, name`. A mapping with `<<` is ordered as if the
     merged keys were pasted at the top and each local key then assigned. So merged
