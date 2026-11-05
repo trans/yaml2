@@ -101,20 +101,31 @@ development:
   written, with a reference, `<<:` and `-<<` each counting 1. Full is the size with no
   references left, worked out by addition, so nothing is built: a 702-byte doubling chain
   came to 3.3 trillion in under a millisecond. Both cover the table in scope and the
-  document being read, and a delivered document leaves both. A normal load applies the
-  limit to full and refuses up front, because its program will usually walk the data. An
-  interface that keeps references applies it to held, and whatever expands them later
-  checks full first. An interface delivering several documents at once adds up their full
-  sizes. It is still one setting. This replaces the count per stream and then per document,
+  document being read, and a delivered document leaves both. Every interface applies the
+  limit to held, and a normal load also applies it to full, refusing up front, because its
+  program will usually walk the data. An interface that keeps references applies it to held
+  alone, and whatever expands them later checks full and levels first. An interface
+  delivering several documents at once adds up each number it applies. It is still one
+  setting. This replaces the count per stream and then per document,
   and @oyl's count on the stream. A reference costs one node in Oyl's tree, so a stream
   naming a 1 MB entry 1,000 times holds almost nothing and should read. Held stands in for
   real memory so that every parser gets the same number: Oyl could track real memory,
   since every allocation in a parse goes through `oyl_arena.c`, but another parser's figure
   would differ.
+- **Shared tables need a reset.** The user asked for this through @oyl (2026-11-05), and
+  chose the agent's form over @oyl's third count ("apply the fixes", 2026-11-05). A
+  replacement comes off full but stays in held, and `...` takes the table to 0 in both, so a
+  stream that keeps replacing entries has to write `...` now and then. An interface keeping
+  references and delivering several documents takes nothing off at `...`, since its documents
+  still name the old tables. Held stays linear: an entry grown by one item per document adds
+  a few units each time. A fixed-width full stops at its largest value
+  and never wraps. **Not committed yet.** See [review.md](review.md).
 - `-<<` can go anywhere in a `--- &` entry. A chain of entries can still double each
   time, and the user and the agent left that to the size limit (2026-11-04), which
   refuses by adding up sizes, before allocating anything.
 - Nesting: every parser must accept 256 levels and may refuse past that, but never crash.
+  Levels count with references followed, by addition, the outermost collection being the
+  first (the user, 2026-11-05, **not committed yet**).
   The user agreed to a minimum on 2026-11-04. 256 is the agent's pick, and the user
   accepted it as a minimum (2026-11-04): the deepest of the 4,241 real files that parse is 21.
 
@@ -189,8 +200,9 @@ Proposed, left open for the core team unless marked as the user's (see status.md
   the data stays a tree" and "share memory only if no application can tell". A writable
   tree can offer both kinds of edit. **Not committed yet.** Nothing is writable while
   parsing (the user, 2026-11-04: a writable structure "should not be wriable until it is
-  manifest -- not while it is parsing"), so a change can't reach a later document, and
-  writable data built afterwards may share across documents. Oyl already works this
+  manifest -- not while it is parsing"), so a change can't reach a later document. Data
+  built one document at a time shares nothing between documents, and sharing across them
+  takes one build after the stream is read (2026-11-05). Oyl already works this
   way: `oyl_parse_tree` gives a read-only tree per document, with no write functions, and
   an alias is a 32-byte node holding its target's index. Its aliases stay inside one
   document's tree today, so references into a table that spans documents are new work.

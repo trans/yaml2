@@ -3,7 +3,10 @@
     python3 -I draftcheck.py SPEC
 
 Runs every example in the draft, then edge cases. The size limit is counted after each
-document and table entry, both held and full, and is off by default.
+document and table entry, both held and full, and is off by default. With keep=True a
+reference stays a reference, so `-<<` adds its size and builds nothing, and data read that
+way has to pass expand() first. Python integers don't wrap, so the count that stops at its
+largest value is shown in size_tests by working it out at a fixed width.
 """
 import json, re, sys
 class No(Exception): pass
@@ -11,37 +14,62 @@ FLOWI = ',[]{}'
 sys.setrecursionlimit(20000)
 IND = ",[]{}#&*|>'\""
 NAME = re.compile('[A-Za-z0-9._/\\-\u00b7\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u037d\u037f-\u1fff\u200c-\u200d\u203f-\u2040\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufefe\uff00-\ufffd\U00010000-\U000effff]')
+class L(list):
+    """A sequence that keeps references: `-<<` adds to more and deep, and no items."""
+    more = 0; deep = 0
 class P:
-    def __init__(s, t, limit=None, together=False, keep=False):
-        s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.held = 0; s.sizes = []; s.keep = keep; s.theld = {}; s.saved = 0; s.helds = []
+    def __init__(s, t, limit=None, together=False, keep=False, maxlevels=None):
+        s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.sizes = []; s.keep = keep; s.theld = 0; s.saved = 0; s.helds = []
+        s.dheld = s.dfull = 0; s.maxlevels = maxlevels; s.lmemo = {}
         s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None
     def nsize(s, v):
         """A node's size. A shared object counts in full at every use."""
         if isinstance(v, str): return 1 + len(v.encode('utf-8', 'surrogatepass'))
         m = s.memo.get(id(v))
         if m is None:
-            m = (v, 1 + (sum(s.nsize(x) for x in v) if isinstance(v, list) else sum(s.nsize(k) + s.nsize(x) for k, x in v.items())))
+            m = (v, 1 + (sum(s.nsize(x) for x in v) + getattr(v, 'more', 0) if isinstance(v, list) else sum(s.nsize(k) + s.nsize(x) for k, x in v.items())))
             s.memo[id(v)] = m
         return m[1]
+    def levels(s, v):
+        """Levels with references followed. Each collection is one, and strings none."""
+        if isinstance(v, str): return 0
+        m = s.lmemo.get(id(v))
+        if m is None:
+            kids = v if isinstance(v, list) else v.values()
+            m = max(1 + max((s.levels(x) for x in kids), default=0), getattr(v, 'deep', 0))
+            s.lmemo[id(v)] = m
+        return m
+    def deep(s, v):
+        if s.maxlevels is not None and s.levels(v) > s.maxlevels: s.bad('too deep')
+    def expand(s, v):
+        """What expanding kept references checks first."""
+        s.check(min(s.nsize(v), 2 ** 64 - 1)); s.deep(v)
     def check(s, n):
         if s.limit is not None and n > s.limit: s.bad('past the size limit')
     def entry(s, k, v):
         s.tsize[k] = s.nsize(k) + s.nsize(v) + s.extra; s.extra = 0
-        s.theld[k] = s.tsize[k] - s.saved; s.saved = 0
-        s.check(sum((s.theld if s.keep else s.tsize).values()))
+        s.theld += s.tsize[k] - s.saved; s.saved = 0
+        s.tally(0, 0)
+        if not s.keep: s.deep(v)
+    def tally(s, h, n):
+        s.check(s.theld + (s.dheld if s.together else h))
+        if not s.keep: s.check(sum(s.tsize.values()) + (s.dfull if s.together else n))
     def plainref(s, flow):
         v = s.ref(flow); s.saved += s.nsize(v) - 1
         return v
-    def spliced(s, src):
+    def splice(s, out, src):
         s.saved += s.nsize(src) - 2
-        if not s.keep: s.check(s.nsize(src))
+        if s.keep:
+            out.more += s.nsize(src) - 1; out.deep = max(out.deep, s.levels(src))
+        else:
+            s.check(s.nsize(src)); out += src
     def deliver(s, name, v):
-        n = s.nsize(v) + s.extra; s.extra = 0; t = sum(s.tsize.values())
-        h = n - s.saved; s.saved = 0; th = sum(s.theld.values())
-        s.sizes.append((t, n)); s.helds.append((th, h))
-        s.held += h if s.keep else n
-        a, b = (th, h) if s.keep else (t, n)
-        s.check(a + (s.held if s.together else b))
+        n = s.nsize(v) + s.extra; s.extra = 0
+        h = n - s.saved; s.saved = 0
+        s.sizes.append((sum(s.tsize.values()), n)); s.helds.append((s.theld, h))
+        s.dheld += h; s.dfull += n
+        s.tally(h, n)
+        if not s.keep: s.deep(v)
         s.docs.append((name, v))
     def finish(s):
         """Characters, over what was read: nothing after a final `...` counts."""
@@ -114,7 +142,8 @@ class P:
                 if s.eof(): return s
                 if not (s.marker() or s.directive_then_marker()):
                     s.stopped = after; return s
-                s.table = {}; s.tsize = {}; s.theld = {}
+                if s.keep and s.together: s.dheld += s.theld
+                s.table = {}; s.tsize = {}; s.theld = 0
             if s.directive_then_marker():
                 s.i += 9; s.eol(); s.gap()
             if not s.marker(): s.bad('expected a marker')
@@ -255,7 +284,7 @@ class P:
             s.i -= k
         return s.node(m)
     def seq(s, m):
-        s.enter(); out = []
+        s.enter(); out = L()
         while True:
             j = s.i
             if not s.at(m): s.i = j; break
@@ -263,7 +292,7 @@ class P:
             if s.ch(1) == '<':
                 s.i += 3; s.spaces(); src = s.ref(False); s.eol()
                 if not isinstance(src, list): s.bad('-<< needs a sequence')
-                s.spliced(src); out += src
+                s.splice(out, src)
             else:
                 s.i += 1; k0 = s.i; k = s.spaces()
                 if k and s.ch() not in ('#', '\n', ''):
@@ -378,12 +407,12 @@ class P:
         if c == '*': return s.plainref(True)
         return s.plain(True)
     def fseq(s):
-        s.i += 1; o = []; s.fs()
+        s.i += 1; o = L(); s.fs()
         while s.ch() != ']':
             if re.match(r'-<< +\*', s.t[s.i:s.i + 40]):
                 s.i += 3; s.spaces(); src = s.ref(True)
                 if not isinstance(src, list): s.bad('-<< needs a sequence')
-                s.spliced(src); o += src
+                s.splice(o, src)
             else: o.append(s.fnode())
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
@@ -450,9 +479,9 @@ class P:
             v = v[k]
         return v
 
-def read(t, limit=None, together=False, keep=False):
+def read(t, limit=None, together=False, keep=False, maxlevels=None):
     if not t.startswith('%YAML'): t = '%YAML 2.0\n' + t
-    return P(t, limit, together, keep).stream().finish()
+    return P(t, limit, together, keep, maxlevels).stream().finish()
 
 spec = open(sys.argv[1], encoding='utf-8').read()
 ok = bad = 0
@@ -622,6 +651,42 @@ def size_tests():
     no(ref, 100000); read(ref, 100000, False, True)
     assert read('[' * 256 + ']' * 256 + '\n').docs
     assert read(''.join(' ' * i + 'k:\n' for i in range(256)) + ' ' * 256 + 'v\n').docs
+    rep = '--- &\na: [x, yy]\n--- &\na: [z]\n---\nb: *a\n'
+    r = read(rep); assert r.sizes == [(5, 6)] and r.helds == [(13, 4)], (r.sizes, r.helds)
+    read(rep, 17); no(rep, 16); read(rep, 17, False, True); no(rep, 16, False, True)
+    one = lambda i: f'--- &\ne: {"x" * 990}{i:04d}\n---\nv: *e\n'
+    many = ''.join(one(i) for i in range(200)); cut = 64 * 997
+    for kw in ((False, False), (False, True), (True, False), (True, True)): no(many, cut, *kw)
+    wrote = ''.join('...\n' * (i > 0) + one(i) for i in range(200))
+    read(wrote, cut); read(wrote, cut, False, True)
+    read(wrote, 200 * 997 + 800, True, True); no(wrote, 200 * 997 + 799, True, True)
+    no(wrote, cut, True, False)
+    log = '--- &\nlog: []\n' + '--- &\nlog:\n  -<< *log\n  - a\n---\nn: *log\n' * 1000
+    assert read(log).helds[-1][0] == 5 + 8 * 1000 - 0, read(log).helds[-1]
+    read(log, 12000); read(log, 8010, False, True)
+    chain = '--- &\na0: [x, x]\n' + ''.join(f'a{i}:\n  -<< *a{i - 1}\n  -<< *a{i - 1}\n' for i in range(1, 63)) + '---\nb: *a62\n'
+    lim = 64 * 2 ** 20; no(chain, lim)
+    r = read(chain, lim, False, True); v = r.docs[-1][1]['b']
+    assert r.nsize(v) == 2 ** 64 + 1 and sum(r.helds[-1]) < 2000, (r.nsize(v), r.helds)
+    w = 5
+    for _ in range(62): w = ((w - 1) * 2 + 1) % 2 ** 64
+    assert w == 1 and w <= lim
+    w = 5
+    for _ in range(62): w = min((w - 1) * 2 + 1, 2 ** 64 - 1)
+    assert w == 2 ** 64 - 1 and w > lim
+    try: r.expand(v); raise AssertionError('expand')
+    except No: pass
+    deep = lambda n: '--- &\ne0: x\n' + ''.join(f'e{i}: [*e{i - 1}]\n' for i in range(1, n + 1)) + f'---\ny: *e{n}\n'
+    r = read(deep(999)); assert r.levels(r.docs[-1][1]) == 1000
+    read(deep(255), None, False, False, 256)
+    try: read(deep(256), None, False, False, 256); raise AssertionError('levels')
+    except No: pass
+    r = read(deep(256), None, False, True, 256)
+    try: r.expand(r.docs[-1][1]); raise AssertionError('levels kept')
+    except No: pass
+    spl = '--- &\ns: [[[x]]]\n---\n- -<< *s\n- y\n'
+    r = read(spl, None, False, True); assert r.levels(r.docs[-1][1]) == 4, r.levels(r.docs[-1][1])
+    assert read(spl).levels(read(spl).docs[-1][1]) == 4
 size_tests()
 r = read('---\nt: 1\n...\n# H\n'); assert r.stopped == len('%YAML 2.0\n---\nt: 1\n...\n'), r.stopped
 print(f'edge cases: {len(good) + len(refused) + 4 - sum(1 for g in good if g[1] is None)} run, {f} fail')

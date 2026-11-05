@@ -84,9 +84,10 @@ Oyl's own default accepts 256 levels and refuses 257, which matches the minimum.
 ## @oyl on held and full, and a limit on shared tables (2026-11-05)
 
 Two messages, `a5d4f5e5` and `f2752547`, in `mail/received/`. @oyl found no hole in the two
-decisions, and five gaps in the text. **Open, for the user. Nothing here is in the spec
-yet.** The agent reran the first three and the replacement stream, built as the messages
-describe.
+decisions, and five gaps in the text. The agent reran the first two and the replacement
+stream, built as the messages describe, and checked the third by arithmetic. The user said
+to apply the fixes on 2026-11-05, with the agent's form of the table rule. **Fixed, not yet
+committed.** @oyl hasn't been told which form was chosen.
 
 - **Full wraps.** `a0: [x, x]`, then each link naming the last twice: 63 links in 1,672
   bytes, `a62` has a full size of 2^64 + 1. A wrapping 64-bit count reads 1, so "checks full
@@ -133,6 +134,8 @@ naming it are gone. Keep the key index for table entries.
 all. Following a reference by hash takes 11 to 21 ns, about one parsed event. A scan takes
 120,000 ns at 100,000 keys, the only real problem.
 
-**Checker's blind spots.** Python integers don't wrap, so it can't show the overflow, and with
-`keep=True` it builds the values, so it hangs on that file. It needs a saturating count and a
-size-only mode before this can become a test.
+**Checker.** With `keep=True` it now builds nothing for `-<<`, so the 63-link chain reads at
+once. Python integers don't wrap, so `size_tests` works the chain out at 64 bits both ways, and
+`P.expand` is what a tool checks before expanding. Breaking each new rule on purpose, eight
+ways, fails a test each time. The path rule has no test, because the checker's table is a
+Python dict.
