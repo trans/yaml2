@@ -186,9 +186,13 @@ table drop `%YAML 2.0` and use `---`. Assumes all are 2.0. The draft already did
 
 - **A plain `cat` is refused** (the user, 2026-11-05). `%YAML 2.0` can come again only after `...`, so
   no one gets a shared table without choosing it. In the working copy, not committed yet.
-- **`...`, `%YAML 2.0`, `b: 2`: open.** The parser stops and `b` is lost with no error. The agent first
-  proposed reading on, and the user objected: text after `...` can say anything (the front matter
-  rule). The agent's next proposal is to refuse that line when no marker follows it.
+- **Every file starts `%YAML 2.0`, then `---`** (the user, 2026-11-05: "require it", and let the core team
+  wrestle with it if they want it changed). In the working copy, not committed yet, with the reasons
+  in section 4.2 and the case against in section 14. `...`, `%YAML 2.0`, `b: 2` was the problem: the
+  parser stops and `b` is lost with no error. The agent proposed reading on, then refusing. The user
+  objected to both, since text after `...` can say anything, and saw that only a `---` should decide.
+  With the marker required, every valid file can follow `...`, so no exception is needed. 3,558 of
+  4,651 and JSONTestSuite's 93 of 95 stay the same, with the lines added.
 
 ## @oyl on part 2, Draft 1 (2026-11-05)
 

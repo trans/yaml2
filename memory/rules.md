@@ -410,6 +410,9 @@ tests settled on, all proposals, left open for the core team:
   `flag`. That recovered nearly all of what patterns check, with no regex in the
   schema. An unbound name stays a string. It needs no rule of its own: it's just a
   named type.
+- **Joining files** (the user, 2026-11-05). Only `...` empties the table. Whoever joins files chooses:
+  independent files get `...`, and files sharing a table drop `%YAML 2.0` and use `---`. A plain `cat` is
+  refused. Every file starts `%YAML 2.0` then `---`, which closes section 14's open point for now.
 - **Numbers** (the user, 2026-11-05). `!int` and `!float` have no size. A parser delivers the number
   written, or refuses. Digits lost are an error, not a warning, unless an application accepts rounding
   on `!float`. `!decimal` says the application keeps it exact or errors. A width is a limit, and byte
