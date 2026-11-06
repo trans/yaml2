@@ -68,7 +68,9 @@ All public. Read this before presenting: it bears on the ask and on part 2's nam
   exceed. Part 2 types strings. Its regexes are JSON Schema's, with `\S` and `\d`, not I-Regexp. Binding
   is left to applications: a document tag, a `!!yaml` meta document, or an inline schema. The name
   collides with part 2's: the user chose "YAML Schema" on 2026-11-03, not knowing of it, and theirs was
-  public first. **Open, for the user.**
+  public first. The user's view (2026-11-06): it isn't far off, and the covering note should mention it.
+  The two match on `key?`, required by default, closed mappings and a type as a key. They differ in
+  definitions (`+name:` beside data keys, against table entries). A rename wasn't taken up.
 - **The spec.** `yaml-spec` `main` last changed 2023-05-23. Searches found no 2.0 proposal anywhere.
 
 ## What is deployed (@oyl's measurements, its ideas.md and dialects-design.md)
