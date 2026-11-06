@@ -113,7 +113,8 @@ retries: 3
 | `!binary` | any scalar: base64, RFC 4648 section 4, with line breaks skipped | bytes |
 | `!any` | any node | that node, untyped |
 
-The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans.
+The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans. A
+pattern on `!int` can change this for integers (section 4.5), and nothing else can.
 
 `!int`, `!float`, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can be an integer, and
 `"3"` never is. A block scalar isn't plain. This is what a YAML 1.2 parser with JSON Schema
@@ -200,8 +201,8 @@ scalar in a flow collection (part 1, section 6.1).
 
 ### 4.3 Patterns
 
-`!str(/pattern/)` limits a string by a pattern. A pattern is I-Regexp (RFC 9485), and it must
-match the whole string. I-Regexp has literals, `.`, classes, counts, groups, `|` and `\p{..}`.
+`!str(/pattern/)` limits a string by a pattern, and section 4.5 says what one does on `!int`. A
+pattern is I-Regexp (RFC 9485), and it must match the whole string. I-Regexp has literals, `.`, classes, counts, groups, `|` and `\p{..}`.
 It has no lookaround, no backreferences, no captures and no `\d`, `\w` or `\s`, which is why
 it means the same in every language.
 
@@ -313,6 +314,49 @@ n: !float | !str
 --- !n
 1e999
 ```
+
+### 4.5 A pattern on `!int`
+
+`!int(/pattern/)` replaces the standard spelling with the pattern. It matches a plain scalar that
+the pattern matches, and reads the text as an optional sign and base-10 digits, so `+5` is 5 and
+`007` is 7. What section 4.3 says of patterns holds, and so does what section 4.4 says of numbers.
+
+```yaml
+--- &
+signed: !int(/[-+][0-9]+/)
+offsets: [!signed, ...]
+--- !offsets
+- +5
+- -3
+```
+
+```json
+[5, -3]
+```
+
+The pattern takes the place of the spelling and doesn't add to it, so `5` isn't `!signed`. A quoted
+scalar never is, as with any `!int`.
+
+```yaml refused
+--- &
+signed: !int(/[-+][0-9]+/)
+--- !signed
+5
+```
+
+Text the pattern matches and that can't be read this way refuses the document, as a number that
+can't be held does. It doesn't count as no match, because the schema has said it is an integer, so
+`0x1f` below doesn't become a string.
+
+```yaml refused
+--- &
+hex: !int(/0x[0-9a-f]+/)
+n: !hex | !str
+--- !n
+0x1f
+```
+
+Section 10 shows how to apply a pattern like this to every value in a document.
 
 ## 5. Literals
 
@@ -627,6 +671,52 @@ jobs:
 {"timeout": 30, "name": "30", "jobs": [{"nested": {"timeout": 7}}]}
 ```
 
+`free`, `list` and `map` are ordinary table entries, and any names would do.
+
+It can also pick out a value by how it looks. Here any plain scalar with a sign is an integer, at
+any depth, and everything else stays a string:
+
+```yaml
+--- &
+signed: !int(/[-+][0-9]+/)
+free: !signed | !str | !list | !map
+list: [!free, ...]
+map:
+  !str: !free
+--- !free
+a: +5
+b: 5
+c: [-3, x]
+d: {e: {f: +7}}
+g: "+5"
+```
+
+```json
+{"a": 5, "b": "5", "c": [-3, "x"], "d": {"e": {"f": 7}}, "g": "+5"}
+```
+
+A rule like this is an ordinary type, and each node has one type, so nothing has to rank a rule
+against the type at a key. A schema uses it at the keys it chooses:
+
+```yaml
+--- &
+signed: !int(/[-+][0-9]+/)
+free: !signed | !str | !list | !map
+list: [!free, ...]
+map:
+  !str: !free
+job:
+  image: !str
+  args: !free
+--- !job
+image: +5
+args: {n: +5}
+```
+
+```json
+{"image": "+5", "args": {"n": 5}}
+```
+
 ## 11. References and merge
 
 A schema types what is delivered, where it is delivered. A table entry isn't typed by itself. A
@@ -716,7 +806,9 @@ such as `true` or `${{ expression }}`, is a named string and a few lines of code
 ## 13. Emitting and documenting
 
 An emitter of typed data needs the same schema. It quotes a string that the type at that place
-would read as something else: under `!int | !str`, the string `3` is written `"3"`. A bound value
+would read as something else: under `!int | !str`, the string `3` is written `"3"`. It writes an
+integer in a spelling the type reads back as that number, so under `!signed` (section 4.5), 5 is
+written `+5`, and it refuses if it has none. A bound value
 needs the way back too: the application gives code that turns a `Point` into the mapping its entry
 takes. Part 1, section 11, says the rest.
 
@@ -765,7 +857,12 @@ and a plain key ending in `?` is optional.
   since an application checking files it didn't write depends on it.
 - **`!null` and an empty value.** `!null` takes the plain `null` only, and `key?:` takes an
   empty value. Whether `!null` should take both is open.
-- **More than one limit on a type.** A range and a pattern can't be combined today.
+- **More than one limit on a type.** A range and a pattern can't be combined today, so `!signed`
+  (section 4.5) can't also say `0..100`.
+- **Patterns on other types.** `!float`, `!decimal` and `!null` could take a pattern as `!int` does,
+  so that `.5` or `~` could be read. `!bool` can't, because a pattern doesn't say which text is true.
+- **Bases.** Section 4.5 reads base 10 only. Hex and octal would need a way to say which base a
+  pattern means, and with those, `.inf`, `True` and `~`, a schema could state 1.2's Core Schema.
 - **Patterns.** I-Regexp is proposed. An alternative worth weighing makes every character literal
   except what sits in brackets, so `v{0-9}.{0-9}` needs no escapes, and `{{` is a literal brace.
   With brackets outside ASCII, such as `⦃0-9⦄`, a pattern could also sit in a flow collection,

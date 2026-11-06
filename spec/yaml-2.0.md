@@ -898,9 +898,10 @@ A parser tracks two numbers as it reads, and refuses the stream when one that ap
 passes the limit. It must refuse before allocating, because running out of memory usually
 kills a process with nothing to catch.
 
-**Held** is what the data takes as written, which is close to what a parser that keeps
-references has in memory. Each node counts 1, and a scalar adds its UTF-8 bytes. A key
-counts as a scalar does. A reference, a `<<:` and a `-<<` each count 1.
+**Held** is what the data takes with its references kept, which is close to what a parser
+that keeps references has in memory. Each node counts 1, and a scalar adds the UTF-8 bytes of
+its value, so `"\u00e9"` adds 2. A key counts as a scalar does, and so does a document's name.
+A reference, a `<<:` and a `-<<` each count 1. A tree that keeps comments adds their bytes.
 
 **Full** is what the data would take with no references left. A reference adds the size of
 the node it names, and nothing for itself. `<<:` adds the size of the pairs it names, and
@@ -910,10 +911,12 @@ it builds nothing. A short chain of references can pass 2^64, so a fixed-width s
 at its largest value and never wrap.
 
 Both cover the table in scope and the document being read. An entry adds its key and value
-to both. A replacement takes the old entry's size off full, where nothing can reach it
-again, but not off held, because a delivered document that keeps references can still name
-it. `...` takes the table to 0 in both. A delivered document leaves both numbers, so a long
-stream can be read one document at a time.
+to both. A replacement takes the old entry's size off full when the new entry's key is read,
+so `a:` with `-<< *a` and `- z`, replacing `a: [x, yy]`, leaves full at 10 and never reaches
+18. A parser that expands entries as it reads does hold both for that moment, which can come
+to twice the limit. The old size stays in held, because a delivered document that keeps
+references can still name it. `...` takes the table to 0 in both. A delivered document leaves
+both numbers, so a long stream can be read one document at a time.
 
 Every interface applies the limit to held. So a stream that keeps replacing entries has to
 write `...` now and then, and an emitter should write one before replacing an entry in a
