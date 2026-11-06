@@ -440,6 +440,23 @@ tests settled on, all proposals, left open for the core team:
   - JSON is now two lines. It matched `json.loads` on all 1,015 SchemaStore files and 93 of 95 in
     JSONTestSuite, the other 2 being repeated keys. Part 2: 46 examples, 245 edge cases, 53 of 53
     deliberate rule breaks caught. Not tested: speed, or an emitter under `!*`.
+- **Publishing a schema (the user proposed this, 2026-11-06; in the working copy of both specs,
+  not committed on `main`).** The user asked for `!<url>` to a `.yes` file. The agent objected to a
+  parser fetching on read (a stranger's file sends requests from the reader's machine) and to a
+  published file changing (same bytes, different data). The user answered the second by naming the
+  file for its own hash, then chose 40 hex digits of SHA-256 (160 bits) over 32 and 64, and put the
+  version in the path: `tabcomputing.com/address/v1/<hash>.yes`.
+  - No new grammar: a global name holds it, and names keep their ban on `:`, so `!<url>` isn't needed.
+    `https://` before the name is the address, and no other name has one.
+  - A parser never fetches, so every parser delivers strings and the name. An application that opts
+    in gets a stamp as from a local entry, and the file's table stays out of the stream's. A file that
+    doesn't hash to its name is refused, and so is a document whose file can't be had.
+  - Why "no hash, no lookup": pinning by hash is rare where it's optional, 9.1% of 2,332 workflow
+    `uses:`, 1.6% of 1,161 Compose `image:`, 2.1% of 427 Kubernetes `image:`. Only 8 of 4,651 files
+    name a schema by URL today, 7 with no version in it and none pinned.
+  - JSON Schema's core, 2020-12, sections 8.2 and 9.1.2, also treats a URI as an identifier and not a
+    download. The agent's proposal, not yet decided: the last entry is the root.
+  - 17 edge cases added, and 64 of 64 deliberate breaks of part 2 caught, the last 11 on publishing.
 - **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
   `flag`. That recovered nearly all of what patterns check, with no regex in the
@@ -559,7 +576,8 @@ Still missing:
   same data with or without a schema. A format's own default (GitHub's 360 minutes)
   is applied by the app, and is only mentioned in a comment. Merge is shallow, so a
   nested default takes its own `<<` at that level.
-- Links across files: `$ref` to another file or URL. A shadow has one stream.
+- Links across files: `$ref` to part of another file. A shadow has one stream, and publishing, above,
+  only covers a whole schema.
 - Same-shape alternatives: two sequences, or two scalars, told apart by content.
 
 Still to decide: whether the spec defines standard names (`date`, `binary`, `set`)

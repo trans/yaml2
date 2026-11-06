@@ -5,7 +5,7 @@
 Reads every example with the grammar in draftcheck.py, types each document whose local name
 is in the table, and compares the result with the example's JSON. Then runs edge cases.
 """
-import base64, binascii, datetime, json, math, os, re, re._parser, sys
+import base64, binascii, datetime, hashlib, json, math, os, re, re._parser, sys
 from decimal import Decimal, InvalidOperation
 here = os.path.dirname(os.path.abspath(__file__))
 src = open(here + '/draftcheck.py', encoding='utf-8').read().split("\nspec = open(sys.argv[1]")[0]
@@ -312,9 +312,19 @@ class Schema:
             if (lim[1] is not None and n < lim[1]) or (lim[2] is not None and n > lim[2]): raise Bad(path, f'{t[:40]!r} is out of range')
         return out
 
-def typed(stream, app=None, accept=False):
+PUB = re.compile(r'[^/]+(?:/[^/]+)*/([0-9a-f]{40})\.yes')
+def published(name, store, accept):
+    """Section 3.1. The store is what an application can get, by hash, from anywhere."""
+    h = PUB.fullmatch(name)[1]; b = store.get(h)
+    if b is None: raise Cant(f'{name}: the file is not to be had')
+    if hashlib.sha256(b).hexdigest()[:40] != h: raise Cant(f'{name}: the file does not hash to its name')
+    r = read(b.decode('utf-8'))
+    if r.docs or not r.table: raise SchemaError(f'{name}: a published schema is a table and nothing else')
+    return Schema(r.table, list(r.table)[-1], accept)
+def typed(stream, app=None, accept=False, store=None):
     """Type each stamped document by the file's table, others by the application's schema.
-    With neither they stay strings. An application's schema is (schema text, root)."""
+    With neither they stay strings. An application's schema is (schema text, root). A store
+    means the application looks published names up."""
     r = read(stream); out = []; reached = {}; live = None
     own = None if app is None else Schema(read(app[0]).table, app[1], accept)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
@@ -324,6 +334,7 @@ def typed(stream, app=None, accept=False):
         if name and '/' not in name and name in table:
             sc = Schema(table, name, accept); out.append(sc.check(v))
             reached.update((k, table[k]) for k in sc.reached)
+        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, accept).check(v))
         elif own: out.append(own.check(v))
         else: out.append(strip(v))
     if r.docs and r.table is live:
@@ -451,6 +462,25 @@ if __name__ == '__main__':
     for t in badstar:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
+    # Publishing: a name holding a hash, which only an application that asks looks up.
+    Y = b'%YAML 2.0\n--- &\naddress:\n  street: !str\n  floor?: !int\n'; h = hashlib.sha256(Y).hexdigest()[:40]
+    def yes(b): return hashlib.sha256(b).hexdigest()[:40], b
+    D = f'--- !tabcomputing.com/address/v1/{h}.yes\nstreet: a\nfloor: 3\n'; T = {'street': 'a', 'floor': 3}; U = {'street': 'a', 'floor': '3'}
+    Q = dict([yes(b'%YAML 2.0\n--- &\na: !int\nb: !str\n')]); q = next(iter(Q))
+    W = dict([yes(b'%YAML 2.0\n--- &\na: !int\n---\n1\n')]); w = next(iter(W))
+    pub = [(D, {h: Y}, None, T), (D, None, None, U), (D.replace('tabcomputing.com/address/v1', 'mirror.example'), {h: Y}, None, T),
+           (D.replace(h, h.upper()), {h: Y}, None, U), (D.replace(h + '.yes', h[:39] + '.yes'), {h: Y}, None, U), (D.replace(f'tabcomputing.com/address/v1/{h}', h), {h: Y}, None, U),
+           ('--- !tabcomputing.com/address/v1\nstreet: a\n', {}, None, {'street': 'a'}), (f'--- !x.example/{q}.yes\nz\n', Q, None, 'z'),
+           ('--- &\naddress: !int\n' + D, {h: Y}, None, T), (D, {h: Y}, ('--- &\nj:\n  !*: !str\n', 'j'), T), (D, None, ('--- &\nj:\n  !*: !str\n', 'j'), U)]
+    for t, st, ap, w_ in pub:
+        try: got = typed(t, ap, store=st)[0]; f += 0 if same(got, w_) else 1; same(got, w_) or print('DIFFERS', repr(t), got)
+        except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
+    notpub = [(D, {h: Y + b' '}), (D, {}), (D, {h: Y[:-1]}), (f'--- !x.example/{w}.yes\n1\n', W), (f'--- !x.example/{q}.yes\n1\nnot: a scalar\n', Q)]
+    for t, st in notpub:
+        try: typed(t, store=st); f += 1; print('NOT REFUSED', repr(t))
+        except REFUSED: pass
+    Z = re.search(r'```yaml\n(%YAML 2\.0\n--- &\naddress:.*?)```', spec, re.S)
+    if Z and hashlib.sha256(Z[1].encode('utf-8')).hexdigest()[:40] + '.yes' not in spec: f += 1; print('THE SPEC NAMES THE WRONG HASH')
     n = 200; chain = '--- &\n' + ''.join(f'a{i}: !a{i+1} | !a{i+1}\n' for i in range(n)) + f'a{n}: !int\n--- !a0\n1\n'
     f += 0 if typed(chain) == [1] else 1
     # Reached entries, and what isn't reached.
@@ -468,5 +498,5 @@ if __name__ == '__main__':
     for k, v, acc in nope:
         try: typed(N + f'--- !{k}\n{v}\n', accept=bool(acc)); f += 1; print('NOT REFUSED', k, v)
         except REFUSED: pass
-    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
+    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
     sys.exit(1 if bad or f else 0)

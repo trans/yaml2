@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-05*
+*Updated 2026-11-06*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -17,6 +17,11 @@ what is open; the user went through it on 2026-11-04. @oyl's review is applied i
 The later decisions on shared nodes and the size limit, @oyl's five gaps and the limit on
 shared tables are in `2d5a90d`. Section 15, Security, is in `bf225ba`. @oyl's four points on
 section 10 and how files join are open for the user ([review.md](review.md)).
+
+**`!*` and publishing (2026-11-06).** `!*` is committed on `main` in `c54395c`, not pushed. Publishing is
+in the working copy of both specs and uncommitted, because the user asked to commit `!*` only. Once it
+goes in, the covering note's "46 and 245" becomes "48 and 262", and the note doesn't mention
+publishing or that `!*` makes most schemas far smaller than a full shadow. See [rules.md](rules.md).
 
 **YAML Schema, part 2.** Draft 1 is `spec/yaml-schema.md`, in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
