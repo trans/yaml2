@@ -74,3 +74,8 @@ in Oyl beside `oyl_upgrade`; not decided.
 
 Oyl's notes are private. Read them in place, and bring only what the user has
 cleared into this repository, which is public.
+
+**What goes to @oyl for now** (the user, 2026-11-05): only what its insight into performance might help
+with. Asked in `mail/sent/20261106-021824Z-@oyl--two-costs-in-part-2-at-1c1d724.md`: patterns on every
+scalar and the digits check on `!float`, with the three cost questions from `c422281e` still waiting.
+@oyl hasn't been told the Unicode minimum, the join rules or the required `---`, and needn't be yet.
