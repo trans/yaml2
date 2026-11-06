@@ -420,8 +420,8 @@ In block form, `...` is an item, `- ...`, so it never starts a line.
 
 ## 7. Mappings
 
-A mapping is written as a mapping. It takes only the keys it names. Order isn't checked, and
-typed data keeps the document's order.
+A mapping is written as a mapping. It takes only the keys it names, unless a `!*` reaches it
+(section 10). Order isn't checked, and typed data keeps the document's order.
 
 A key ending in `?` is optional. It may be absent, or written with no value, which delivers
 null. A quoted key is always a literal key, so a key that ends in `?` or starts with `!` can
@@ -505,6 +505,23 @@ steps: [!step, ...]
 
 ```json
 [{"name": "build", "run": "make"}]
+```
+
+A named type can name itself through a collection, as a tree does:
+
+```yaml
+--- &
+node:
+  name: !str
+  children?: [!node, ...]
+--- !node
+name: a
+children:
+  - name: b
+```
+
+```json
+{"name": "a", "children": [{"name": "b"}]}
 ```
 
 A named type can't take a limit: `!port(1..)` is refused. A cycle of names with no collection in
@@ -630,15 +647,14 @@ a: !str(/(a{1000}){1000}/)
 
 ## 10. Wherever this occurs
 
-A named type can name itself, so one rule can reach every level of a document, with no special
-form. This is JSON, written as an ordinary schema:
+`!*` as a key means anywhere. It takes every key the mapping doesn't name, at every level below,
+and a sequence adds no level. Collections are walked and its type applies to the scalars it
+reaches, so that type can't hold a sequence or a mapping. This is JSON:
 
 ```yaml
 --- &
-json: !null | !bool | !int | !float | !str | !array | !object
-array: [!json, ...]
-object:
-  !str: !json
+json:
+  !*: !null | !bool | !int | !float | !str
 --- !json
 {"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
 ```
@@ -647,42 +663,22 @@ object:
 {"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
 ```
 
-Read by a parser built from part 1's grammar, this schema matched a JSON parser exactly on 994
+Read by a parser built from part 1's grammar, this schema matched a JSON parser exactly on 1,015
 real JSON files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept.
 The other 2 are repeated keys, which part 1 refuses.
 
-The same form can pick out a key, at any depth:
+`!*` covers the node it sits on as well, so a type with `!*` and no required keys also takes a scalar
+or a sequence: `5` and `[1, 2]` are JSON here too. In a union the node's shape chooses first
+(section 9), so there it takes mappings only.
 
-```yaml
---- &
-free: !str | !list | !map
-list: [!free, ...]
-map:
-  timeout?: !int
-  !str: !free
---- !free
-timeout: 30
-name: 30
-jobs:
-  - nested: {timeout: 7}
-```
-
-```json
-{"timeout": 30, "name": "30", "jobs": [{"nested": {"timeout": 7}}]}
-```
-
-`free`, `list` and `map` are ordinary table entries, and any names would do.
-
-It can also pick out a value by how it looks. Here any plain scalar with a sign is an integer, at
-any depth, and everything else stays a string:
+`!*` can pick out a value by how it looks. Here any plain scalar with a sign is an integer, at any
+depth, and everything else stays a string:
 
 ```yaml
 --- &
 signed: !int(/[-+][0-9]+/)
-free: !signed | !str | !list | !map
-list: [!free, ...]
-map:
-  !str: !free
+free:
+  !*: !signed | !str
 --- !free
 a: +5
 b: 5
@@ -695,19 +691,102 @@ g: "+5"
 {"a": 5, "b": "5", "c": [-3, "x"], "d": {"e": {"f": 7}}, "g": "+5"}
 ```
 
-A rule like this is an ordinary type, and each node has one type, so nothing has to rank a rule
-against the type at a key. A schema uses it at the keys it chooses:
+Its value can instead be a mapping of rules. A key there picks out that key at every level, a key
+that is a type picks out the keys it fits, and `!*` there is the type of every other scalar, so it
+can't hold rules of its own. With no `!*` there, other scalars stay strings. A rule's value can be any
+type. A rule is never required, and `?` on one only lets the key be written with no value.
+
+```yaml
+--- &
+free:
+  !*:
+    timeout: !int
+--- !free
+timeout: 30
+name: 30
+jobs:
+  - nested: {timeout: 7}
+```
+
+```json
+{"timeout": 30, "name": "30", "jobs": [{"nested": {"timeout": 7}}]}
+```
+
+A key is looked up in the mapping type at its place, then in the nearest `!*`, and nowhere else. So
+the closest rule wins, and the order they are written in doesn't matter. A `!*` replaces any `!*`
+above it for everything below it, and rules from above can be kept with a merge.
 
 ```yaml
 --- &
 signed: !int(/[-+][0-9]+/)
-free: !signed | !str | !list | !map
-list: [!free, ...]
-map:
-  !str: !free
+cfg:
+  address:
+    name: !str(..40)
+    street?: !str(..100)
+  !*:
+    !str(/ts_.*/): !date
+    !*: !signed | !str
+--- !cfg
+address: {name: Ann, ts_moved: 2026-11-06, floor: +3}
+count: +5
+zip: 02134
+ts_start: 2026-11-06
+jobs:
+  - ts_end: 2026-11-07
+    n: -3
+```
+
+```json
+{"address": {"name": "Ann", "ts_moved": "2026-11-06", "floor": 3}, "count": 5, "zip": "02134", "ts_start": "2026-11-06", "jobs": [{"ts_end": "2026-11-07", "n": -3}]}
+```
+
+```yaml refused
+--- &
+cfg:
+  name: !str(..4)
+  !*:
+    !str(/ts_.*/): !date
+--- !cfg
+name: Ann
+jobs:
+  - ts_end: soon
+```
+
+Below a `!*` every mapping takes every key, as `floor` shows, though the keys it requires are still
+required. A mapping is closed only where no `!*` reaches it. An alternative is then chosen by its
+required keys and literal values alone, so `note` below rules nothing out, and if two fit the
+document is refused. `!any` at a key leaves everything under it untyped, since that is the closest
+rule.
+
+```yaml
+--- &
+circle:
+  kind: circle
+  r: !float
+square:
+  kind: square
+  side: !float
+cfg:
+  shape: !circle | !square
+  !*: !str
+--- !cfg
+shape: {kind: square, side: 2, note: x}
+```
+
+```json
+{"shape": {"kind": "square", "side": 2.0, "note": "x"}}
+```
+
+A `!*` reaches only what is below it, so the rest of a schema stays as strict as it was. Here `job`
+takes only its two keys:
+
+```yaml
+--- &
+signed: !int(/[-+][0-9]+/)
 job:
   image: !str
-  args: !free
+  args?:
+    !*: !signed | !str
 --- !job
 image: +5
 args: {n: +5}
@@ -834,8 +913,8 @@ name       ::= a table key, or a standard type, with no "/", "(", ")", "[", "]",
 pattern    ::= I-Regexp, RFC 9485, holding no "/)"
 ```
 
-A key in a schema mapping is a type if it is plain and starts with `!`. Otherwise it is literal,
-and a plain key ending in `?` is optional.
+A key in a schema mapping is a type if it is plain and starts with `!`, and `!*` is section 10's
+key. Otherwise it is literal, and a plain key ending in `?` is optional.
 
 ## 15. Open points
 
@@ -867,6 +946,9 @@ and a plain key ending in `?` is optional.
   except what sits in brackets, so `v{0-9}.{0-9}` needs no escapes, and `{{` is a literal brace.
   With brackets outside ASCII, such as `⦃0-9⦄`, a pattern could also sit in a flow collection,
   which `[0-9]` can't, at the cost of being hard to type. A literal comma still couldn't.
+- **Closed mappings below `!*`.** Below one, every mapping takes every key, so a schema can't close
+  a mapping there, and a typo in a key passes. `!*` could stop at a named type, at the cost of
+  naming a mapping changing what it accepts.
 - **Rules a schema can't state.** Rules across keys, such as "not both" or "if this then that".
   Limits on a sequence's or a mapping's size, beyond one or more. Two alternatives of one shape,
   told apart by content. These go to application code today.
@@ -895,6 +977,8 @@ the data.
 - **Patterns.** Matching takes time linear in the string, whichever engine does it, and section 9's
   ceiling limits a pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
   engine can't be used on a schema someone else wrote.
+- **`!*`.** A key is looked up in the mapping type at its place and in the nearest `!*`, and nowhere
+  else, so nesting them adds nothing per key.
 - **Recursion is bounded by the data.** Typing goes down one level of data at each step through a
   named type that holds a collection, and an entry that only names itself is refused when the
   schema is loaded.
