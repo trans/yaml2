@@ -21,7 +21,7 @@ class P:
     def __init__(s, t, limit=None, together=False, keep=False, maxlevels=None):
         s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.sizes = []; s.keep = keep; s.theld = 0; s.saved = 0; s.helds = []
         s.dheld = s.dfull = 0; s.maxlevels = maxlevels; s.lmemo = {}
-        s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None
+        s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None; s.intable = False
     def nsize(s, v):
         """A node's size. A shared object counts in full at every use."""
         if isinstance(v, str): return 1 + len(v.encode('utf-8', 'surrogatepass'))
@@ -149,9 +149,9 @@ class P:
             if not s.marker(): s.bad('expected a marker')
             s.document()
     def document(s):
-        s.i += 3; j = s.i; n = s.spaces()
+        s.i += 3; j = s.i; n = s.spaces(); s.intable = False
         if n and s.ch() == '&':
-            s.i += 1; k = s.i
+            s.i += 1; k = s.i; s.intable = True
             if s.spaces() and s.ch() == '{':
                 s.tableflow(); s.eol(); s.gap(); return
             s.i = k; s.eol(); s.gap(); k = s.i; s.spaces()
@@ -317,6 +317,7 @@ class P:
         if re.match(r'-<< +\*', s.t[s.i:s.i + 40]): s.bad('-<< outside a sequence')
         if not c or c in IND or c in ' \t\n': s.bad('bad start of a plain scalar')
         if c == '%' and s.col() == 0: s.bad('reserved for directives')
+        if c == '!' and not s.intable: s.bad('! starts a plain scalar outside the table')
         if c in '-?:' and (n in ('', ' ', '\t', '\n') or (flow and n in FLOWI)): s.bad('bad start of a plain scalar')
         b = s.i
         while True:
@@ -539,7 +540,15 @@ good = [
  ('--- &\na: 1\n...\n--- &\n---\nb: 2\n', [{"b": "2"}]),
  ('--- &\nFn::Sub: {x: 1}\n---\na: *Fn::Sub:x\n', [{"a": "1"}]),
  ('--- &\n"my key": {x: 1}\n---\na: *<my key>:x\nb: [*<my key>:x, 1]\n', [{"a": "1", "b": ["1", "1"]}]),
- ('a: !Ref foo\n', [{"a": "!Ref foo"}]),
+ ('--- &\na: !Ref foo\n---\nb: *a\n', [{"b": "!Ref foo"}]),
+ ('--- &\n{!a: !b}\n---\nc: 1\n', [{"c": "1"}]),
+ ('--- &\n!a:\n  - !b\n  - [!c]\n---\nd: 1\n', [{"d": "1"}]),
+ ('a: "!x"\n', [{"a": "!x"}]),
+ ("a: '!x'\n", [{"a": "!x"}]),
+ ('"!x": 1\n', [{"!x": "1"}]),
+ ('a: x !y\n', [{"a": "x !y"}]),
+ ('a: |\n  !x\n', [{"a": "!x\n"}]),
+ ('--- &\na: !x\n...\n--- &\nb: !y\n---\nc: *b\n', [{"c": "!y"}]),
  ('- %d\n- @x\n- `y`\n', [["%d", "@x", "`y`"]]),
  ('  %a: 1\n', [{"%a": "1"}]),
  ('[%a, @b]\n', [["%a", "@b"]]),
@@ -604,7 +613,7 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['%YAML 2.0\na: 1\n', '%YAML 2.0\n# c\n\na: 1\n', '%YAML 2.0\n[a]\n', '--- &\na: 1\n%YAML 2.0\n---\nb: *a\n', 'a: 1\n%YAML 2.0\n---\nb: 2\n', '%YAML 2.0\n%YAML 2.0\n---\na: 1\n', '---\na: 1\n%YAML 2.0\n--- &\nb: 2\n', '--- &\na:\n  b: *a\n', '--- &\n{a: {b: *a}}\n', 'a: [\n  1,\n---\n]\n', 'a: [\n  1,\n--- a\n]\n', 'a: [\n  1,\n...\n]\n', 'a: x\x85y\n', 'a: x\u2028y\n', 'a\u2029b: 1\n', "'\u2028'\n", 'a: |\n  \u2029\n', '--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['a: !Ref foo\n', 'a: !x\n', '!x\n', '---\n!x\n', '- !x\n', '!x: 1\n', '[!x]\n', '{a: !x}\n', '{!x: 1}\n', 'a: ! b\n', "a: ! 'b'\n", 'a: !\n', '--- &\na: !x\n---\n!y\n', '--- &\n{a: !x}\n---\nb: !y\n', '--- &\na: 1\n...\n---\nb: !y\n', '--- !n\nb: !y\n', '%YAML 2.0\na: 1\n', '%YAML 2.0\n# c\n\na: 1\n', '%YAML 2.0\n[a]\n', '--- &\na: 1\n%YAML 2.0\n---\nb: *a\n', 'a: 1\n%YAML 2.0\n---\nb: 2\n', '%YAML 2.0\n%YAML 2.0\n---\na: 1\n', '---\na: 1\n%YAML 2.0\n--- &\nb: 2\n', '--- &\na:\n  b: *a\n', '--- &\n{a: {b: *a}}\n', 'a: [\n  1,\n---\n]\n', 'a: [\n  1,\n--- a\n]\n', 'a: [\n  1,\n...\n]\n', 'a: x\x85y\n', 'a: x\u2028y\n', 'a\u2029b: 1\n', "'\u2028'\n", 'a: |\n  \u2029\n', '--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
  '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
  'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', 

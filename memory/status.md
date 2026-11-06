@@ -21,6 +21,10 @@ section 10 and how files join are open for the user ([review.md](review.md)).
 **`!*` and publishing (2026-11-06).** `!*` is in `c54395c` and publishing is in `19aad50`, both pushed.
 The covering note now covers both. See [rules.md](rules.md).
 
+**`!` outside the table (2026-11-06).** The user chose to refuse it, with a proviso that it could be
+relaxed if 2.0 becomes the standard. It's in the working copy of both specs, the README and the
+covering note, not committed on `main`. Files that read as written are now 3,418 of 4,651 (73.5%).
+
 **YAML Schema, part 2.** Draft 1 is `spec/yaml-schema.md`, in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted

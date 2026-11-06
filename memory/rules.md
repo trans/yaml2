@@ -358,14 +358,24 @@ tests settled on, all proposals, left open for the core team:
   covers types, and three language changes went into the draft for the syntax, see
   landscape.md, JSON against the draft. Section 13 now claims a subset once `%YAML 2.0` is
   on top, apart from repeated keys and a lone CR between tokens.
-- **No new syntax.** With tags out, `!` is an ordinary character, so `!int` is a
-  plain string to the grammar. So a leftover 1.x tag reads
-  as text, in 137 of 3,544 public files. The agent proposed refusing a plain scalar
-  starting with `!` outside the table. **Open:** the user is undecided (2026-11-04), and
-  asked for it to go to the core team as an open question, so section 14 of the draft
-  gives the case each way. The user's point against: people have to convert, not just add
-  `%YAML 2.0`. A value starting with `!` is a type expression; any other value is a
-  literal that must match.
+- **No new syntax.** With tags out, `!` is an ordinary character in a table, so `!int` is a
+  plain string to the grammar. A value starting with `!` is a type expression; any other value
+  is a literal that must match.
+- **`!` outside the table (the user chose this, 2026-11-06; in the working copy of part 1 and
+  part 2, not committed on `main`).** A plain scalar can't start with `!` outside the table, so a
+  leftover 1.x tag is refused. The user's proviso: this could be relaxed if 2.0 becomes the go-to
+  standard, which is section 6.1's last paragraph. Relaxing only accepts more, so no file breaks.
+  Before this the user was undecided (2026-11-04) and it sat in section 14; that item is gone. The
+  case against, kept here: no file gets here by accident, since a 1.x file has no `%YAML 2.0`;
+  the same text is fine in a table and refused in a document; and a tag in a table entry still reads
+  as text, which a reference delivers. A 1.x file has no table, so a tag only gets there by moving.
+  - Cost, measured 2026-11-06: 3,558 of 4,651 files read as written before, 3,418 (73.5%) after. Of
+    the 140 lost, MkDocs 128 (92.8% to 67.2%), Rails 7, GitLab 5. 165 files now stop at this rule,
+    25 of which stopped later anyway. Those 140 only read because tags passed as text. First-refusal
+    counts moved too: duplicate keys 60 to 58. A quoted value costs nothing, since 60 strings in 36
+    of 4,241 files start with `!` and are quoted already.
+  - Checks: part 1, 58 examples and 217 edge cases; part 2, 48 and 262. All 5 deliberate breaks of
+    the rule caught (no refusal; refused in tables; not reset after a table; keys; flow).
 - **`!` marks a type on every part; bare text is a literal** (the user's `!a | !b`,
   2026-11-04): `!a | !b`, `!str | inherit`, and enums need no quotes: `read | write
   | none`. `''` is the empty literal. A literal can't contain ` | `.
