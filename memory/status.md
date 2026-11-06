@@ -79,3 +79,8 @@ cleared into this repository, which is public.
 with. Asked in `mail/sent/20261106-021824Z-@oyl--two-costs-in-part-2-at-1c1d724.md`: patterns on every
 scalar and the digits check on `!float`, with the three cost questions from `c422281e` still waiting.
 @oyl hasn't been told the Unicode minimum, the join rules or the required `---`, and needn't be yet.
+
+**Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
+user says otherwise, in `Outtake/covering-note.md`, which git ignores. Its list of what is essential is
+the agent's draft: the user hasn't ruled on it. Before presenting, look up the unconfirmed 2026 talk on
+a YAML plugin system (see landscape.md).
