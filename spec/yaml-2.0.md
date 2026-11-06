@@ -191,10 +191,11 @@ There is no `tag:` form and no year. A format with versions puts one in the path
 application.
 
 A name is delivered beside the data, not in it. A parser looks nothing up and never
-fetches anything, because a name isn't an address, and reading a file must not touch
-the network. A name alone is advisory: an application may refuse a name it didn't expect.
-A name that is an entry in the file's own table stamps the document with that entry, and
-YAML Schema says what that means.
+fetches anything, because reading a file must not touch the network, and to a parser a
+name isn't an address. A name alone is advisory: an application may refuse a name it
+didn't expect. A name that is an entry in the file's own table stamps the document with
+that entry, and YAML Schema says what that means. YAML Schema, section 3.1, also gives one
+form of global name that an application can choose to look up.
 
 ```yaml
 --- !github.com/actions/workflow/v1
@@ -1335,8 +1336,8 @@ above defend against, and what they leave to the application.
 - **Running code.** A node can't carry a tag, so a stream can't ask a parser to build an
   object or call a function. A parser delivers strings, sequences and mappings, with a
   document's name beside them (section 4.3).
-- **Reaching outside the stream.** A parser reads no other file and fetches nothing. A name
-  isn't an address.
+- **Reaching outside the stream.** A parser reads no other file and fetches nothing, and to a
+  parser a name isn't an address.
 - **Expansion.** A 702-byte chain of references can have a full size of 3.3 trillion. Section
   10 finds that by addition and refuses before building. A service reading untrusted input
   should lower the default limit.

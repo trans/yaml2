@@ -96,6 +96,48 @@ retries: 3
 {"retries": "3"}
 ```
 
+### 3.1 Publishing a schema
+
+A schema can be published as a file anyone can use. The file is a table: `%YAML 2.0` and `--- &`,
+with no other document, and its last entry is the root. It is named for its own bytes: the first 40
+hex digits of its SHA-256, in lowercase, then `.yes`.
+
+```yaml
+%YAML 2.0
+--- &
+address:
+  street: !str
+  floor?: !int
+```
+
+A global name that ends in such a file name is a published name, and `https://` before it is its
+address. No other name has one. The path before the file name is the publisher's, so a version goes
+there, and only the hash is checked.
+
+```yaml
+--- !tabcomputing.com/address/v1/a777a3595038ecd7577602ed54ead81ddee43323.yes
+street: 1 Main St
+floor: 3
+```
+
+```json
+{"street": "1 Main St", "floor": "3"}
+```
+
+A parser treats this as any other name, so the data stays strings, as above. An application can
+choose to look the name up, and then the name stamps the document as a local entry does, so this one
+reads `{"street": "1 Main St", "floor": 3}`. The file's table stays out of the stream's. A library
+looks nothing up unless the application asks it to.
+
+An application that looks a name up refuses a file that doesn't hash to the name. If it can't get
+the file it refuses the document, because reading it as strings would give different data. The hash
+is what identifies the file, so a copy from anywhere will do: a mirror, or a folder of the schemas an
+application accepts, which needs no network.
+
+A change to a schema makes a new name, so a name always means the same bytes. A fix reaches a file
+only when its stamp is edited, and that takes a tool. A format that wants every file to pick up
+fixes uses an application's schema instead.
+
 ## 4. Scalars
 
 ### 4.1 Standard types
@@ -952,8 +994,10 @@ key. Otherwise it is literal, and a plain key ending in `?` is optional.
 - **Rules a schema can't state.** Rules across keys, such as "not both" or "if this then that".
   Limits on a sequence's or a mapping's size, beyond one or more. Two alternatives of one shape,
   told apart by content. These go to application code today.
-- **Links across files.** A schema is one table. It has no `$ref` to another file, and reading one
-  mustn't touch the network, so an application assembles what it needs.
+- **Published schemas.** Section 3.1's 40 digits are 160 bits of SHA-256. The last entry as the root
+  is the agent's proposal, not yet decided.
+- **Links across files.** A schema is one table. Section 3.1 publishes a whole schema, but a schema
+  has no `$ref` to part of another file, so an application assembles what it needs.
 
 ## 16. Security
 
@@ -979,6 +1023,11 @@ the data.
   engine can't be used on a schema someone else wrote.
 - **`!*`.** A key is looked up in the mapping type at its place and in the nearest `!*`, and nowhere
   else, so nesting them adds nothing per key.
+- **Published names.** Any stream can name any host, and a name can spell an IP address, so a library
+  that looked names up by itself would let a stranger's file send requests from the reader's machine,
+  as XML's external entities can. That is why only an application can ask for it. One that fetches
+  uses `https`, refuses private addresses, even after a redirect, and applies the size limit. A hash
+  that matches proves the bytes, not that the schema is any good, and a stamp isn't a check.
 - **Recursion is bounded by the data.** Typing goes down one level of data at each step through a
   named type that holds a collection, and an entry that only names itself is refused when the
   schema is loaded.
