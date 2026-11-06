@@ -32,6 +32,16 @@ are bare `!`, all in Rails, which says "a string". 542 are application marks or 
 tags do in these files; keys and application changes do. The sample has next to no CloudFormation
 or Home Assistant, so it says little about formats built on tags.
 
+The user asked whether naming only documents is a mistake, weighed it against a tag per node, and
+chose to keep names per document (2026-11-06). For a tag per node: tagged formats keep working, a mark
+can't clash with data, values of one shape can be told apart, and it is the smaller break. Against:
+a nested value has nowhere to keep a name; an unregistered name needs a rule (PyYAML `safe_load` refuses
+`!person`, Psych `safe_load` drops it with no error); a tag and a schema can disagree; and `!` would
+become syntax, so `!int` would stop being a plain string and part 2 would need a new spelling. Adding
+tags later changes nothing already written, because each file declares its version. If the core team
+insists, the cheapest version is a tag delivered beside the node, a list of tags the application
+accepts, refusal of any other, and a new schema spelling.
+
 Follows from it (proposed, left open for the core team):
 
 - No implicit typing. `no`, `on`, `0755`, `22:22`, `1E-12`, `2001-12-14`,
