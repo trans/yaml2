@@ -11,7 +11,7 @@ here = os.path.dirname(os.path.abspath(__file__))
 src = open(here + '/draftcheck.py', encoding='utf-8').read().split("\nspec = open(sys.argv[1]")[0]
 g = {'__name__': 'dc'}; exec(compile(src, 'dc', 'exec'), g)
 P, No, read = g['P'], g['No'], g['read']
-sys.setrecursionlimit(20000)
+sys.setrecursionlimit(20000); sys.set_int_max_str_digits(0)
 class Quoted(str):
     """A scalar not written plain: quoted, or a block scalar."""
 for f in ('double', 'single', 'block'):
@@ -39,6 +39,7 @@ def lost(t, f):
 STD = {'str', 'int', 'float', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary'}
 FLOAT = r'-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?'
 INT = r'-?(0|[1-9][0-9]*)'
+READINT = r'[-+]?[0-9]+'
 DATE = r'[0-9]{4}-[0-9]{2}-[0-9]{2}'
 DATETIME = DATE + r'[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([Zz]|[-+][0-9]{2}:[0-9]{2})'
 
@@ -71,7 +72,7 @@ def pattern(p, whole):
 def limit(text, name, whole):
     if name not in ('str', 'int', 'float', 'decimal'): raise SchemaError(f'{whole}: only str and numbers take a limit')
     if len(text) > 1 and text[0] == '/' and text[-1] == '/':
-        if name != 'str': raise SchemaError(f'{whole}: only str takes a pattern')
+        if name not in ('str', 'int'): raise SchemaError(f'{whole}: only str and int take a pattern')
         return pattern(text[1:-1], whole)
     m = re.fullmatch(r'(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?\.\.(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?', text)
     if not m or not (m[1] or m[2]): raise SchemaError(f'bad limit: {whole}')
@@ -254,6 +255,10 @@ class Schema:
             if name == 'str': out = t
             elif name == 'bool' and t in ('true', 'false'): out = t == 'true'
             elif name == 'null' and t == 'null': out = None
+            elif name == 'int' and lim and lim[0] == 're':
+                if not lim[1].fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
+                if not re.fullmatch(READINT, t): raise Cant(f'{path or "/"}: {t[:40]!r} matched, and is not an integer')
+                out = int(t)
             elif name == 'int' and re.fullmatch(INT, t): out = int(t)
             elif name == 'float' and re.fullmatch(FLOAT, t):
                 out = float(t)
@@ -266,7 +271,7 @@ class Schema:
             else: raise ValueError
         except (ValueError, binascii.Error, UnicodeEncodeError): raise Bad(path, f'expected {name}, got {t[:40]!r}')
         if lim and lim[0] == 're':
-            if not lim[1].fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
+            if name == 'str' and not lim[1].fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
         elif lim:
             n = len(t) if name == 'str' else out
             if (lim[1] is not None and n < lim[1]) or (lim[2] is not None and n > lim[2]): raise Bad(path, f'{t[:40]!r} is out of range')
@@ -334,10 +339,27 @@ if __name__ == '__main__':
     for k, v in no:
         try: typed(H + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, repr(v))
         except REFUSED: pass
-    schemas = ['a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !int(/x/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)', 'a: !int | "none"', "a: !int | 'none'", 'a: !b | !int\nb: !a | !str', 'a: !str(/(a{1000}){1000}/)', 'a: !str(/a{10001}/)', 'a: !str(/a{6000}/) | !str(/b{6000}/)', 'a:\n  !str(/a{6000}/): !int\n  !str(/b{6000}/): !int']
+    schemas = ['a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !float(/x/)', 'a: !decimal(/x/)', 'a: !bool(/x/)', 'a: !null(/x/)', 'a: !date(/x/)', 'a: !int(/(1{1000}){1000}/)', 'a: !int(/^1/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)', 'a: !int | "none"', "a: !int | 'none'", 'a: !b | !int\nb: !a | !str', 'a: !str(/(a{1000}){1000}/)', 'a: !str(/a{10001}/)', 'a: !str(/a{6000}/) | !str(/b{6000}/)', 'a:\n  !str(/a{6000}/): !int\n  !str(/b{6000}/): !int']
     for t in schemas:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
+    # A pattern on !int: it replaces the spelling, reads base 10, and a claim it can't read refuses.
+    I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: !q | !str\nh: !int(/0x[0-9a-f]+/)\nv: !h | !str\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: !str | !q\nlit: !q | never\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: !int | !str\n'
+    ints = [('q', '+5', 5), ('q', '-3', -3), ('q', '+0', 0), ('q', '-0', 0), ('q', '+007', 7), ('w', '5', 5), ('w', '007', 7), ('w', '+5', 5),
+                    ('u', '+5', 5), ('u', '+5x', '+5x'), ('u', 'x+5', 'x+5'), ('u', '5', '5'), ('u', '"+5"', '+5'), ('u', "'+5'", '+5'), ('u', 'x', 'x'), ('u', '|\n  +5', '+5\n'), ('v', 'x', 'x'),
+                    ('first', '+5', '+5'), ('lit', 'never', 'never'), ('lit', '+5', 5), ('k', '1000', 1000), ('mk', '+5: a\n"-3": b', {'+5': 'a', '-3': 'b'}),
+                    ('by', '9' * 5000, int('9' * 5000))]
+    for k, v, w in ints:
+        try: got = typed(I + f'--- !{k}\n{v}\n')[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', k, v, got)
+        except REFUSED as e: f += 1; print('REFUSED', k, v, e)
+    notints = [('q', '5'), ('q', '"+5"'), ('q', "'+5'"), ('q', '|\n  +5'), ('q', '+5x'), ('q', 'x+5'), ('q', '+'), ('q', '[+5]'), ('h', '0x1f'), ('v', '0x1f'),
+                 ('k', '1_000'), ('ar', '٣'), ('o', 'a:'), ('lit', '5'), ('mk', '5: a')]
+    for k, v in notints:
+        try: typed(I + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, repr(v))
+        except REFUSED: pass
+    # The names are the author's: renaming list and map changes nothing.
+    R = '--- &\nsigned: !int(/[-+][0-9]+/)\nfree: !signed | !str | !zig | !zag\nzig: [!free, ...]\nzag:\n  !str: !free\n--- !free\na: +5\nc: [-3, x]\n'
+    if not same(typed(R)[0], {'a': 5, 'c': [-3, 'x']}): f += 1; print('DIFFERS renamed')
     # A pattern is a plain scalar first: what still works, and quoting making a literal.
     forms = [('a: !str(/[0-9]{1,3}/)\n--- !a\n"12"\n', '12'), ('a: !str(/x[ ]#y/)\n--- !a\n"x #y"\n', 'x #y'), ('a: !str(/a#b/)\n--- !a\n"a#b"\n', 'a#b'), ('t: !str(/[a-z]+/)\na: [!t, ...]\n--- !a\n- ab\n', ['ab']), ('a: {!str(/x/): !int}\n--- !a\nx: 1\n', {'x': 1}), ('a: ["!str(/[a-z]+/)", ...]\n--- !a\n- "!str(/[a-z]+/)"\n', ['!str(/[a-z]+/)'])]
     for t, w in forms:
@@ -376,5 +398,5 @@ if __name__ == '__main__':
     for k, v, acc in nope:
         try: typed(N + f'--- !{k}\n{v}\n', accept=bool(acc)); f += 1; print('NOT REFUSED', k, v)
         except REFUSED: pass
-    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(forms) + 1 + len(says) + 2 + len(unions) + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
+    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
     sys.exit(1 if bad or f else 0)
