@@ -25,6 +25,13 @@ document's name, `--- !name`, under YAML Schema. `%TAG` goes with them. Apps tha
 use tags as syntax (CloudFormation `!Ref`, GitLab `!reference`, Home
 Assistant `!include`) would have to use ordinary mappings instead.
 
+Measured 2026-11-06, on the 4,026 of 4,500 files PyYAML's events read: 721 tag uses in 177 files
+(4.4%): MkDocs 144, Rails 17, GitLab 13, Kubernetes 2, Jekyll 1. None states a standard type. 179
+are bare `!`, all in Rails, which says "a string". 542 are application marks or classes
+(`!!python/name` 283, `!reference` 126, `!Ref` 43, `!ENV` 32). So a schema replaces almost nothing
+tags do in these files; keys and application changes do. The sample has next to no CloudFormation
+or Home Assistant, so it says little about formats built on tags.
+
 Follows from it (proposed, left open for the core team):
 
 - No implicit typing. `no`, `on`, `0755`, `22:22`, `1E-12`, `2001-12-14`,
