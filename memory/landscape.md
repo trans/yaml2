@@ -1,6 +1,6 @@
 # Landscape: where YAML stands
 
-*Updated 2026-11-04*
+*Updated 2026-11-06*
 
 ## The spec (checked 2026-11-03)
 
@@ -39,11 +39,37 @@
 - AdaYaml, the 1.3 feature experiment, was archived on 2026-03-05. Its README says its
   ideas "have proven to be too difficult to propose" and calls it "the YAML 1.3 version
   that didn't come to be". Treat that as one signal, not a decision by the team.
-- A search listing shows a 2026 Open Source Summit Europe talk on a YAML plugin system;
-  the page itself wouldn't load, so this is unconfirmed. Look before presenting.
+- The talk is confirmed, and the team's public direction is growth by plugins: see "What the YAML org
+  is doing now", below.
 - Their RFCs already lean our way: unique anchors, no empty keys, a start marker on
   later documents and on top-level scalars, single-line top-level plain scalars, and
   visible indent on top-level literals. Cite them when presenting.
+
+## What the YAML org is doing now (checked 2026-11-06)
+
+All public. Read this before presenting: it bears on the ask and on part 2's name.
+
+- **The talk.** "Evolving the YAML Family (without Breaking the World)", by a core team member, Open
+  Source Summit Europe, Prague, 2026-10-07. The schedule says it grows YAML by a plugin system that
+  can deeply change YAML's behaviour, with APIs for schema association, tab indent, standard functions
+  and comments, in go-yaml first and the rest of the family after, with real-world feedback to guide
+  spec changes. No slides or recording found, so what was said is unconfirmed.
+- **go-yaml v4.0.0**, released 2026-11-04. Plugins: Merge-Key, Alias-Data, Loader-Limits, Tab-indent.
+  v2 and v3 are moving to security-only. Alias-Data can keep anchors across documents (`stream: true`)
+  and read dotted paths (`*x1.foo.bar`, `*x2.3.baz`), with bare digits as sequence indices and `'42'`
+  as a string key. It can also take anchor values from an options file or the environment. Merge-Key
+  has `multiple: combine` for repeated `<<`. Loader-Limits defaults to 10,000 levels and an alias
+  ratio check. All are opt-in or configurable, so the options, not the file, decide the reading.
+- **`yaml/yamlschema`**, created 2026-07-09, announced 2026-08-30, at 0.1.12 (2026-09-09), called
+  experimental. It says the org has never had an official schema language. Same central idea as part
+  2: a schema that mimics the data. Same `key?` for optional, ranges as `1..65535`, named definitions.
+  It differs in what it is for: it validates data a 1.x parser already typed (`+Float` is "a YAML
+  float-tagged value"), and today works by converting to JSON Schema, which it aims to match and then
+  exceed. Part 2 types strings. Its regexes are JSON Schema's, with `\S` and `\d`, not I-Regexp. Binding
+  is left to applications: a document tag, a `!!yaml` meta document, or an inline schema. The name
+  collides with part 2's: the user chose "YAML Schema" on 2026-11-03, not knowing of it, and theirs was
+  public first. **Open, for the user.**
+- **The spec.** `yaml-spec` `main` last changed 2023-05-23. Searches found no 2.0 proposal anywhere.
 
 ## What is deployed (@oyl's measurements, its ideas.md and dialects-design.md)
 

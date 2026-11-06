@@ -82,5 +82,5 @@ scalar and the digits check on `!float`, with the three cost questions from `c42
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. Its list of what is essential is
-the agent's draft: the user hasn't ruled on it. Before presenting, look up the unconfirmed 2026 talk on
-a YAML plugin system (see landscape.md).
+the agent's draft: the user hasn't ruled on it. The talk is confirmed, and the org's schema language
+and plugin work bear on the ask and on part 2's name: see landscape.md, What the YAML org is doing now.
