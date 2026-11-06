@@ -392,8 +392,8 @@ tests settled on, all proposals, left open for the core team:
   scalar type, at most one sequence, and mappings told apart by required keys and
   literals. All 117 scalar unions in the sample include string. Among scalars, the user
   changed this on 2026-11-05: see "Wherever this occurs" just below.
-- **"Wherever this occurs" (the user accepted this, 2026-11-05).** The rule is a recursive
-  named type, which needs no new construct. Two changes make it work: a union
+- **"Wherever this occurs" (the user accepted this, 2026-11-05; replaced by `!*` on 2026-11-06,
+  below).** The rule is a recursive named type, which needs no new construct. Two changes make it work: a union
   may hold several scalar types, tried in the order written, and a quoted scalar matches
   string types only. JSON is then four lines of ordinary schema (`shadow/schema2.py`):
   `json: !null | !bool | !int | !float | !str | !array | !object`, `array: [!json, ...]`,
@@ -406,7 +406,7 @@ tests settled on, all proposals, left open for the core team:
   weak evidence: those two shadows use non-string types in 9 places, and no quoted value
   reached one. It matches what a 1.2 parser with JSON Schema does today.
 - **Universal matchers (the user chose this, 2026-11-05).** "any value matching `/[+-][0-9]+/` is an
-  `!int`". The reach already existed: a recursive type (above). What was missing was the claim, since
+  `!int`". The reach already existed: a recursive type (above), and since 2026-11-06 `!*`. What was missing was the claim, since
   only `!str` took a pattern. So `!int(/pattern/)` replaces the standard spelling with the pattern
   (part 2, section 4.5), and section 10 shows it applied to every value. Not a separate rule, which
   would need a precedence against the type at a key: each node has one type, so `image: !str`
@@ -415,6 +415,31 @@ tests settled on, all proposals, left open for the core team:
   through to a string. An emitter writes a spelling the type reads back, or refuses (section 13;
   no emitter in the checker, so untested). `!float`, `!decimal`, `!null`, `!bool` and other bases are
   open points in section 15, left out because the user was asked about `!int` only.
+- **`!*`, anywhere (the user chose this, 2026-11-06).** The user asked whether a schema should be
+  rules from general to specific (`*: !int /.../`, `address:name: !str 40`, `*:ts_*: !date`), then
+  saw the nested form is nearly the shadow, short of one `*` being both a type and a mapping. So
+  there is one `!*` key, and the scalar default sits inside it as a second `!*`. It replaces section
+  10's `free`, `list` and `map`, and the shadow stays. Measured before choosing: the two real shadows
+  have 701 lines, 8 give a standard non-string type, and at most 82 say anything about type; in 721
+  SchemaStore families the median schema has 35 property declarations and about 6 `*:key` rules cover
+  its non-string keys; of 947 schemas 74% use `required`, 68% close a mapping, 37% choose between
+  shapes, none of which rules can say. Flat rules were dropped because one form did two jobs (`*`
+  selected, `address:name` constrained), and a key can't start with `*`.
+  - The closest rule wins, with no ranking and no dependence on order: the mapping type at the key's
+    place, then the nearest `!*`, and nowhere else. A `!*` replaces any above it for everything below.
+    Searching every `!*` above would let a stream nest thousands and pay for them on each key, so
+    "nearest only" is what keeps the time rule.
+  - `!*`, not `"*"`, because a quoted key is literal (section 7). `!str(/ts_.*/)`, not `ts_*`, so there
+    is one pattern language. Its type is scalars only. A `!*` inside a `!*` is the default for scalars,
+    and holds no rules. A rule is never required.
+  - Consequences the user accepted: below a `!*` every mapping is open, so a typo in a key passes
+    (open point in section 15), and alternatives there are chosen by required keys and literals only.
+  - Two rules added while building it, not put to the user one by one: a type with `!*` and no required
+    keys takes a scalar or sequence too (JSON's `5` needs it), though not inside a union; a key under
+    `!*` that an alternative doesn't name no longer rules that alternative out.
+  - JSON is now two lines. It matched `json.loads` on all 1,015 SchemaStore files and 93 of 95 in
+    JSONTestSuite, the other 2 being repeated keys. Part 2: 46 examples, 245 edge cases, 53 of 53
+    deliberate rule breaks caught. Not tested: speed, or an emitter under `!*`.
 - **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
   `flag`. That recovered nearly all of what patterns check, with no regex in the
