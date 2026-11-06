@@ -25,6 +25,10 @@ The covering note now covers both. See [rules.md](rules.md).
 relaxed if 2.0 becomes the standard. It's in the working copy of both specs, the README and the
 covering note, not committed on `main`. Files that read as written are now 3,418 of 4,651 (73.5%).
 
+**@oyl's costs (2026-11-06).** The four text errors are fixed and the user chose 1,024 for the ceiling,
+both in the working copy of part 2, not committed. Whether to count all union positions at load is
+open for the user. See [review.md](review.md).
+
 **YAML Schema, part 2.** Draft 1 is `spec/yaml-schema.md`, in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
