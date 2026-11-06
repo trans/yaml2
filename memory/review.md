@@ -1,6 +1,6 @@
 # Review of Draft 1
 
-*Updated 2026-11-05*
+*Updated 2026-11-06*
 
 @oyl reviewed Draft 1 at the user's request (2026-11-04, against `f9727d5`). Its view:
 strong, nothing changes the core design. The agent reran the probes marked **Checked**
@@ -347,3 +347,41 @@ pattern engine, and narrowing alternatives as keys arrive.
   `Nd`. The policy doesn't promise a category stays, only that it keeps its fundamental identity, and the
   list of categories is fixed. So the rule is a minimum, as levels have, not a pinned version. A
   pattern only says yes or no, so a gap between parsers is usually a refusal, not different data.
+
+## @oyl on what part 2 costs (2026-11-06, **Open for the user**)
+
+@oyl's answer to the cost questions, including `!*` at `c54395c`, in
+[its message](../mail/received/20261106-232726Z-@oyl--costs-in-part-2-measured-7fe44879.md), with the
+tables. Measured on one pinned core in throwaway C, with Oyl's 1.x event parser as the baseline. The
+user has asked @oyl to stop on part 2 for now, so this is its last word for the moment.
+
+Text errors, none applied yet:
+
+- **Section 4.4, ties.** `1.0000076293945313` is stored as exactly 1.00000762939453125, a tie at 17
+  digits. Rerun 2026-11-06: Python and C write back `...312` and so refuse it, and JavaScript's
+  `toPrecision(17)` writes back `...313` and keeps it. So two conforming parsers disagree. @oyl's fix
+  is a distance: a value survives if what is stored is within half a unit of its last written digit.
+- **Section 4.4, 15 digits.** `1.234567890123e-320` comes back as `1.234670048957e-320` (rerun, same
+  result). "Up to 15 significant digits always do" holds only from 2.2250738585072014e-308 up.
+- **Section 2, the time rule.** "In line with its size" is false for an interface delivering full data
+  unless size means full there, since 1 KB can spend the whole limit. It also says nothing about the
+  constant, so the ceiling is what carries the promise.
+- **Section 11.** "The sizes of what it types" has to mean each node's own bytes, once per (node, type)
+  pair. Counting what is below a collection counts the 632-byte chain as 2^28 again. Reasoned, not run.
+
+For the user to decide:
+
+- **The ceiling.** 10,000 positions worst case is 224 s for 64 MiB by NFA walk, against 24 s at 1,024.
+  @oyl suggests the largest real union, rounded up, and says 10,000 buys nothing it can measure. Our
+  count (2026-11-06, `pos.py` on SchemaStore): the largest of 1,247 patterns is 9,131 positions, a
+  case-insensitive list of Microsoft names, and the next is 772. So 10,000 exists for one pattern, and
+  1,024 refuses only that one.
+- **Load.** A ceiling per union can't bound load: `aN: !aN+1 | !aN+2` gives 2 million names reaching
+  10,000 each, 84 GB of lists (arithmetic, checked). @oyl proposes counting the positions of all
+  unions in the table against the size limit, refused at load. Exact, so parsers agree. Not built.
+
+For a parser, no spec change: one automaton per union (2 to 7 ns a value, barely growing from 3 patterns
+to 10); a DFA must be lazy, with a capped cache over an NFA walk (not built); `!*: !signed | !str`
+costs the same; one merged key table per union of mappings (1.2 to 22 ns a key; required keys at the
+end of each mapping not built); the digits check by one multiplication (6 to 9 ns a float against
+about 170 by printing, no disagreement in 60 million values).

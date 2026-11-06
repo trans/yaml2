@@ -85,6 +85,7 @@ cleared into this repository, which is public.
 **What goes to @oyl for now** (the user, 2026-11-05): only what its insight into performance might help
 with. Asked in `mail/sent/20261106-021824Z-@oyl--two-costs-in-part-2-at-1c1d724.md`: patterns on every
 scalar and the digits check on `!float`, with the three cost questions from `c422281e` still waiting.
+@oyl answered all of it on 2026-11-06 and has been told to stop on part 2 for now, so nothing more goes there on it; see [review.md](review.md).
 @oyl hasn't been told the Unicode minimum, the join rules or the required `---`, and needn't be yet.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
