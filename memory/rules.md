@@ -467,6 +467,14 @@ tests settled on, all proposals, left open for the core team:
   - JSON is now two lines. It matched `json.loads` on all 1,015 SchemaStore files and 93 of 95 in
     JSONTestSuite, the other 2 being repeated keys. Part 2: 46 examples, 245 edge cases, 53 of 53
     deliberate rule breaks caught. Not tested: speed, or an emitter under `!*`.
+- **`!**` and `!*` (the user chose this, 2026-11-06; in `211757b`).** The user doubted the spelling: in a
+  file glob `*` stops at one level and `**` goes down. They also read `!*: {Rev: !int}` as a "skip level",
+  `Rev: !int` here and anywhere below, which is what the key already did. So the meaning stayed and the
+  spelling split: `!**` is rules here and at every level below, and `!*` is any other key here. That
+  removes the special rule for the inner `!*`: it is the same key, and a `!**` walks every collection, so
+  it only sees scalars. Cost: outside `!**`, `!*: T` and `!str: T` overlap, though `!*` always comes after
+  type keys. `!ts_*` is still refused, for one pattern language. Everything above about `!*` as the deep
+  key now applies to `!**`.
 - **Publishing a schema (the user proposed this, 2026-11-06; in `19aad50`).** The user asked for `!<url>` to a `.yes` file. The agent objected to a
   parser fetching on read (a stranger's file sends requests from the reader's machine) and to a
   published file changing (same bytes, different data). The user answered the second by naming the

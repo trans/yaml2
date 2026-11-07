@@ -400,7 +400,7 @@ away). Of 200,000 random 15-digit values in the normal range none lost digits; b
 Later on 2026-11-06: part 2, 48 examples and 296 edge cases; 82 of 82 deliberate rule breaks caught.
 Not tested at 64 MiB, or in a real parser.
 
-## Independent review by Codex at `a679bd6` (2026-11-06, **Fixed, not yet committed**)
+## Independent review by Codex at `a679bd6` (2026-11-06, **Fixed in `ffe895c`**)
 
 The user asked for an independent review. Codex read both specs read-only, was told to skip these notes,
 and could run the checkers. Each finding below was rerun on 2026-11-06. The user had all seven fixed.
@@ -437,7 +437,7 @@ measured, and @oyl has been told to stop on part 2.
 Checks: part 1, 58 examples and 235 edge cases, all 7 deliberate breaks caught; part 2, 50 and 311, 86 of 86
 caught. Real files unchanged: 3,418 of 4,651.
 
-## @oyl on `!*` as events arrive (2026-11-07, **Open for the user**)
+## @oyl on `!*` as events arrive (2026-11-07, **Fixed in `047f547`**)
 
 @oyl's answer, in [its message](../mail/received/20261107-021549Z-@oyl--typing-under-star-as-events-arrive-b8b0cc69.md),
 with the tables. Same setup as its costs message. It is stopped on part 2 unless the user reopens it.
@@ -455,7 +455,7 @@ with the tables. Same setup as its costs message. It is stopped on part 2 unless
   a parser that goes deep. The test at each mapping's end is a plain loop, 7.4 s on 64 MiB at 1,024
   alternatives, under what patterns can already cost.
 
-Three text changes it asks for, none applied (figures rechecked):
+Three text changes it asked for, all applied, with a fourth bullet on end links in section 16 (figures rechecked):
 
 - **Section 3:** "A parser can type events as they arrive" needs its exception under a union of mappings.
 - **Section 9:** "has the required keys and literal values" should say the mapping's own keys. The linear
@@ -465,3 +465,6 @@ Three text changes it asks for, none applied (figures rechecked):
   limit, since a limit on what is held would differ between parsers, as depth does.
 
 Its own probe agrees with the nearest `!*` in the section 11 fix in the working copy.
+
+Then the key split in `211757b`: part 1, 58 examples and 235 edge cases; part 2, 51 and 334; 94 of 94 deliberate
+breaks of part 2 caught.

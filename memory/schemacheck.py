@@ -103,14 +103,15 @@ def parse(text):
     return alts[0] if len(alts) == 1 else ('alt', alts)
 def to_type(v):
     if isinstance(v, dict):
-        fields, rows, deep = {}, [], None
+        fields, rows, deep, other = {}, [], None, None
         for k, x in v.items():
             if isinstance(k, Quoted): fields[str(k)] = (to_type(x), False)
-            elif k == '!*': deep = rule(x)
+            elif k == '!**': deep = rule(x)
+            elif k == '!*': other = to_type(x)
             elif k.startswith('!'): rows.append((parse(k), to_type(x)))
             elif k.endswith('?'): fields[str(k[:-1])] = (to_type(x), True)
             else: fields[str(k)] = (to_type(x), False)
-        return ('map', fields, rows, deep)
+        return ('map', fields, rows, deep, other)
     if isinstance(v, list):
         items, rest = list(v), None
         if items and not isinstance(items[-1], Quoted) and items[-1] == '...':
@@ -121,11 +122,11 @@ def to_type(v):
     if isinstance(v, Quoted): return ('lit', str(v))
     return parse(v) if v else ('lit', '')
 def rule(x):
-    """What `!*` holds: named keys, type keys, and a type for every other scalar."""
+    """What `!**` holds: named keys, type keys, and in `!*` a type for every other scalar."""
     if isinstance(x, dict):
-        t = to_type(x); d = t[3]
-        if d is not None and (d[0] or d[1]): raise SchemaError('a `!*` inside a `!*` takes a scalar type')
-        return (t[1], t[2], d[2] if d else None)
+        t = to_type(x)
+        if t[3] is not None: raise SchemaError('a `!**` holds no `!**`')
+        return (t[1], t[2], t[4])
     return ({}, [], to_type(x))
 def strip(v):
     if isinstance(v, dict): return {str(k): strip(x) for k, x in v.items()}
@@ -165,7 +166,9 @@ class Schema:
             return 1 + s.fulls[t[1]]
         if t[0] == 'name' and t[2] and t[2][:1] == '/': return size(re._parser.parse(t[2][1:-1]))
         if t[0] == 'lit': return 1
-        if t[0] == 'map': return 1 + len(t[1]) + len(t[2]) + (len(t[3][0]) + len(t[3][1]) if t[3] else 0)
+        if t[0] == 'map':
+            n = 1 + len(t[1]) + len(t[2]) + (t[4] is not None)
+            return n + (len(t[3][0]) + len(t[3][1]) + (t[3][2] is not None) if t[3] else 0)
         return 1
     def get(s, name):
         if name not in s.defs: s.defs[name] = to_type(s.table[name])
@@ -210,16 +213,17 @@ class Schema:
             elif x[0] == 'map':
                 for ft, _ in x[1].values(): s.walk(ft)
                 for kt, vt in x[2]: s.walk(kt); s.walk(vt)
+                if x[4] is not None: s.walk(x[4])
                 s.ceiling([y for kt, _ in x[2] for y in s.alts(kt)])
                 if x[3]:
                     for ft, _ in x[3][0].values(): s.walk(ft)
                     for kt, vt in x[3][1]: s.walk(kt); s.walk(vt)
                     s.ceiling([y for kt, _ in x[3][1] for y in s.alts(kt)])
                     if x[3][2]: s.place(x[3][2])
-                    if x[3][2] and any(y[0] not in ('lit', 'name') for y in s.alts(x[3][2])): raise SchemaError('a `!*` takes a scalar type, or a mapping of rules')
+                    if x[3][2] and any(y[0] not in ('lit', 'name') for y in s.alts(x[3][2])): raise SchemaError('a `!**` takes a scalar type, or a mapping of rules')
     def check(s, v): return s.conv(s.root, v, '')
     def under(s, k, y, path, scope):
-        """A key the mapping at this place doesn't name, under the nearest `!*`."""
+        """A key the mapping at this place doesn't name, under the nearest `!**`."""
         fields, rows, _ = scope; p = f'{path}/{k}'
         if k in fields:
             ft, opt = fields[k]
@@ -260,7 +264,7 @@ class Schema:
                 continue
             a = s.alts(ft)
             if all(x[0] == 'lit' for x in a) and v[k] not in [x[1] for x in a]: return False
-        if m[3] or scope: return True
+        if m[3] or m[4] is not None or scope: return True
         for k in v:
             if k in m[1]: continue
             for kt, _ in m[2]:
@@ -297,8 +301,9 @@ class Schema:
                 except Bad: continue
                 out[str(k)] = s.conv(vt, y, f'{path}/{k}', scope); break
             else:
-                if not scope: raise Bad(path, f'unknown key {k}')
-                out[str(k)] = s.under(k, y, path, scope)
+                if x[4] is not None: out[str(k)] = s.conv(x[4], y, f'{path}/{k}', scope)
+                elif not scope: raise Bad(path, f'unknown key {k}')
+                else: out[str(k)] = s.under(k, y, path, scope)
         return out
     def scalar(s, name, lim, v, path):
         if name == 'any': return strip(v)
@@ -446,38 +451,40 @@ if __name__ == '__main__':
     for t, w in unions:
         try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
-    # `!*`: anywhere, the closest rule wins, and only the nearest `!*` counts.
+    # `!**`: here and below, the closest rule wins, and only the nearest `!*` counts.
     S = 'signed: !int(/[-+][0-9]+/)\n'; C = 'circle:\n  kind: circle\n  r: !float\nsquare:\n  kind: square\n  side: !float\n'
-    star = [('a:\n  !*: !int\n--- !a\n5\n', 5), ('a:\n  !*: !int\n--- !a\n[1, [2]]\n', [1, [2]]), ('a:\n  x?: !str\n  !*: !int\n--- !a\n5\n', 5),
-            ('a:\n  !*: !int\n--- !a\n{}\n', {}), ('a: {!*: !int}\n--- !a\n{x: 1}\n', {'x': 1}), ('a:\n  !*:\n    n: !int\n--- !a\n[[{n: 1}]]\n', [[{'n': 1}]]),
-            ('a:\n  !*:\n    n: !int\n--- !a\nm: 5\n', {'m': '5'}), ('a:\n  !*:\n    n: !int\n--- !a\n{}\n', {}), ('a:\n  !*:\n    n?: !int\n--- !a\nn:\n', {'n': None}),
-            ('a:\n  !*:\n    ports: [!int, ...]\n--- !a\nx: {ports: [1]}\n', {'x': {'ports': [1]}}),
-            ('a:\n  !*:\n    db:\n      host: !str\n--- !a\nx: {db: {host: h, more: 1}}\n', {'x': {'db': {'host': 'h', 'more': '1'}}}),
-            ('a:\n  x: !any\n  !*: !int\n--- !a\nx: {z: 1}\ny: 2\n', {'x': {'z': '1'}, 'y': 2}), ('a:\n  !*: !any\n--- !a\nx: 1\n', {'x': '1'}),
-            ('a:\n  m:\n    !str(/ts_.*/): !str\n  !*:\n    !str(/ts_.*/): !date\n--- !a\nm: {ts_x: hello}\nts_y: 2026-11-06\n', {'m': {'ts_x': 'hello'}, 'ts_y': '2026-11-06'}),
-            ('a:\n  !*:\n    !str(/ts_.*/): !date\n  m:\n    ts_x: !str\n--- !a\nm: {ts_x: hello, ts_y: 2026-11-06}\n', {'m': {'ts_x': 'hello', 'ts_y': '2026-11-06'}}),
-            ('a:\n  !*: !int\n  b:\n    !*: !bool\n--- !a\nx: 1\nb: {y: true}\n', {'x': 1, 'b': {'y': True}}),
-            ('a:\n  !*:\n    n: !int\n  b:\n    !*: !str\n--- !a\nn: 1\nb: {n: 1}\n', {'n': 1, 'b': {'n': '1'}}),
-            ('rules:\n  n: !int\na:\n  !*:\n    <<: *rules\n    m: !bool\n--- !a\nx: {n: 1, m: true}\n', {'x': {'n': 1, 'm': True}}),
-            ('rules:\n  n: !int\na:\n  !*: *rules\n--- !a\nx: {n: 1}\n', {'x': {'n': 1}}),
-            ('addr:\n  name: !str\na:\n  home: !addr\n  !*: !int\n--- !a\nhome: {name: x, floor: 3}\n', {'home': {'name': 'x', 'floor': 3}}),
+    star = [('a:\n  !**: !int\n--- !a\n5\n', 5), ('a:\n  !**: !int\n--- !a\n[1, [2]]\n', [1, [2]]), ('a:\n  x?: !str\n  !**: !int\n--- !a\n5\n', 5),
+            ('a:\n  !**: !int\n--- !a\n{}\n', {}), ('a: {!**: !int}\n--- !a\n{x: 1}\n', {'x': 1}), ('a:\n  !**:\n    n: !int\n--- !a\n[[{n: 1}]]\n', [[{'n': 1}]]),
+            ('a:\n  !**:\n    n: !int\n--- !a\nm: 5\n', {'m': '5'}), ('a:\n  !**:\n    n: !int\n--- !a\n{}\n', {}), ('a:\n  !**:\n    n?: !int\n--- !a\nn:\n', {'n': None}),
+            ('a:\n  !**:\n    ports: [!int, ...]\n--- !a\nx: {ports: [1]}\n', {'x': {'ports': [1]}}),
+            ('a:\n  !**:\n    db:\n      host: !str\n--- !a\nx: {db: {host: h, more: 1}}\n', {'x': {'db': {'host': 'h', 'more': '1'}}}),
+            ('a:\n  x: !any\n  !**: !int\n--- !a\nx: {z: 1}\ny: 2\n', {'x': {'z': '1'}, 'y': 2}), ('a:\n  !**: !any\n--- !a\nx: 1\n', {'x': '1'}),
+            ('a:\n  m:\n    !str(/ts_.*/): !str\n  !**:\n    !str(/ts_.*/): !date\n--- !a\nm: {ts_x: hello}\nts_y: 2026-11-06\n', {'m': {'ts_x': 'hello'}, 'ts_y': '2026-11-06'}),
+            ('a:\n  !**:\n    !str(/ts_.*/): !date\n  m:\n    ts_x: !str\n--- !a\nm: {ts_x: hello, ts_y: 2026-11-06}\n', {'m': {'ts_x': 'hello', 'ts_y': '2026-11-06'}}),
+            ('a:\n  !**: !int\n  b:\n    !**: !bool\n--- !a\nx: 1\nb: {y: true}\n', {'x': 1, 'b': {'y': True}}),
+            ('a:\n  !**:\n    n: !int\n  b:\n    !**: !str\n--- !a\nn: 1\nb: {n: 1}\n', {'n': 1, 'b': {'n': '1'}}),
+            ('rules:\n  n: !int\na:\n  !**:\n    <<: *rules\n    m: !bool\n--- !a\nx: {n: 1, m: true}\n', {'x': {'n': 1, 'm': True}}),
+            ('rules:\n  n: !int\na:\n  !**: *rules\n--- !a\nx: {n: 1}\n', {'x': {'n': 1}}),
+            ('addr:\n  name: !str\na:\n  home: !addr\n  !**: !int\n--- !a\nhome: {name: x, floor: 3}\n', {'home': {'name': 'x', 'floor': 3}}),
             ('"*": !int\na:\n  "*": !int\n--- !a\n"*": 5\n', {'*': 5}), ('a:\n  "!*": !int\n--- !a\n"!*": 5\n', {'!*': 5}),
-            ('d:\n  n: 1\na:\n  !*:\n    n: !int\n--- !a\nx: *d\n', {'x': {'n': 1}}), ('d:\n  n: 1\na:\n  !*:\n    n: !int\n--- !a\n<<: *d\nm: 2\n', {'n': 1, 'm': '2'}),
-            (C + 'u: !circle | !square\na:\n  s: !u\n  !*: !str\n--- !a\ns: {kind: square, side: 2, note: x}\n', {'s': {'kind': 'square', 'side': 2.0, 'note': 'x'}}),
-            (S + 'a:\n  !*: !signed | !str\nl: [!a, ...]\n--- !l\n- +5\n- {x: -3}\n', [5, {'x': -3}]),
-            ('m:\n  x: !str\na:\n  s: [!m, ...]\n  !*: !int\n--- !a\ns: [{x: a, y: 1}]\n', {'s': [{'x': 'a', 'y': 1}]})]
+            ('d:\n  n: 1\na:\n  !**:\n    n: !int\n--- !a\nx: *d\n', {'x': {'n': 1}}), ('d:\n  n: 1\na:\n  !**:\n    n: !int\n--- !a\n<<: *d\nm: 2\n', {'n': 1, 'm': '2'}),
+            (C + 'u: !circle | !square\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: square, side: 2, note: x}\n', {'s': {'kind': 'square', 'side': 2.0, 'note': 'x'}}),
+            (S + 'a:\n  !**: !signed | !str\nl: [!a, ...]\n--- !l\n- +5\n- {x: -3}\n', [5, {'x': -3}]),
+            ('m:\n  x: !str\na:\n  s: [!m, ...]\n  !**: !int\n--- !a\ns: [{x: a, y: 1}]\n', {'s': [{'x': 'a', 'y': 1}]})]
+    star += [('a:\n  !*: !int\n--- !a\nx: 1\ny: 2\n', {'x': 1, 'y': 2}), ('a:\n  n: !str\n  !str(/X_.*/): !str\n  !*: !int\n--- !a\nn: 1\nX_a: 2\nz: 3\n', {'n': '1', 'X_a': '2', 'z': 3}), ('a:\n  !*: !int\n  !str(/X_.*/): !str\n--- !a\nX_a: 2\nz: 3\n', {'X_a': '2', 'z': 3}), ('a:\n  !*:\n    x: !int\n--- !a\nk: {x: 1}\n', {'k': {'x': 1}}), ('a:\n  !*: [!int, ...]\n--- !a\nk: [1]\n', {'k': [1]}), ('a:\n  !*: !int\n  !**: !str\n--- !a\nx: 1\n', {'x': 1}), ('m:\n  n: !int\n  !*: !bool\na:\n  s: !m\n  !**: !str\n--- !a\ns: {n: 1, z: true}\nq: 1\n', {'s': {'n': 1, 'z': True}, 'q': '1'}), ('p:\n  k: a\n  !*: !int\nq:\n  k: b\nu: !p | !q\n--- !u\nk: a\nz: 1\n', {'k': 'a', 'z': 1}), ('a:\n  "!**": !int\n--- !a\n"!**": 5\n', {'!**': 5})]
     for t, w in star:
         try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
-    notstar = ['a:\n  !*: !int\n--- !a\nx: y\n', 'a:\n  x: !str\n  !*: !int\n--- !a\n5\n', 'a:\n  x: !str\n  !*: !int\n--- !a\ny: 1\n', 'j:\n  !*: !int\nu: !j | !bool\n--- !u\n5\n',
-               'j:\n  !*: !int\nu: !j | !bool\n--- !u\n[1]\n', 'a:\n  !*:\n    n: !int\n--- !a\nn:\n', 'a:\n  !*:\n    n: !int\n--- !a\nx: {y: [{n: a}]}\n', 'a:\n  !*:\n    ports: [!int, ...]\n--- !a\nports: 1\n',
-               'a:\n  !*:\n    !str(/ts_.*/): !date\n--- !a\nts_x: soon\n', 'a:\n  !*: !int\n  b:\n    !*: !bool\n--- !a\nb: {y: 1}\n', 'a:\n  !*: !int\n  b:\n    c: !str\n--- !a\nb: {c: x, d: y}\n',
-               'a:\n  "!*": !int\n--- !a\nx: 5\n', 'a:\n  "*": !int\n--- !a\nx: 5\n', 'addr:\n  name: !str\na:\n  !*: !int\n  home: !addr\n--- !addr\nname: x\nfloor: 3\n', 'a:\n  b:\n    !*: !int\n--- !a\nb: {x: 1}\nc: 2\n',
-               'p:\n  x: !int\nq:\n  x: !int\n  z: !int\nu: !p | !q\na:\n  s: !u\n  !*: !str\n--- !a\ns: {x: 1, z: 2}\n', C + 'u: !circle | !square\na:\n  s: !u\n  !*: !str\n--- !a\ns: {kind: oval}\n']
+    notstar = ['a:\n  !**: !int\n--- !a\nx: y\n', 'a:\n  x: !str\n  !**: !int\n--- !a\n5\n', 'a:\n  x: !str\n  !**: !int\n--- !a\ny: 1\n', 'j:\n  !**: !int\nu: !j | !bool\n--- !u\n5\n',
+               'j:\n  !**: !int\nu: !j | !bool\n--- !u\n[1]\n', 'a:\n  !**:\n    n: !int\n--- !a\nn:\n', 'a:\n  !**:\n    n: !int\n--- !a\nx: {y: [{n: a}]}\n', 'a:\n  !**:\n    ports: [!int, ...]\n--- !a\nports: 1\n',
+               'a:\n  !**:\n    !str(/ts_.*/): !date\n--- !a\nts_x: soon\n', 'a:\n  !**: !int\n  b:\n    !**: !bool\n--- !a\nb: {y: 1}\n', 'a:\n  !**: !int\n  b:\n    c: !str\n--- !a\nb: {c: x, d: y}\n',
+               'a:\n  "!*": !int\n--- !a\nx: 5\n', 'a:\n  "*": !int\n--- !a\nx: 5\n', 'addr:\n  name: !str\na:\n  !**: !int\n  home: !addr\n--- !addr\nname: x\nfloor: 3\n', 'a:\n  b:\n    !**: !int\n--- !a\nb: {x: 1}\nc: 2\n',
+               'p:\n  x: !int\nq:\n  x: !int\n  z: !int\nu: !p | !q\na:\n  s: !u\n  !**: !str\n--- !a\ns: {x: 1, z: 2}\n', C + 'u: !circle | !square\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: oval}\n']
+    notstar += ['a:\n  !*: !int\n--- !a\nx: {y: 1}\n', 'a:\n  !*: !int\n--- !a\n5\n', 'a:\n  !*: !int\n--- !a\n[1]\n', 'a:\n  !*: !int\n--- !a\nx: y\n', 'a:\n  "!**": !int\n--- !a\nx: 5\n']
     for t in notstar:
         try: typed('--- &\n' + t); f += 1; print('NOT REFUSED', repr(t))
         except REFUSED: pass
-    badstar = ['a:\n  !*: [!int, ...]', 'a:\n  !*: !b\nb:\n  x: !int', 'a:\n  !*: !int | !b\nb:\n  x: !int', 'a:\n  !*: !a', 'a:\n  !*:\n    !*:\n      n: !int', 'a:\n  !*: !stirng', 'a:\n  !*:\n    n: !stirng', 'a:\n  !*:\n    !stirng: !int', 'a:\n  !*:\n    !str(/(a{1000}){1000}/): !int', 'a:\n  !*: !int\n  !*: !str', 'a:\n  !*:\n    !str: !stirng', 'a:\n  !*:\n    !str(/a{400}/): !int\n    !str(/b{400}/): !int\n    !str(/c{400}/): !int']
+    badstar = ['a:\n  !**:\n    !**: !int', 'a:\n  !ts_*: !date', 'a:\n  !***: !int', 'a:\n  !*: !stirng', 'a:\n  !**:\n    !*: [!int, ...]', 'a:\n  !**: [!int, ...]', 'a:\n  !**: !b\nb:\n  x: !int', 'a:\n  !**: !int | !b\nb:\n  x: !int', 'a:\n  !**: !a', 'a:\n  !**:\n    !*:\n      n: !int', 'a:\n  !**: !stirng', 'a:\n  !**:\n    n: !stirng', 'a:\n  !**:\n    !stirng: !int', 'a:\n  !**:\n    !str(/(a{1000}){1000}/): !int', 'a:\n  !**: !int\n  !**: !str', 'a:\n  !**:\n    !str: !stirng', 'a:\n  !**:\n    !str(/a{400}/): !int\n    !str(/b{400}/): !int\n    !str(/c{400}/): !int']
     for t in badstar:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
@@ -490,7 +497,7 @@ if __name__ == '__main__':
     pub = [(D, {h: Y}, None, T), (D, None, None, U), (D.replace('tabcomputing.com/address/v1', 'mirror.example'), {h: Y}, None, T),
            (D.replace(h, h.upper()), {h: Y}, None, U), (D.replace(h + '.yes', h[:39] + '.yes'), {h: Y}, None, U), (D.replace(f'tabcomputing.com/address/v1/{h}', h), {h: Y}, None, U),
            ('--- !tabcomputing.com/address/v1\nstreet: a\n', {}, None, {'street': 'a'}), (f'--- !x.example/{q}.yes\nz\n', Q, None, 'z'),
-           ('--- &\naddress: !int\n' + D, {h: Y}, None, T), (D, {h: Y}, ('--- &\nj:\n  !*: !str\n', 'j'), T), (D, None, ('--- &\nj:\n  !*: !str\n', 'j'), U)]
+           ('--- &\naddress: !int\n' + D, {h: Y}, None, T), (D, {h: Y}, ('--- &\nj:\n  !**: !str\n', 'j'), T), (D, None, ('--- &\nj:\n  !**: !str\n', 'j'), U)]
     for t, st, ap, w_ in pub:
         try: got = typed(t, ap, store=st)[0]; f += 0 if same(got, w_) else 1; same(got, w_) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
@@ -519,7 +526,7 @@ if __name__ == '__main__':
     for k, v, acc in nope:
         try: typed(N + f'--- !{k}\n{v}\n', accept=bool(acc)); f += 1; print('NOT REFUSED', k, v)
         except REFUSED: pass
-    fulls = [('a: !str\n', 'a', 1), ('a: !int | x\n', 'a', 2), ('big: !int | !str\na: !big | x\n', 'a', 6), ('m:\n  x: !int\n  y?: !str\nu: !m | !int\n', 'u', 10), ('a: !str(/ab{3}/)\n', 'a', 4), ('a: !b | !b\nb: !int\n', 'a', 5), ('a: [!int, ...]\n', 'a', 2), ('a:\n  !*:\n    n: !int\n    !str(/x/): !int\n    !*: !str\n', 'a', 7), ('a: !b\nb: !c\nc: !str\n', 'a', 6)]
+    fulls = [('a: !str\n', 'a', 1), ('a: !int | x\n', 'a', 2), ('big: !int | !str\na: !big | x\n', 'a', 6), ('m:\n  x: !int\n  y?: !str\nu: !m | !int\n', 'u', 10), ('a: !str(/ab{3}/)\n', 'a', 4), ('a: !b | !b\nb: !int\n', 'a', 5), ('a: [!int, ...]\n', 'a', 2), ('a:\n  !**:\n    n: !int\n    !str(/x/): !int\n    !*: !str\n', 'a', 8), ('a:\n  n: !int\n  !*: !str\n', 'a', 5), ('a:\n  !**: !int\n', 'a', 3), ('a: !b\nb: !c\nc: !str\n', 'a', 6)]
     for t, root, n in fulls:
         tb = read('%YAML 2.0\n--- &\n' + t).table
         try:

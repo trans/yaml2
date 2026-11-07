@@ -29,8 +29,9 @@ relaxed if 2.0 becomes the standard. It's in `9f6292f`. Files that read as writt
 both in `0ba3c31`. A schema's full size, which limits load, is in `558ba6f`, and the tags changes to part
 1, section 13.1, are in `a679bd6`. See [review.md](review.md).
 
-**Independent review (2026-11-06).** Codex's seven findings are fixed in the working copy of both
-specs, not committed. See [review.md](review.md).
+**Independent review (2026-11-06).** Codex's seven findings are fixed in `ffe895c`, @oyl's three text
+changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `211757b`. None is pushed. See
+[review.md](review.md) and [rules.md](rules.md).
 
 **YAML Schema, part 2.** Draft 1 is `spec/yaml-schema.md`, in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
