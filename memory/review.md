@@ -377,11 +377,15 @@ For the user to decide:
   case-insensitive list of Microsoft names, and the next is 772. So 10,000 existed for one pattern.
   The largest real unions are 782 positions (`oneOf` of patterns) and 253 (one mapping's
   `patternProperties`). A position is a pattern's characters and classes, not an alternative.
-- **Load: **Open for the user**.** A ceiling per union can't bound load: `aN: !aN+1 | !aN+2` gives 2
-  million names reaching the ceiling, 84 GB of lists at 10,000 and 8 GB at 1,024 (arithmetic). It does
-  load, because a union counts each name once: a chain of 60 loaded in the checker. @oyl proposes counting
-  the positions of all unions in the table against the size limit, refused at load. Exact, so parsers
-  agree. Not built. It's in part 2, section 15, as an open point, not a rule.
+- **Load: the agent added this on the user's "go ahead" (2026-11-06; **Fixed, not yet committed**).** A
+  ceiling per union can't bound load: 2 million names reaching the ceiling is 8 GB of lists at 1,024.
+  @oyl proposed counting all union positions against the size limit. Built differently: a schema has a
+  full size, worked out by addition with nothing deduplicated, and it can't pass the limit. Counting
+  each name once, as the ceiling does, would make the count itself quadratic on a long chain, since each
+  union walks every name below it. Names, literals and mapping keys count too, because each takes a
+  place in what a parser builds. Any schema that passes can be flattened in steps bounded by the limit.
+  One result: a chain that doubles at each level (`aN: !aN+1 | !aN+1`) used to load and now passes the
+  limit at about 26 levels. Section 9 still says `!m | !m` is `!m`, which is about meaning.
 
 For a parser, no spec change: one automaton per union (2 to 7 ns a value, barely growing from 3 patterns
 to 10); a DFA must be lazy, with a capped cache over an NFA walk (not built); `!*: !signed | !str`
@@ -392,3 +396,6 @@ about 170 by printing, no disagreement in 60 million values).
 Checks after this (2026-11-06): part 2, 48 examples and 273 edge cases; 70 of 70 deliberate rule breaks
 caught, including ties and an exact near-tie (`49954322897937359e-24`, 0.5000000000000001 of a unit
 away). Of 200,000 random 15-digit values in the normal range none lost digits; below it, 18,204 of 20,000.
+
+Later on 2026-11-06: part 2, 48 examples and 296 edge cases; 82 of 82 deliberate rule breaks caught.
+Not tested at 64 MiB, or in a real parser.

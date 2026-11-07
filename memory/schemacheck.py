@@ -131,6 +131,7 @@ def strip(v):
     return str(v)
 
 CEILING = 1024
+LIMIT = 64 * 2 ** 20
 def size(tree):
     """Positions in a parsed pattern, after nested counts multiply."""
     t = 0
@@ -145,10 +146,25 @@ def size(tree):
     return t
 
 class Schema:
-    def __init__(s, table, root, accept=False):
+    def __init__(s, table, root, accept=False, limit=LIMIT):
         s.table, s.defs, s.memo, s.seen, s.reached, s.accept = table, {}, {}, set(), {root}, accept
+        s.places, s.fulls = {}, {}
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
+        for name in s.reached: s.place(s.get(name))
+        n = sum(s.full(t) for t in s.places.values())
+        if n > limit: raise SchemaError(f'a schema of full size {n}')
+    def place(s, t): s.places[id(t)] = t
+    def full(s, t):
+        """What a type expands to. Nothing is deduplicated, as in a stream's full size."""
+        if t[0] == 'alt': return sum(s.full(x) for x in t[1])
+        if t[0] == 'name' and t[1] in s.table:
+            if t[1] not in s.fulls: s.fulls[t[1]] = s.full(s.get(t[1]))
+            return 1 + s.fulls[t[1]]
+        if t[0] == 'name' and t[2] and t[2][:1] == '/': return size(re._parser.parse(t[2][1:-1]))
+        if t[0] == 'lit': return 1
+        if t[0] == 'map': return 1 + len(t[1]) + len(t[2]) + (len(t[3][0]) + len(t[3][1]) if t[3] else 0)
+        return 1
     def get(s, name):
         if name not in s.defs: s.defs[name] = to_type(s.table[name])
         return s.defs[name]
@@ -184,7 +200,7 @@ class Schema:
         if n > CEILING: raise SchemaError(f'a union of {n} positions')
     def walk(s, t):
         if id(t) in s.seen: return
-        s.seen.add(id(t)); a = s.alts(t)
+        s.seen.add(id(t)); s.place(t); a = s.alts(t)
         if sum(1 for x in a if x[0] == 'seq') > 1: raise SchemaError('more than one sequence alternative')
         for x in a:
             if x[0] == 'seq':
@@ -197,6 +213,7 @@ class Schema:
                     for ft, _ in x[3][0].values(): s.walk(ft)
                     for kt, vt in x[3][1]: s.walk(kt); s.walk(vt)
                     s.ceiling([y for kt, _ in x[3][1] for y in s.alts(kt)])
+                    if x[3][2]: s.place(x[3][2])
                     if x[3][2] and any(y[0] not in ('lit', 'name') for y in s.alts(x[3][2])): raise SchemaError('a `!*` takes a scalar type, or a mapping of rules')
     def check(s, v): return s.conv(s.root, v, '')
     def under(s, k, y, path, scope):
@@ -313,28 +330,28 @@ class Schema:
         return out
 
 PUB = re.compile(r'[^/]+(?:/[^/]+)*/([0-9a-f]{40})\.yes')
-def published(name, store, accept):
+def published(name, store, accept, limit=LIMIT):
     """Section 3.1. The store is what an application can get, by hash, from anywhere."""
     h = PUB.fullmatch(name)[1]; b = store.get(h)
     if b is None: raise Cant(f'{name}: the file is not to be had')
     if hashlib.sha256(b).hexdigest()[:40] != h: raise Cant(f'{name}: the file does not hash to its name')
     r = read(b.decode('utf-8'))
     if r.docs or not r.table: raise SchemaError(f'{name}: a published schema is a table and nothing else')
-    return Schema(r.table, list(r.table)[-1], accept)
-def typed(stream, app=None, accept=False, store=None):
+    return Schema(r.table, list(r.table)[-1], accept, limit)
+def typed(stream, app=None, accept=False, store=None, limit=LIMIT):
     """Type each stamped document by the file's table, others by the application's schema.
     With neither they stay strings. An application's schema is (schema text, root). A store
     means the application looks published names up."""
     r = read(stream); out = []; reached = {}; live = None
-    own = None if app is None else Schema(read(app[0]).table, app[1], accept)
+    own = None if app is None else Schema(read(app[0]).table, app[1], accept, limit)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
         if obj is not live: reached, live = {}, obj
         for k, e in reached.items():
             if table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
         if name and '/' not in name and name in table:
-            sc = Schema(table, name, accept); out.append(sc.check(v))
+            sc = Schema(table, name, accept, limit); out.append(sc.check(v))
             reached.update((k, table[k]) for k in sc.reached)
-        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, accept).check(v))
+        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, accept, limit).check(v))
         elif own: out.append(own.check(v))
         else: out.append(strip(v))
     if r.docs and r.table is live:
@@ -481,8 +498,10 @@ if __name__ == '__main__':
         except REFUSED: pass
     Z = re.search(r'```yaml\n(%YAML 2\.0\n--- &\naddress:.*?)```', spec, re.S)
     if Z and hashlib.sha256(Z[1].encode('utf-8')).hexdigest()[:40] + '.yes' not in spec: f += 1; print('THE SPEC NAMES THE WRONG HASH')
-    n = 200; chain = '--- &\n' + ''.join(f'a{i}: !a{i+1} | !a{i+1}\n' for i in range(n)) + f'a{n}: !int\n--- !a0\n1\n'
-    f += 0 if typed(chain) == [1] else 1
+    doubling = lambda n: '--- &\n' + ''.join(f'a{i}: !a{i+1} | !a{i+1}\n' for i in range(n)) + f'a{n}: !int\n--- !a0\n1\n'
+    f += 0 if typed(doubling(10)) == [1] else 1
+    try: typed(doubling(200)); f += 1; print('NOT REFUSED: 200 doublings')
+    except SchemaError: pass
     # Reached entries, and what isn't reached.
     reach = [('--- &\na.example/job:\n  retries: !int\n--- !a.example/job\nretries: 3\n', [{'retries': '3'}]), ('--- &\na: !b\nb: !int\n--- !a\n1\n...\n--- &\nb: !bool\n--- !b\ntrue\n', [1, True]), ('--- &\nbad: !stirng\ngood: !int\n--- !good\n1\n', [1]), ('--- &\na: !int\n--- !a\n1\n--- &\nb: !bool\n--- !b\ntrue\n', [1, True])]
     for t, w in reach:
@@ -498,5 +517,24 @@ if __name__ == '__main__':
     for k, v, acc in nope:
         try: typed(N + f'--- !{k}\n{v}\n', accept=bool(acc)); f += 1; print('NOT REFUSED', k, v)
         except REFUSED: pass
-    print(f'edge cases: {len(good) + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
+    fulls = [('a: !str\n', 'a', 1), ('a: !int | x\n', 'a', 2), ('big: !int | !str\na: !big | x\n', 'a', 6), ('m:\n  x: !int\n  y?: !str\nu: !m | !int\n', 'u', 10), ('a: !str(/ab{3}/)\n', 'a', 4), ('a: !b | !b\nb: !int\n', 'a', 5), ('a: [!int, ...]\n', 'a', 2), ('a:\n  !*:\n    n: !int\n    !str(/x/): !int\n    !*: !str\n', 'a', 7), ('a: !b\nb: !c\nc: !str\n', 'a', 6)]
+    for t, root, n in fulls:
+        tb = read('%YAML 2.0\n--- &\n' + t).table
+        try:
+            Schema(tb, root, limit=n)
+            try: Schema(tb, root, limit=n - 1); f += 1; print('NOT REFUSED AT', n - 1, repr(t))
+            except SchemaError: pass
+        except SchemaError as e: f += 1; print('REFUSED AT', n, repr(t), e)
+    chain = '%YAML 2.0\n--- &\n' + ''.join(f'a{i}: !a{i + 1} | !a{i + 2}\n' for i in range(60)) + 'a60: !str\na61: !int\n'
+    try: Schema(read(chain).table, 'a0'); f += 1; print('NOT REFUSED: a chain that doubles')
+    except SchemaError: pass
+    wide = '%YAML 2.0\n--- &\nbig: !str(/a{1022}/)\nr:\n' + ''.join(f'  k{i}: !a{i}\n' for i in range(2000)) + ''.join(f'a{i}: !big | !int\n' for i in range(2000))
+    try:
+        Schema(read(wide).table, 'r')
+        try: Schema(read(wide).table, 'r', limit=2000000); f += 1; print('NOT REFUSED: many unions at the ceiling')
+        except SchemaError: pass
+    except SchemaError as e: f += 1; print('REFUSED', e)
+    try: typed('%YAML 2.0\n--- &\na: !int | !str\n--- !a\n1\n', limit=1); f += 1; print('NOT REFUSED: a stamp past the limit')
+    except SchemaError: pass
+    print(f'edge cases: {len(good) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
     sys.exit(1 if bad or f else 0)
