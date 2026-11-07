@@ -30,8 +30,13 @@ both in `0ba3c31`. A schema's full size, which limits load, is in `558ba6f`, and
 1, section 13.1, are in `a679bd6`. See [review.md](review.md).
 
 **Independent review (2026-11-06).** Codex's seven findings are fixed in `ffe895c`, @oyl's three text
-changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `211757b`. None is pushed. See
-[review.md](review.md) and [rules.md](rules.md).
+changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `211757b`. See
+[review.md](review.md) and [rules.md](rules.md). Part 2 is now YAML Easy Schema (YES), in
+`spec/yaml-easy-schema.md`, and its overview opens with the shadow.
+
+**Proposed before sending, not started (the user hasn't answered):** rerun the JSON check on real files,
+since part 1 section 13.1 says 994 and part 2 and the covering note say 1,015; run the two real schemas
+through the current checker; a second independent review.
 
 **YAML Schema, part 2.** Draft 1 is `spec/yaml-easy-schema.md`, in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
