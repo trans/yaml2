@@ -1,4 +1,4 @@
-# A proposal for YAML 2.0: YAML Schema
+# A proposal for YAML 2.0: YAML Easy Schema (YES)
 
 *Draft 1, 2026-11-05*
 

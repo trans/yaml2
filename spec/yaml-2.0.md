@@ -3,7 +3,7 @@
 *Draft 1, 2026-11-04*
 
 This is a proposal to the YAML core team, not the YAML specification. "YAML" and
-its version numbers are theirs. Part 2 is [YAML Schema](yaml-schema.md). Section 14
+its version numbers are theirs. Part 2 is [YAML Easy Schema (YES)](yaml-easy-schema.md). Section 14
 lists what is still open.
 
 ## 1. Overview
@@ -12,7 +12,7 @@ YAML's central problem is that the same bytes can give different data, depending
 which parser reads them. YAML 2.0 is a clean break that removes the causes:
 
 - **Everything is a string.** A stream holds strings, sequences and mappings, and
-  nothing else. Types come from the application or from a YAML Schema, never from a
+  nothing else. Types come from the application or from a YES schema, never from a
   parser guessing by how text looks.
 - **There is one way to read a stream.** Whatever this document doesn't allow is an
   error. A loud refusal is acceptable; a silent difference isn't.
@@ -194,7 +194,7 @@ A name is delivered beside the data, not in it. A parser looks nothing up and ne
 fetches anything, because reading a file must not touch the network, and to a parser a
 name isn't an address. A name alone is advisory: an application may refuse a name it
 didn't expect. A name that is an entry in the file's own table stamps the document with
-that entry, and YAML Schema says what that means. YAML Schema, section 3.1, also gives one
+that entry, and YAML Easy Schema says what that means. YAML Easy Schema, section 3.1, also gives one
 form of global name that an application can choose to look up.
 
 ```yaml
@@ -309,7 +309,7 @@ c: `code`
 
 Outside the table a plain scalar can't start with `!`, so a 1.x tag left in a file is refused, as
 a leftover anchor is. A value that starts with `!` is written quoted. In a table `!` is an ordinary
-character, because YAML Schema's types are plain scalars that start with it. So a tag in a table
+character, because YAML Easy Schema's types are plain scalars that start with it. So a tag in a table
 entry still reads as text, but a 1.x file has no table, so one only gets there when it is moved.
 
 ```yaml
@@ -1247,7 +1247,7 @@ Data that names its own classes changes most. 1.x can put a class on any node, a
 document has a name:
 
 - **A known shape,** such as a gem's metadata, works through a schema, which says which type
-  sits where. The application binds each name to a class (YAML Schema, section 12).
+  sits where. The application binds each name to a class (YAML Easy Schema, section 12).
 - **A known set of classes** works the same way, with a union that lists them.
 - **Any object, with no schema,** has nowhere to carry its class on a nested node. A dumper
   writes a key such as `class: Point`, and its loader checks that key against a list of its own.
