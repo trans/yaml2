@@ -51,7 +51,8 @@ line and column, and the path to the value. Through a reference, it gives the pl
 is used, with the entry's line beside it. There is no lenient mode.
 
 The time to type a stream must grow in line with its size, for any schema and any stream, even one
-written to force it. Section 16 says how.
+written to force it. For an interface that delivers full data, that is its full size (part 1,
+section 10). Section 16 says how.
 
 ## 3. Applying a schema
 
@@ -311,10 +312,14 @@ special. A width is a limit: `uint32: !int(0..4294967295)`. YAML writes digits, 
 doesn't arise.
 
 A parser delivers the number written, or refuses. It never wraps an integer, and never loses
-digits without saying so. A value loses digits if, once stored and written back to as many
-significant digits as it was written with, it comes out different. Binary64 can't hold `0.1`
-exactly, but `0.1` survives. `3.14159265358979323846` doesn't, and up to 15 significant digits
-always do. A value too large to hold, or so small it would become 0, loses its digits too.
+digits without saying so. A value keeps its digits if what is stored is no more than half a unit of
+its last written digit away from what is written, and otherwise it loses them. That needs no
+rounding rule, so `1.0000076293945313`, stored as exactly 1.00000762939453125, keeps its digits on
+every parser. Binary64 can't hold `0.1` exactly, but `0.1` keeps its digits.
+`3.14159265358979323846` doesn't. A value of up to 15 significant digits always does if its
+magnitude is at least 2.2250738585072014e-308, but closer to 0 it may not: `1.234567890123e-320` is
+stored as about 1.23467e-320. A value too large to hold, or so small it would become 0, loses its
+digits too.
 
 An application can ask to accept rounding on `!float`, because the digits may not matter to it.
 A value then takes the nearest one it can hold, and one too large to hold is still refused.
@@ -676,11 +681,13 @@ list: [!u, ...]
 [{"x": 1}, {"x": 1, "z": 2}]
 ```
 
-A union holds at most 10,000 positions once its names are expanded. A type counts 1, a literal
+A union holds at most 1,024 positions once its names are expanded. A type counts 1, a literal
 counts nothing, since a hash table finds it, and a pattern counts its characters and classes after
 nested counts multiply, so `(a{1000}){1000}` counts a million. A mapping's type keys count as one
 union, and a type on its own as a union of one. A schema past that is refused when it is loaded, by
-every parser, so all of them agree on what loads.
+every parser, so all of them agree on what loads. Of 1,247 real patterns one goes past it, a
+case-insensitive list of names at 9,131 positions, and would have to be loosened. The next has 772,
+and no real union of patterns has more than 782.
 
 ```yaml refused
 --- &
@@ -861,8 +868,8 @@ text: *port
 So a parser that keeps a reference as one shared node has to keep how each scalar was written,
 and it can't share a typed result between two types.
 
-An interface that keeps references types each node once under each type, and the sizes of what it
-types count against the limit. Without that memory, a chain of 28 references in 632 bytes takes 1.6
+An interface that keeps references types each node once under each type. Each time, the node's own
+size counts against the limit, and not what is below it. Without that memory, a chain of 28 references in 632 bytes takes 1.6
 billion visits. A type changes no count in held or full (part 1, section 10).
 
 A merge is the way to give a default. An author's default is a `<<` from a table entry: local keys
@@ -967,12 +974,14 @@ key. Otherwise it is literal, and a plain key ending in `?` is optional.
 - **Quoted scalars as literals.** Section 5 removes two warts, and hasn't been tried on a real
   schema. It means a type expression can't be quoted.
 - **A minimum precision on `!float`.** A schema can't yet say that a value needs a certain number of
-  digits, so that an application holding fewer refuses it even where the written value survives.
+  digits, so that an application holding fewer refuses it even where the value keeps its digits.
 - **The standard types.** The list is short so far, and it should be thorough: times and durations,
   and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
   later, as section 8 says.
-- **The ceiling on a union.** Section 9's 10,000 refuses none of 1,247 real patterns. A lower figure
-  would make a schema of many overlapping unions quicker to load.
+- **What a schema costs to load.** Section 9's ceiling is per union, so it doesn't limit the total.
+  `aN: !aN+1 | !aN+2` down a 64 MiB table gives 2 million names, each of which can reach 1,024
+  positions. Counting the positions of all unions against the size limit, refused at load, would
+  limit it, and the count is exact, so every parser would agree. That hasn't been built.
 - **Typing under kept references.** Section 11's count hasn't been built or tried.
 - **Ways past a stamp.** Section 3 lets a library ignore a file's schema. Whether one must is open,
   since an application checking files it didn't write depends on it.
