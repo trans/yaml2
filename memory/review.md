@@ -400,10 +400,10 @@ away). Of 200,000 random 15-digit values in the normal range none lost digits; b
 Later on 2026-11-06: part 2, 48 examples and 296 edge cases; 82 of 82 deliberate rule breaks caught.
 Not tested at 64 MiB, or in a real parser.
 
-## Independent review by Codex at `a679bd6` (2026-11-06, **Open for the user**)
+## Independent review by Codex at `a679bd6` (2026-11-06, **Fixed, not yet committed**)
 
 The user asked for an independent review. Codex read both specs read-only, was told to skip these notes,
-and could run the checkers. Each finding below was rerun on 2026-11-06. None is fixed yet.
+and could run the checkers. Each finding below was rerun on 2026-11-06. The user had all seven fixed.
 
 - **Part 2, sections 11 and 16: `!*` and kept references. Defect.** "Types each node once under each
   type" silently changes data, because a type open to `!*` depends on the nearest `!*`: one referenced
@@ -426,3 +426,13 @@ and could run the checkers. Each finding below was rerun on 2026-11-06. None is 
 
 Held up under its effort: part 1 section 10's arithmetic; the pattern ceiling (1,024 loads, 1,025 refused);
 no way past part 1's full size.
+
+Done while fixing them: `>` is out of bare paths, the way the prose already read. The same flow gap was
+worse for `-<<`: `[-<<\t*s]` read as the text `-<<\t*s` with no error. In a flow collection a tab or break
+now works there too, and in a block a tab is refused. A literal has at least one character, so `[ ]`
+and `[!int, ]` are refused in a type expression. The checker's `\s` in a name became space and tab, to
+match the grammar. @oyl's "(node, type)" memory is now node, type and nearest `!*`; that cost isn't
+measured, and @oyl has been told to stop on part 2.
+
+Checks: part 1, 58 examples and 235 edge cases, all 7 deliberate breaks caught; part 2, 50 and 311, 86 of 86
+caught. Real files unchanged: 3,418 of 4,651.
