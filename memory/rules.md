@@ -361,8 +361,7 @@ tests settled on, all proposals, left open for the core team:
 - **No new syntax.** With tags out, `!` is an ordinary character in a table, so `!int` is a
   plain string to the grammar. A value starting with `!` is a type expression; any other value
   is a literal that must match.
-- **`!` outside the table (the user chose this, 2026-11-06; in the working copy of part 1 and
-  part 2, not committed on `main`).** A plain scalar can't start with `!` outside the table, so a
+- **`!` outside the table (the user chose this, 2026-11-06; in `9f6292f`).** A plain scalar can't start with `!` outside the table, so a
   leftover 1.x tag is refused. The user's proviso: this could be relaxed if 2.0 becomes the go-to
   standard, which is section 6.1's last paragraph. Relaxing only accepts more, so no file breaks.
   Before this the user was undecided (2026-11-04) and it sat in section 14; that item is gone. The

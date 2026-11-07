@@ -355,7 +355,7 @@ pattern engine, and narrowing alternatives as keys arrive.
 tables. Measured on one pinned core in throwaway C, with Oyl's 1.x event parser as the baseline. The
 user has asked @oyl to stop on part 2 for now, so this is its last word for the moment.
 
-The four text errors. **Fixed, not yet committed** on `main`, in the working copy of part 2:
+The four text errors. **Fixed in `0ba3c31`**:
 
 - **Section 4.4, ties.** `1.0000076293945313` is stored as exactly 1.00000762939453125, a tie at 17
   digits. Rerun 2026-11-06: Python and C write back `...312` and so refuse it, and JavaScript's
@@ -371,7 +371,7 @@ The four text errors. **Fixed, not yet committed** on `main`, in the working cop
 
 For the user to decide:
 
-- **The ceiling: the user chose 1,024 (2026-11-06; fixed, not yet committed).** 10,000 positions worst
+- **The ceiling: the user chose 1,024 (2026-11-06; in `0ba3c31`).** 10,000 positions worst
   case is 224 s for 64 MiB by NFA walk, against 24 s at 1,024. @oyl suggested the largest real union,
   rounded up. Our count on SchemaStore: the largest of 1,247 patterns is 9,131 positions, a
   case-insensitive list of Microsoft names, and the next is 772. So 10,000 existed for one pattern.
