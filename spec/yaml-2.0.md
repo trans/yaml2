@@ -57,8 +57,8 @@ can't make two parsers give different data.
 A stream is UTF-8. Any other encoding, invalid UTF-8, and a leading byte order mark are
 refused.
 
-A stream may contain only these characters, the printable characters of YAML 1.2 without
-U+FEFF and the line breaks YAML 1.1 had:
+Outside double quotes a stream may contain only these characters, the printable characters of
+YAML 1.2 without U+FEFF and the line breaks YAML 1.1 had:
 
 | Characters | What they are |
 |---|---|
@@ -663,8 +663,8 @@ taken literally, anywhere in the path:
 | `*a:Fn::Sub` | `a`, then the key `Fn::Sub` |
 
 A key starting with `<` also needs this form. A key holding `>` can't be written in a
-path, and neither can the empty key, though copying the mapping holding them still
-brings them along.
+path, so `*a>b` is refused, and neither can the empty key, though copying the mapping
+holding them still brings them along.
 
 A reference ends at a space or the end of the line, and in a flow collection also at
 any of `, ] }`.
@@ -851,8 +851,9 @@ m:
 `-<< *ref` is replaced by the items of the sequence it names, as a plain
 concatenation. It can go at any position in a block sequence, any number of times.
 `-<<` is one token, followed by a space and a reference, and it is refused anywhere
-but a sequence item, as `- x` is. Anything else that starts that way is a plain
-scalar, so `-<<x` is text.
+but a sequence item, as `- x` is. In a flow collection a tab or a line break can take the
+place of the space (section 7.3), and in a block a tab there is refused. Anything else that
+starts that way is a plain scalar, so `-<<x` is text.
 
 `- <<: *a` is a different thing: an item that is a mapping with merged keys.
 
@@ -1122,10 +1123,10 @@ In a folded scalar, a `text-line` must not start with a space or a tab.
 flow       ::= flow-seq | flow-map
 fs         ::= (white | break | comment break)*
 flow-seq   ::= "[" fs (flow-item fs ("," fs flow-item fs)* ("," fs)?)? "]"
-flow-item  ::= "-<<" ws reference(flow) | flow-node
+flow-item  ::= "-<<" [> white | break] fs reference(flow) | flow-node
 flow-node  ::= flow | flow-plain | double | single | reference(flow)
 flow-map   ::= "{" fs (flow-pair fs ("," fs flow-pair fs)* ("," fs)?)? "}"
-flow-pair  ::= "<<:" ws reference(flow)
+flow-pair  ::= "<<:" [> white | break] fs reference(flow)
              | (flow-plain - "<<") white* ":" ([> "," | "}"] | [> white | break] fs flow-node?)
              | (double | single) fs ":" fs flow-node?
 ```
@@ -1135,7 +1136,7 @@ flow-pair  ::= "<<:" ws reference(flow)
 ```ebnf
 plain          ::= [!> merge-item] plain-first(printable) plain-rest(printable)*
 flow-plain     ::= [!> merge-item] plain-first(flow-safe) plain-rest(flow-safe)*
-merge-item     ::= "-<<" ws "*"
+merge-item     ::= "-<<" white+ "*"
 flow-safe      ::= printable - ("," | "[" | "]" | "{" | "}")
 
 plain-first(s) ::= s - indicator - space - #x9
@@ -1166,7 +1167,7 @@ reference(flow) ::= "*" step(ref-flow) (":" step(ref-flow))*
 ref-flow       ::= printable - ("," | "]" | "}")
 step(s)        ::= "<" (printable - ">")+ ">" | bare(s)
 bare(s)        ::= (bare-char(s) - "<" | colons) (bare-char(s) | colons)*
-bare-char(s)   ::= s - ":" - space - #x9
+bare-char(s)   ::= s - ":" - ">" - space - #x9
 colons         ::= ":" ":"+
 ```
 

@@ -439,7 +439,19 @@ mark: "!important"
 
 A sequence is written as a sequence, and `...` repeats the item before it, any number of times,
 none included. `[!int, !str]` is exactly those two, and `[!str, !int, ...]` is a string and then
-any number of integers. `[!x, !x, ...]` is one or more.
+any number of integers. `[!x, !x, ...]` is one or more. `[]` is a sequence with nothing in it, so
+`!int | []` is an integer or an empty sequence.
+
+```yaml
+--- &
+u: !int | []
+--- !u
+[]
+```
+
+```json
+[]
+```
 
 ```yaml
 --- &
@@ -693,8 +705,9 @@ A schema has a full size too, and it can't pass the size limit (part 1, section 
 it is worked out by addition before anything is built. Each entry a schema reaches, and each place
 in those entries that holds a type, adds what its type expands to: 1 for a literal, a standard type,
 a sequence or a name, the count above for a pattern, 1 for a mapping plus 1 for each key it names, and
-for a name also what the name stands for. Unlike the ceiling, this counts a name every time it is
-written. So 2 million lines of `aN: !big | !int` are refused, though each union is within the ceiling.
+for a name also what the name stands for. A mapping's values and a sequence's items are places of
+their own, so they aren't counted in it, and a type that contains itself still has a full size.
+Unlike the ceiling, this counts a name every time it is written. So 2 million lines of `aN: !big | !int` are refused, though each union is within the ceiling.
 All 721 schema families on SchemaStore together declare 90,006 keys, so no real schema comes near it.
 
 ```yaml refused
@@ -876,9 +889,34 @@ text: *port
 So a parser that keeps a reference as one shared node has to keep how each scalar was written,
 and it can't share a typed result between two types.
 
-An interface that keeps references types each node once under each type. Each time, the node's own
-size counts against the limit, and not what is below it. Without that memory, a chain of 28 references in 632 bytes takes 1.6
-billion visits. A type changes no count in held or full (part 1, section 10).
+An interface that keeps references types each node once for each type and nearest `!*`. The `!*`
+is part of that because it can change what one type does to one node:
+
+```yaml
+--- &
+v: {x: 1}
+leaf: {}
+root:
+  a:
+    child: !leaf
+    !*: !int
+  b:
+    child: !leaf
+    !*: !str
+--- !root
+a:
+  child: *v
+b:
+  child: *v
+```
+
+```json
+{"a": {"child": {"x": 1}}, "b": {"child": {"x": "1"}}}
+```
+
+Each time, the node's own size counts against the limit, and not what is below it. Without that
+memory, a chain of 28 references in 632 bytes takes 1.6 billion visits. A type changes no count in
+held or full (part 1, section 10).
 
 A merge is the way to give a default. An author's default is a `<<` from a table entry: local keys
 win and missing ones fill in, visibly in the file, so the same bytes give the same data with or
@@ -964,9 +1002,9 @@ type       ::= "!" name limit?
 limit      ::= "(" (range | "/" pattern "/") ")"
 range      ::= number? ".." number?
 number     ::= "-"? digit+ ("." digit+)? (("e" | "E") ("-" | "+")? digit+)?
-sequence   ::= "[" expression ("," " "* expression)* ("," " "* "...")? "]"
-literal    ::= any text, not starting with "!", "[", "{", '"' or "'", holding no " | "
-name       ::= a table key, or a standard type, with no "/", "(", ")", "[", "]", "," or "|"
+sequence   ::= "[]" | "[" expression ("," " "* expression)* ("," " "* "...")? "]"
+literal    ::= one or more characters, not starting with "!", "[", "{", '"' or "'", holding no " | "
+name       ::= a table key, or a standard type, with no space, tab, "/", "(", ")", "[", "]", "," or "|"
 pattern    ::= I-Regexp, RFC 9485, holding no "/)"
 ```
 
@@ -1028,7 +1066,7 @@ the data.
   each data key against a type's keys, and `!name` in the table. A compiled schema shared between
   parsers needs a hash key of its own.
 - **References.** A walk through a chain of references doubles at each link, so section 11 types
-  each node once under each type.
+  each node once for each type and nearest `!*`.
 - **Unions.** Names that repeat double at each level if read literally. Section 9 counts each name
   once, and its ceiling fixes how much a scalar can cost per character. A schema's full size, which
   counts a name every time, limits what loading it can cost.
