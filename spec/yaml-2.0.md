@@ -1222,7 +1222,11 @@ A tool that turns YAML into JSON and decodes the result into typed structures, a
 `sigs.k8s.io/yaml` does for Kubernetes, gets `replicas: 3` as a string unless it applies
 a schema.
 
-Formats built on tags each need a 2.0 spelling:
+Tags on nodes are out because 2.0 delivers strings, sequences and mappings, which fit every
+language and JSON, and a nested value has nowhere to keep a name. Of 4,026 public files, 177 hold a
+tag: 144 MkDocs, 17 Rails, 13 GitLab, 2 Kubernetes and 1 Jekyll. None of their 721 uses states a
+standard type, so a schema replaces very little of this. Most mark a value for the application, and
+those need a 2.0 spelling. A tag left in a file is refused (section 6.1).
 
 | 1.x | 2.0 |
 |---|---|
@@ -1231,8 +1235,11 @@ Formats built on tags each need a 2.0 spelling:
 | GitLab `!reference [.setup, script]` | `*.setup:script`, or `-<< *.setup:script` in a list |
 | Home Assistant `!include lights.yaml` | a key it would read, such as `include: lights.yaml` |
 | Ansible `!vault \|` and its block | a key it would read, such as `vault: \|` and its block |
+| MkDocs `!ENV SITE_URL` | a key it would read, such as `env: SITE_URL` |
+| MkDocs `!!python/name:a.b` | `a.b`, under the key it already sits under |
 
-CloudFormation reads its long forms today. The last two need the application to change.
+CloudFormation reads its long forms today, and GitLab's are part of the language. Home Assistant,
+Ansible and MkDocs need the application to change.
 
 Data that names its own classes changes most. 1.x can put a class on any node, as
 `!ruby/object:Point`, so a language can dump an object it knows nothing about. In 2.0 only a
