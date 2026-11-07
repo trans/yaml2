@@ -32,8 +32,8 @@ mode: read
 {"image": "nginx", "replicas": 3, "ports": [80, 443], "mode": "read"}
 ```
 
-A schema is ordinary YAML, and adds no syntax. `!` means nothing to a parser, so `!int` is a
-plain string that the schema gives a meaning to. A schema is a `--- &` document: its entries
+A schema is ordinary YAML, and adds no syntax. In a table `!` is an ordinary character, so `!int`
+is a plain string that the schema gives a meaning to. A schema is a `--- &` document: its entries
 are types, and `!name` names one. A schema adds nothing to the data but types: any default
 is written in the file, as a merge (section 11).
 
@@ -423,7 +423,7 @@ is how a literal can start with `!` or hold ` | `.
 --- &
 mark: "!important"
 --- !mark
-!important
+"!important"
 ```
 
 ```json

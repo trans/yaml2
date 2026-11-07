@@ -215,8 +215,8 @@ plain: yes
 {"plain": "yes"}
 ```
 
-Names are the only tags. A tag on any other node is an ordinary plain string, since
-`!` means nothing else to a parser.
+Names are the only tags. A tag on any other node is refused, because outside the table a plain
+scalar can't start with `!` (section 6.1).
 
 ### 4.4 Ending
 
@@ -294,19 +294,42 @@ It can't start with any of `, [ ] { } # & * | > ' "`. Each of those has a meanin
 own, except `&`, which is refused so that a 1.x anchor fails loudly. `-`, `?` and `:`
 can't start it if a space or the end of the line follows.
 
-`!`, `%`, `@` and `` ` `` are ordinary characters, except that a line starting with `%`
-at column 0 is reserved for directives.
+`%`, `@` and `` ` `` are ordinary characters, except that a line starting with `%` at column 0
+is reserved for directives.
 
 ```yaml
 a: %{count} items
 b: @home
 c: `code`
-d: !important
 ```
 
 ```json
-{"a": "%{count} items", "b": "@home", "c": "`code`", "d": "!important"}
+{"a": "%{count} items", "b": "@home", "c": "`code`"}
 ```
+
+Outside the table a plain scalar can't start with `!`, so a 1.x tag left in a file is refused, as
+a leftover anchor is. A value that starts with `!` is written quoted. In a table `!` is an ordinary
+character, because YAML Schema's types are plain scalars that start with it. So a tag in a table
+entry still reads as text, but a 1.x file has no table, so one only gets there when it is moved.
+
+```yaml
+--- &
+kind: !int
+---
+note: "!important"
+```
+
+```json
+{"note": "!important"}
+```
+
+```yaml refused
+a: !Ref foo
+```
+
+This rule is for the years when 1.x files are being converted. A later version could drop it if
+2.0 becomes the standard most files are written to, and no file would break, because that only
+accepts more.
 
 ```yaml refused
 a: b: c
@@ -1023,10 +1046,10 @@ exactly `n` spaces, and `A - B` is A but not B. `[> x]` means x must follow, and
 consumed, `[!> x]` means it must not, and `[< x]` means x must come before. `EOF` is
 the end of the stream.
 
-Rules the grammar can't state: a `<<:` at the top of a table, duplicate keys,
-reference resolution, and the size limit. A line starting a marker or `...` at column
-0 is only matched by `document`, `table`, `later` and `finish`, and a line starting
-with `%` at column 0 only by `directive`.
+Rules the grammar can't state: a `<<:` at the top of a table, a plain scalar starting with `!`
+outside a table, duplicate keys, reference resolution, and the size limit. A line starting a
+marker or `...` at column 0 is only matched by `document`, `table`, `later` and `finish`, and a
+line starting with `%` at column 0 only by `directive`.
 
 ### Characters
 
@@ -1166,7 +1189,7 @@ Removed:
 - Tabs as whitespace, except in a flow collection and after the last content on a line.
 - One-pair `[a: b]`, and `{a}` with no `:`.
 - Escapes JSON doesn't have.
-- The bans on starting a plain scalar with `!`, `%`, `@` or `` ` ``.
+- The bans on starting a plain scalar with `%`, `@` or `` ` ``, and with `!` in a table.
 - Bare documents after `...`, and any YAML after a final `...`.
 - Tolerated duplicate keys, which are always refused.
 - The 1024-character limit on keys, which only bounded lookahead for flow keys.
@@ -1185,7 +1208,7 @@ documents in a stream, trailing commas and compact forms like `- - x` and `- a: 
 
 ### 13.1 What this costs
 
-Existing files need converting. Of 4,651 public files, 3,558 read as written once
+Existing files need converting. Of 4,651 public files, 3,418 read as written once
 `%YAML 2.0`, and `---` where it's missing, are added. The rest hit one of the changes above.
 
 JSON is a subset of 2.0 once `%YAML 2.0` and `---` are on top, apart from repeated keys, which YAML
@@ -1299,32 +1322,6 @@ A whole object graph, cycles included, is a job for a language's own format, suc
   that everything after a `|` is text. The 103 of 4,213 real blocks with a header comment
   would have to move it, and a block that didn't would fail loudly, since its next line
   has no `|`.
-- Leftover tags. `!` is an ordinary character in this draft, so a 1.x tag with its
-  content on the same line reads as text: `!Ref foo`, `!Sub "x"`, `!reference [a, b]`.
-  So does a tag with no content, `!Ref` alone. A tag with its content on the lines below
-  is refused already, because a plain scalar can't continue onto the next line. That
-  refusal depends on multi-line plain scalars staying out. The question is whether a
-  parser should refuse any plain scalar starting with `!` outside the table, where YAML
-  Schema needs it.
-
-  For refusing:
-
-  - A leftover tag would fail loudly, as a leftover `&` does, which is the rule in
-    section 1: a loud refusal is acceptable, and a silent difference isn't.
-  - It would be needed: 137 of the 3,544 public files this grammar reads hold such tags.
-  - It costs few quotes: 60 strings in 36 of 4,241 public files start with `!`, and they
-    are quoted today anyway.
-  - Refusing can be relaxed later without breaking a file. The reverse breaks files.
-
-  Against:
-
-  - No file gets here by accident. A 1.x file has no `%YAML 2.0` and is refused, so
-    someone has to add that line, and converting a file is the time to deal with its
-    tags.
-  - `!` would be the one exception left, after `%`, `@` and the backtick were freed.
-  - The same text would be fine in the table and refused in a document.
-  - It wouldn't close the gap: a tag in a table entry still reads as text, and a
-    reference delivers it.
 
 ## 15. Security
 

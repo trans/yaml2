@@ -57,7 +57,7 @@ comparison is rough.
 
 ## What it costs
 
-This is a clean break. Of 4,651 public YAML files, 3,558 read as written once the first two
+This is a clean break. Of 4,651 public YAML files, 3,418 read as written once the first two
 lines are added. The rest need
 converting, and no converter exists yet. `spec/yaml-2.0.md`, section 13, lists every change
 from 1.2, and section 13.1 what they cost.
