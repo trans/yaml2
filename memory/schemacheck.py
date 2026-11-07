@@ -1,4 +1,4 @@
-"""Test spec/yaml-schema.md: a throwaway checker written from its text. Not a reference.
+"""Test spec/yaml-easy-schema.md: a throwaway checker written from its text. Not a reference.
 
     python3 -I schemacheck.py SPEC
 
