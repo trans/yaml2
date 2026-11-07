@@ -51,6 +51,9 @@ job:
 - **One size limit** stops a small file from expanding into a huge one.
 - **JSON is a subset** once `%YAML 2.0` and `---` are on top, apart from repeated keys and a lone CR
   between tokens. A small schema restores JSON's types.
+- **A schema is a shadow of the data**, and it is optional. Its base form is the data's keys and
+  structure with a type where each value would be. Table definitions, recursion and the key globs
+  `!*` and `!**` compress that form.
 
 The grammar has 58 productions. YAML 1.2 has 211, written at a finer grain, so the
 comparison is rough.

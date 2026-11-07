@@ -7,30 +7,104 @@ This is part 2 of a proposal to the YAML core team, not a YAML specification. Pa
 
 ## 1. Overview
 
-YAML needs no schema. Without one, a stream holds strings, sequences and mappings, and the
-application reads them as it sees fit. A schema is a shared way to interpret data and
-constrain it, and nothing more.
-
-A schema is a shadow of the data. It has the data's shape, with each value replaced by its
-type.
+YES is a shadow schema. Its base form is the data itself: write out the keys and structure, and
+put a type where each value would be.
 
 ```yaml
 --- &
-service:
-  image: !str
-  replicas?: !int(0..100)
-  ports: [!int, ...]
-  mode: read | write
---- !service
-image: nginx
-replicas: 3
-ports: [80, 443]
-mode: read
+job:
+  name: !str
+  timeout?: !int(0..3600)
+  mode: fast | safe
+  steps:
+    - run: !str
+      retries: !int
+    - ...
+--- !job
+name: build
+timeout: 30
+mode: safe
+steps:
+  - run: make
+    retries: 2
+  - run: test
+    retries: 0
 ```
 
 ```json
-{"image": "nginx", "replicas": 3, "ports": [80, 443], "mode": "read"}
+{"name": "build", "timeout": 30, "mode": "safe", "steps": [{"run": "make", "retries": 2}, {"run": "test", "retries": 0}]}
 ```
+
+That is the whole idea. `?` marks an optional key, `|` gives a choice and `...` repeats the item
+before it. Everything else that shortens a schema is a way of compressing this form.
+
+**Table definitions.** An entry names a type, so a shape used twice is written once (section 8).
+
+```yaml
+--- &
+step:
+  run: !str
+  retries: !int
+job:
+  steps: [!step, ...]
+  cleanup: !step
+--- !job
+steps:
+  - run: make
+    retries: 2
+cleanup:
+  run: rm
+  retries: 0
+```
+
+```json
+{"steps": [{"run": "make", "retries": 2}], "cleanup": {"run": "rm", "retries": 0}}
+```
+
+**Recursion.** An entry can name itself, so a shape of any depth has a short shadow (section 8).
+
+```yaml
+--- &
+node:
+  name: !str
+  children?: [!node, ...]
+--- !node
+name: a
+children:
+  - name: b
+```
+
+```json
+{"name": "a", "children": [{"name": "b"}]}
+```
+
+**Key globs.** `!*` takes any other key at its level (section 7), and `!**` applies rules here and
+at every level below (section 10), so a rule doesn't have to be repeated wherever a key occurs.
+
+```yaml
+--- &
+job:
+  !**:
+    timeout: !int
+    retries: !int
+--- !job
+name: build
+timeout: 30
+steps:
+  - run: make
+    retries: 2
+```
+
+```json
+{"name": "build", "timeout": 30, "steps": [{"run": "make", "retries": 2}]}
+```
+
+Table definitions and recursion lose nothing. Key globs do: below a `!**` no key is required by a
+rule and an unknown key passes. So the shadow is for checking a file, and rules are for typing one.
+
+**YAML needs no schema.** Without one, a stream holds strings, sequences and mappings, and the
+application reads them as it sees fit. A schema is a shared way to interpret data and constrain
+it, and nothing more.
 
 A schema is ordinary YAML, and adds no syntax. In a table `!` is an ordinary character, so `!int`
 is a plain string that the schema gives a meaning to. A schema is a `--- &` document: its entries
