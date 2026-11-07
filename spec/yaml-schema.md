@@ -689,6 +689,14 @@ every parser, so all of them agree on what loads. Of 1,247 real patterns one goe
 case-insensitive list of names at 9,131 positions, and would have to be loosened. The next has 772,
 and no real union of patterns has more than 782.
 
+A schema has a full size too, and it can't pass the size limit (part 1, section 10). Like a stream's,
+it is worked out by addition before anything is built. Each entry a schema reaches, and each place
+in those entries that holds a type, adds what its type expands to: 1 for a literal, a standard type,
+a sequence or a name, the count above for a pattern, 1 for a mapping plus 1 for each key it names, and
+for a name also what the name stands for. Unlike the ceiling, this counts a name every time it is
+written. So 2 million lines of `aN: !big | !int` are refused, though each union is within the ceiling.
+All 721 schema families on SchemaStore together declare 90,006 keys, so no real schema comes near it.
+
 ```yaml refused
 --- &
 a: !str(/(a{1000}){1000}/)
@@ -978,10 +986,6 @@ key. Otherwise it is literal, and a plain key ending in `?` is optional.
 - **The standard types.** The list is short so far, and it should be thorough: times and durations,
   and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
   later, as section 8 says.
-- **What a schema costs to load.** Section 9's ceiling is per union, so it doesn't limit the total.
-  `aN: !aN+1 | !aN+2` down a 64 MiB table gives 2 million names, each of which can reach 1,024
-  positions. Counting the positions of all unions against the size limit, refused at load, would
-  limit it, and the count is exact, so every parser would agree. That hasn't been built.
 - **Typing under kept references.** Section 11's count hasn't been built or tried.
 - **Ways past a stamp.** Section 3 lets a library ignore a file's schema. Whether one must is open,
   since an application checking files it didn't write depends on it.
@@ -1026,7 +1030,8 @@ the data.
 - **References.** A walk through a chain of references doubles at each link, so section 11 types
   each node once under each type.
 - **Unions.** Names that repeat double at each level if read literally. Section 9 counts each name
-  once, and its ceiling fixes how much a scalar can cost per character.
+  once, and its ceiling fixes how much a scalar can cost per character. A schema's full size, which
+  counts a name every time, limits what loading it can cost.
 - **Patterns.** Matching takes time linear in the string, whichever engine does it, and section 9's
   ceiling limits a pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
   engine can't be used on a schema someone else wrote.
