@@ -436,3 +436,32 @@ measured, and @oyl has been told to stop on part 2.
 
 Checks: part 1, 58 examples and 235 edge cases, all 7 deliberate breaks caught; part 2, 50 and 311, 86 of 86
 caught. Real files unchanged: 3,418 of 4,651.
+
+## @oyl on `!*` as events arrive (2026-11-07, **Open for the user**)
+
+@oyl's answer, in [its message](../mail/received/20261107-021549Z-@oyl--typing-under-star-as-events-arrive-b8b0cc69.md),
+with the tables. Same setup as its costs message. It is stopped on part 2 unless the user reopens it.
+
+- **One rule set per level, nothing held: yes.** 32 bytes a level, so 8 KB at 256. Looking a key up in
+  the `!*` as well as the mapping type adds 2 to 3.5 ns. Nesting adds nothing. A key can run two key
+  automata, so at the ceiling keys cost about 48 s on 64 MiB where values cost 24 s (arithmetic).
+- **Choosing a mapping alternative can't always stream.** Key order is free, so `side: 2` can come before
+  `kind: square`. A literal can settle the choice early. Alternatives told apart by required keys hold the
+  whole mapping, because only its end shows a key is absent. With the union at the root, a parser held
+  1.9 million events, 213 MB on 10.5 MB, about 1.4 GB for 64 MiB. A tree holds that anyway, so only event
+  interfaces lose, and the stream picks the key order, so a service can't rely on literals coming first.
+- **Time stays in line with size,** given a link from each collection's start to its end. Scanning instead
+  grows with depth times size, 29 s on 64 MiB at 4,096 levels against 0.1 s, which would break section 2 for
+  a parser that goes deep. The test at each mapping's end is a plain loop, 7.4 s on 64 MiB at 1,024
+  alternatives, under what patterns can already cost.
+
+Three text changes it asks for, none applied (figures rechecked):
+
+- **Section 3:** "A parser can type events as they arrive" needs its exception under a union of mappings.
+- **Section 9:** "has the required keys and literal values" should say the mapping's own keys. The linear
+  cost depends on a choice never looking below them.
+- **Section 16:** "All a schema can do is spend time" isn't quite true. A union of mappings near the root
+  also makes an event parser hold up to the whole document. @oyl would state it and leave it to the size
+  limit, since a limit on what is held would differ between parsers, as depth does.
+
+Its own probe agrees with the nearest `!*` in the section 11 fix in the working copy.
