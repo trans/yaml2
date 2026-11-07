@@ -41,7 +41,7 @@ become syntax, so `!int` would stop being a plain string and part 2 would need a
 tags later changes nothing already written, because each file declares its version. If the core team
 insists, the cheapest version is a tag delivered beside the node, a list of tags the application
 accepts, refusal of any other, and a new schema spelling. The reason in part 1, section 13.1, and in
-the covering note is now the data model, with MkDocs added (2026-11-06, not yet committed).
+the covering note is now the data model, with MkDocs added (`a679bd6`).
 
 Follows from it (proposed, left open for the core team):
 

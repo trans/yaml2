@@ -26,8 +26,8 @@ relaxed if 2.0 becomes the standard. It's in `9f6292f`. Files that read as writt
 4,651 (73.5%).
 
 **@oyl's costs (2026-11-06).** The four text errors are fixed and the user chose 1,024 for the ceiling,
-both in `0ba3c31`. A schema's full size, which limits load, and the tags changes (part 1, section
-13.1, and the covering note's row) are in the working copy, not committed. See [review.md](review.md).
+both in `0ba3c31`. A schema's full size, which limits load, is in `558ba6f`, and the tags changes to part
+1, section 13.1, are in `a679bd6`. See [review.md](review.md).
 
 **YAML Schema, part 2.** Draft 1 is `spec/yaml-schema.md`, in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see

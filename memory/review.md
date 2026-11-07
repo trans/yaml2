@@ -377,7 +377,7 @@ For the user to decide:
   case-insensitive list of Microsoft names, and the next is 772. So 10,000 existed for one pattern.
   The largest real unions are 782 positions (`oneOf` of patterns) and 253 (one mapping's
   `patternProperties`). A position is a pattern's characters and classes, not an alternative.
-- **Load: the agent added this on the user's "go ahead" (2026-11-06; **Fixed, not yet committed**).** A
+- **Load: the agent added this on the user's "go ahead" (2026-11-06; in `558ba6f`).** A
   ceiling per union can't bound load: 2 million names reaching the ceiling is 8 GB of lists at 1,024.
   @oyl proposed counting all union positions against the size limit. Built differently: a schema has a
   full size, worked out by addition with nothing deduplicated, and it can't pass the limit. Counting
