@@ -399,3 +399,30 @@ away). Of 200,000 random 15-digit values in the normal range none lost digits; b
 
 Later on 2026-11-06: part 2, 48 examples and 296 edge cases; 82 of 82 deliberate rule breaks caught.
 Not tested at 64 MiB, or in a real parser.
+
+## Independent review by Codex at `a679bd6` (2026-11-06, **Open for the user**)
+
+The user asked for an independent review. Codex read both specs read-only, was told to skip these notes,
+and could run the checkers. Each finding below was rerun on 2026-11-06. None is fixed yet.
+
+- **Part 2, sections 11 and 16: `!*` and kept references. Defect.** "Types each node once under each
+  type" silently changes data, because a type open to `!*` depends on the nearest `!*`: one referenced
+  `{x: 1}` under `child: !leaf` must read `{x: 1}` below `!*: !int` and `{x: "1"}` below `!*: !str`. The
+  key has to be node, type and nearest `!*`. The checker keeps no such memory, so it never showed.
+- **Part 2, section 14: `[]`. Defect.** The grammar can't write an empty sequence. The agent found more
+  while rerunning it: the checker reads `!int | []` as one empty literal, so `[""]` passes and `[]` fails.
+- **Part 1, sections 7.3 and 12: flow merge. Defect.** Prose allows tabs and breaks between flow tokens,
+  and `flow-pair` needs spaces after `<<:`. `{<<:\t*a}` is refused.
+- **Part 1, section 8: `>` in a path. Defect.** Prose says a key holding `>` can't be written in a path;
+  `bare` lets `*a>b` through. Either side could change.
+- **Part 1, section 2: characters. Wording.** "Only these characters" contradicts double quotes holding
+  U+0085 and the rest two lines later.
+- **Part 2, section 14: names. Ambiguity.** `name` doesn't exclude spaces, and the checker refuses
+  `!my type`.
+- **Part 2, section 9: full size. Wording only.** Codex read "what its type expands to" as going into a
+  mapping's values and called the checker's count low. That reading gives a recursive type such as
+  section 8's `node` an infinite size, so it can't be meant, and a mapping type is shared, not expanded,
+  at load. But the text allows the reading, so it should say a value is a place of its own.
+
+Held up under its effort: part 1 section 10's arithmetic; the pattern ceiling (1,024 loads, 1,025 refused);
+no way past part 1's full size.
