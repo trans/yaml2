@@ -75,8 +75,9 @@ the schema, which is YAML too.
 
 A schema sees how each scalar was written, and that isn't in the delivered data (part 1, section
 11). So it runs over what a parser read, not over what it delivered. A parser can type events as
-they arrive, or a tree once it is built. A `--- &` document holds both types and data, and a
-stream has one table: `!job` and `*defaults` look in the same place.
+they arrive, or a tree once it is built. Under a union of mappings it holds a mapping's events until
+one alternative is left, which can be at the mapping's end. A `--- &` document holds both types and
+data, and a stream has one table: `!job` and `*defaults` look in the same place.
 
 ```yaml
 --- &
@@ -606,8 +607,9 @@ true
 
 `|` joins alternatives. The node's shape chooses first: a mapping looks among the mappings,
 and a sequence among the sequences. There is at most one sequence. Exactly one mapping must
-fit. A mapping fits if it has the required keys and literal values, and no key it doesn't take.
-No alternative is tried by typing what is inside it, so typing never backtracks.
+fit. A mapping fits by its own keys: it has the required keys and literal values, and no key it
+doesn't take. A choice never looks below those keys, and no alternative is tried by typing what is
+inside it, so typing never backtracks.
 
 ```yaml
 --- &
@@ -1053,8 +1055,10 @@ key. Otherwise it is literal, and a plain key ending in `?` is optional.
 ## 16. Security
 
 A schema can't run code, fetch anything or grow the data: a name does nothing unless the application
-bound it. All a schema can do is spend time, and section 2 rules that out. Part 1, section 15, covers
-the data.
+bound it. All a schema can do is spend time, which section 2 rules out, and make an event parser hold
+more. A union of mappings near the root can hold up to the whole document. The size limit bounds
+that, and there is no separate limit on what is held, because one would differ between parsers, as
+depth does. Part 1, section 15, covers the data.
 
 - **A binding is a list of what may be built.** A library that binds every name to the class of
   that name, as Ruby's `unsafe_load` does with tags, hands the choice back to the file, which
@@ -1070,6 +1074,9 @@ the data.
 - **Unions.** Names that repeat double at each level if read literally. Section 9 counts each name
   once, and its ceiling fixes how much a scalar can cost per character. A schema's full size, which
   counts a name every time, limits what loading it can cost.
+- **Mapping alternatives.** A choice reads only a mapping's own keys, so a parser that holds events
+  links each collection's start to its end and steps over what is inside. Scanning instead costs
+  depth times size, which section 2 rules out.
 - **Patterns.** Matching takes time linear in the string, whichever engine does it, and section 9's
   ceiling limits a pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
   engine can't be used on a schema someone else wrote.
