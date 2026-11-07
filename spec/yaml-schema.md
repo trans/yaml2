@@ -480,8 +480,9 @@ In block form, `...` is an item, `- ...`, so it never starts a line.
 
 ## 7. Mappings
 
-A mapping is written as a mapping. It takes only the keys it names, unless a `!*` reaches it
-(section 10). Order isn't checked, and typed data keeps the document's order.
+A mapping is written as a mapping. It takes only the keys it names, and any that a type key or `!*`
+takes below, unless a `!**` reaches it (section 10). Order isn't checked, and typed data keeps the
+document's order.
 
 A key ending in `?` is optional. It may be absent, or written with no value, which delivers
 null. A quoted key is always a literal key, so a key that ends in `?` or starts with `!` can
@@ -541,6 +542,28 @@ X_A: a
 ```
 
 A flow mapping works as well: `{!str: !int}`.
+
+`!*` as a key takes every other key at this level, whichever order it is written in: any key the
+mapping doesn't name and no type key fits. Its value can be any type.
+
+```yaml
+--- &
+env:
+  PATH: !str
+  !*: !int
+  !str(/X_.*/): !str
+--- !env
+PATH: /bin
+X_A: a
+retries: 3
+```
+
+```json
+{"PATH": "/bin", "X_A": "a", "retries": 3}
+```
+
+It isn't a wildcard inside a name. `!ts_*` is refused as an unknown type, and a key that starts with
+`ts_` is written `!str(/ts_.*/)`, so there is one pattern language.
 
 ## 8. Named types
 
@@ -706,8 +729,8 @@ and no real union of patterns has more than 782.
 A schema has a full size too, and it can't pass the size limit (part 1, section 10). Like a stream's,
 it is worked out by addition before anything is built. Each entry a schema reaches, and each place
 in those entries that holds a type, adds what its type expands to: 1 for a literal, a standard type,
-a sequence or a name, the count above for a pattern, 1 for a mapping plus 1 for each key it names, and
-for a name also what the name stands for. A mapping's values and a sequence's items are places of
+a sequence or a name, the count above for a pattern, 1 for a mapping plus 1 for each key it names, a `!**`'s among
+them, and for a name also what the name stands for. A mapping's values and a sequence's items are places of
 their own, so they aren't counted in it, and a type that contains itself still has a full size.
 Unlike the ceiling, this counts a name every time it is written. So 2 million lines of `aN: !big | !int` are refused, though each union is within the ceiling.
 All 721 schema families on SchemaStore together declare 90,006 keys, so no real schema comes near it.
@@ -719,14 +742,14 @@ a: !str(/(a{1000}){1000}/)
 
 ## 10. Wherever this occurs
 
-`!*` as a key means anywhere. It takes every key the mapping doesn't name, at every level below,
-and a sequence adds no level. Collections are walked and its type applies to the scalars it
-reaches, so that type can't hold a sequence or a mapping. This is JSON:
+`!**` as a key means here and at every level below. It takes every key the mapping doesn't name, at
+this level and under it, and a sequence adds no level. Collections are walked and its type applies
+to the scalars it reaches, so that type can't hold a sequence or a mapping. This is JSON:
 
 ```yaml
 --- &
 json:
-  !*: !null | !bool | !int | !float | !str
+  !**: !null | !bool | !int | !float | !str
 --- !json
 {"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
 ```
@@ -739,18 +762,18 @@ Read by a parser built from part 1's grammar, this schema matched a JSON parser 
 real JSON files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept.
 The other 2 are repeated keys, which part 1 refuses.
 
-`!*` covers the node it sits on as well, so a type with `!*` and no required keys also takes a scalar
-or a sequence: `5` and `[1, 2]` are JSON here too. In a union the node's shape chooses first
+`!**` covers the node it sits on as well, so a type with `!**` and no required keys also takes a
+scalar or a sequence: `5` and `[1, 2]` are JSON here too. In a union the node's shape chooses first
 (section 9), so there it takes mappings only.
 
-`!*` can pick out a value by how it looks. Here any plain scalar with a sign is an integer, at any
+`!**` can pick out a value by how it looks. Here any plain scalar with a sign is an integer, at any
 depth, and everything else stays a string:
 
 ```yaml
 --- &
 signed: !int(/[-+][0-9]+/)
 free:
-  !*: !signed | !str
+  !**: !signed | !str
 --- !free
 a: +5
 b: 5
@@ -763,15 +786,17 @@ g: "+5"
 {"a": 5, "b": "5", "c": [-3, "x"], "d": {"e": {"f": 7}}, "g": "+5"}
 ```
 
-Its value can instead be a mapping of rules. A key there picks out that key at every level, a key
-that is a type picks out the keys it fits, and `!*` there is the type of every other scalar, so it
-can't hold rules of its own. With no `!*` there, other scalars stay strings. A rule's value can be any
-type. A rule is never required, and `?` on one only lets the key be written with no value.
+Its value can instead be a mapping of rules, which apply at this level and every level below. A key
+there picks out that key at every level, and a key that is a type picks out the keys it fits. `!*`
+there takes every other key, as it does anywhere, but a `!**` walks every collection, so it only
+sees scalars and its type has to fit one. With no `!*` there, other scalars stay strings. A rule's
+value can be any type. A rule is never required, and `?` on one only lets the key be written with no
+value.
 
 ```yaml
 --- &
 free:
-  !*:
+  !**:
     timeout: !int
 --- !free
 timeout: 30
@@ -784,8 +809,8 @@ jobs:
 {"timeout": 30, "name": "30", "jobs": [{"nested": {"timeout": 7}}]}
 ```
 
-A key is looked up in the mapping type at its place, then in the nearest `!*`, and nowhere else. So
-the closest rule wins, and the order they are written in doesn't matter. A `!*` replaces any `!*`
+A key is looked up in the mapping type at its place, then in the nearest `!**`, and nowhere else. So
+the closest rule wins, and the order they are written in doesn't matter. A `!**` replaces any `!**`
 above it for everything below it, and rules from above can be kept with a merge.
 
 ```yaml
@@ -795,7 +820,7 @@ cfg:
   address:
     name: !str(..40)
     street?: !str(..100)
-  !*:
+  !**:
     !str(/ts_.*/): !date
     !*: !signed | !str
 --- !cfg
@@ -816,7 +841,7 @@ jobs:
 --- &
 cfg:
   name: !str(..4)
-  !*:
+  !**:
     !str(/ts_.*/): !date
 --- !cfg
 name: Ann
@@ -824,8 +849,8 @@ jobs:
   - ts_end: soon
 ```
 
-Below a `!*` every mapping takes every key, as `floor` shows, though the keys it requires are still
-required. A mapping is closed only where no `!*` reaches it. An alternative is then chosen by its
+Below a `!**` every mapping takes every key, as `floor` shows, though the keys it requires are still
+required. A mapping is closed only where no `!**` reaches it. An alternative is then chosen by its
 required keys and literal values alone, so `note` below rules nothing out, and if two fit the
 document is refused. `!any` at a key leaves everything under it untyped, since that is the closest
 rule.
@@ -840,7 +865,7 @@ square:
   side: !float
 cfg:
   shape: !circle | !square
-  !*: !str
+  !**: !str
 --- !cfg
 shape: {kind: square, side: 2, note: x}
 ```
@@ -849,7 +874,7 @@ shape: {kind: square, side: 2, note: x}
 {"shape": {"kind": "square", "side": 2.0, "note": "x"}}
 ```
 
-A `!*` reaches only what is below it, so the rest of a schema stays as strict as it was. Here `job`
+A `!**` reaches only its own place and what is below it, so the rest of a schema stays as strict as it was. Here `job`
 takes only its two keys:
 
 ```yaml
@@ -858,7 +883,7 @@ signed: !int(/[-+][0-9]+/)
 job:
   image: !str
   args?:
-    !*: !signed | !str
+    !**: !signed | !str
 --- !job
 image: +5
 args: {n: +5}
@@ -891,7 +916,7 @@ text: *port
 So a parser that keeps a reference as one shared node has to keep how each scalar was written,
 and it can't share a typed result between two types.
 
-An interface that keeps references types each node once for each type and nearest `!*`. The `!*`
+An interface that keeps references types each node once for each type and nearest `!**`. The `!**`
 is part of that because it can change what one type does to one node:
 
 ```yaml
@@ -901,10 +926,10 @@ leaf: {}
 root:
   a:
     child: !leaf
-    !*: !int
+    !**: !int
   b:
     child: !leaf
-    !*: !str
+    !**: !str
 --- !root
 a:
   child: *v
@@ -1010,8 +1035,8 @@ name       ::= a table key, or a standard type, with no space, tab, "/", "(", ")
 pattern    ::= I-Regexp, RFC 9485, holding no "/)"
 ```
 
-A key in a schema mapping is a type if it is plain and starts with `!`, and `!*` is section 10's
-key. Otherwise it is literal, and a plain key ending in `?` is optional.
+A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is section 7's key, and
+`!**` is section 10's. Otherwise it is literal, and a plain key ending in `?` is optional.
 
 ## 15. Open points
 
@@ -1041,8 +1066,8 @@ key. Otherwise it is literal, and a plain key ending in `?` is optional.
   except what sits in brackets, so `v{0-9}.{0-9}` needs no escapes, and `{{` is a literal brace.
   With brackets outside ASCII, such as `⦃0-9⦄`, a pattern could also sit in a flow collection,
   which `[0-9]` can't, at the cost of being hard to type. A literal comma still couldn't.
-- **Closed mappings below `!*`.** Below one, every mapping takes every key, so a schema can't close
-  a mapping there, and a typo in a key passes. `!*` could stop at a named type, at the cost of
+- **Closed mappings below `!**`.** Below one, every mapping takes every key, so a schema can't close
+  a mapping there, and a typo in a key passes. `!**` could stop at a named type, at the cost of
   naming a mapping changing what it accepts.
 - **Rules a schema can't state.** Rules across keys, such as "not both" or "if this then that".
   Limits on a sequence's or a mapping's size, beyond one or more. Two alternatives of one shape,
@@ -1070,7 +1095,7 @@ depth does. Part 1, section 15, covers the data.
   each data key against a type's keys, and `!name` in the table. A compiled schema shared between
   parsers needs a hash key of its own.
 - **References.** A walk through a chain of references doubles at each link, so section 11 types
-  each node once for each type and nearest `!*`.
+  each node once for each type and nearest `!**`.
 - **Unions.** Names that repeat double at each level if read literally. Section 9 counts each name
   once, and its ceiling fixes how much a scalar can cost per character. A schema's full size, which
   counts a name every time, limits what loading it can cost.
@@ -1080,7 +1105,7 @@ depth does. Part 1, section 15, covers the data.
 - **Patterns.** Matching takes time linear in the string, whichever engine does it, and section 9's
   ceiling limits a pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
   engine can't be used on a schema someone else wrote.
-- **`!*`.** A key is looked up in the mapping type at its place and in the nearest `!*`, and nowhere
+- **`!**`.** A key is looked up in the mapping type at its place and in the nearest `!**`, and nowhere
   else, so nesting them adds nothing per key.
 - **Published names.** Any stream can name any host, and a name can spell an IP address, so a library
   that looked names up by itself would let a stranger's file send requests from the reader's machine,
