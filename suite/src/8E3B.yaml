@@ -1,0 +1,27 @@
+---
+- name: 'Front matter: ... stops the parser before a heading'
+  from: part 1, section 4.4
+  tags: ending comment spec
+  yaml: |
+    %YAML 2.0
+    ---
+    title: Hello
+    ...
+    # Heading
+
+    Body text: this isn't YAML, so it can say anything.
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :title
+       =VAL :Hello
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"title": "Hello"}
+  rest: |
+    # Heading
+
+    Body text: this isn't YAML, so it can say anything.

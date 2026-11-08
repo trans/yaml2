@@ -1,0 +1,22 @@
+---
+- name: Nested sequences on one line
+  from: part 1, section 7.2
+  tags: sequence
+  yaml: |
+    %YAML 2.0
+    ---
+    - - - x
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       +SEQ
+        +SEQ
+         =VAL :x
+        -SEQ
+       -SEQ
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [[["x"]]]

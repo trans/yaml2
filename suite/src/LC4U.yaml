@@ -1,0 +1,6 @@
+---
+- name: A byte order mark
+  from: part 1, section 3
+  tags: character error
+  fail: true
+  yaml: "\uFEFF%YAML 2.0\n"

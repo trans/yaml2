@@ -1,0 +1,18 @@
+---
+- name: 'The size limit''s first example: a limit of 40 refuses it'
+  from: part 1, section 10
+  tags: size merge table error
+  fail: true
+  limit: 40
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    m: {k: v}
+    ---
+    b: *a
+    c:
+      -<< *a
+      - z
+    d:
+      <<: *m

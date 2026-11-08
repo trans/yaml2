@@ -1,0 +1,10 @@
+---
+- name: A key repeated in a block mapping
+  from: part 1, section 7.4
+  tags: duplicate-key mapping error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    a: 2

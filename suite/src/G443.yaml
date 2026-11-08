@@ -1,0 +1,8 @@
+---
+- name: A comment before the directive
+  from: part 1, section 4.1
+  tags: directive comment error
+  fail: true
+  yaml: |
+    # c
+    %YAML 2.0

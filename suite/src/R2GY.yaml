@@ -1,0 +1,22 @@
+---
+- name: Colons with no space after them are text
+  from: part 1, section 6.1
+  tags: plain
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x:y:z
+    b: http://x.y/z
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x:y:z
+       =VAL :b
+       =VAL :http://x.y/z
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x:y:z", "b": "http://x.y/z"}

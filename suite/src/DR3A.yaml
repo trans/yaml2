@@ -1,0 +1,10 @@
+---
+- name: An unclosed flow sequence, then a marker
+  from: part 1, section 7.3
+  tags: flow marker error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    [1, 2
+    ---

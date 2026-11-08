@@ -1,0 +1,45 @@
+---
+- name: 'Merging mappings: written keys win, and later merges win over earlier'
+  from: part 1, section 9.1
+  tags: merge spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    base: {x: 1, y: 2}
+    a: {p: 1, q: 2}
+    b: {q: 3, r: 4}
+    ---
+    m:
+      <<: *base
+      name: a
+      y: 3
+    n:
+      <<: *a
+      <<: *b
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :m
+       +MAP
+        =VAL :x
+        =VAL :1
+        =VAL :y
+        =VAL :3
+        =VAL :name
+        =VAL :a
+       -MAP
+       =VAL :n
+       +MAP
+        =VAL :p
+        =VAL :1
+        =VAL :q
+        =VAL :3
+        =VAL :r
+        =VAL :4
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"m": {"x": "1", "y": "3", "name": "a"}, "n": {"p": "1", "q": "3", "r": "4"}}

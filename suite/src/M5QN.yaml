@@ -1,0 +1,15 @@
+---
+- name: 'The size limit''s second example: an interface keeping references refuses it at 16 too'
+  from: part 1, section 10
+  tags: size table error
+  fail: true
+  limit: 16
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    --- &
+    a: [z]
+    ---
+    b: *a

@@ -1,0 +1,24 @@
+---
+- name: '... then a new flow table'
+  from: part 1, section 8.1
+  tags: table flow ending
+  yaml: |
+    %YAML 2.0
+    --- &
+    {a: 1}
+    ...
+    --- &
+    {a: 2}
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "2"}

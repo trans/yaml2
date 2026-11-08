@@ -1,0 +1,11 @@
+---
+- name: '> in a path in a flow sequence'
+  from: part 1, section 8.2
+  tags: reference flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    "a>b": yes
+    ---
+    x: [*a>b]

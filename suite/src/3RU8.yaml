@@ -1,0 +1,25 @@
+---
+- name: An entry built from a replaced one keeps the old value
+  from: part 1, section 8.4
+  tags: table merge
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    b:
+      <<: *a
+    --- &
+    a: {p: 2}
+    ---
+    [*a:p, *b:p]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :2
+       =VAL :1
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["2", "1"]

@@ -1,0 +1,25 @@
+---
+- name: A block mapping keeps its keys in document order
+  from: part 1, section 11
+  tags: mapping order
+  yaml: |
+    %YAML 2.0
+    ---
+    z: 1
+    a: 2
+    m: 3
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :z
+       =VAL :1
+       =VAL :a
+       =VAL :2
+       =VAL :m
+       =VAL :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"z": "1", "a": "2", "m": "3"}

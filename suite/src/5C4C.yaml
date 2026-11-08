@@ -1,0 +1,10 @@
+---
+- name: An indentation indicator
+  from: part 1, section 6.4
+  tags: literal spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |2
+        text

@@ -1,0 +1,27 @@
+---
+- name: 'A sequence at its key''s column inside a sequence item'
+  from: part 1, section 7.1
+  tags: mapping sequence
+  yaml: |
+    %YAML 2.0
+    ---
+    - a:
+      - x
+      b: 1
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       +MAP
+        =VAL :a
+        +SEQ
+         =VAL :x
+        -SEQ
+        =VAL :b
+        =VAL :1
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"a": ["x"], "b": "1"}]

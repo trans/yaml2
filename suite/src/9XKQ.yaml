@@ -1,0 +1,27 @@
+---
+- name: 'A comment between <<: and its reference in a flow mapping'
+  from: part 1, section 9.3
+  tags: merge flow comment
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    ---
+    m: {<<: # c
+      *a, q: 2}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :m
+       +MAP
+        =VAL :p
+        =VAL :1
+        =VAL :q
+        =VAL :2
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"m": {"p": "1", "q": "2"}}

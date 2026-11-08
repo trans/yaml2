@@ -1,0 +1,9 @@
+---
+- name: 'A plain scalar that starts with &'
+  from: part 1, section 6.1
+  tags: plain anchor spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    &a b

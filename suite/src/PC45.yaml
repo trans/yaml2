@@ -1,0 +1,9 @@
+---
+- name: key, a colon, a tab and value, which 1.2 allows
+  from: part 1, section 3
+  tags: whitespace mapping error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    key:———»value

@@ -1,0 +1,16 @@
+---
+- name: DEL in a double-quoted key
+  from: part 1, section 3
+  tags: double character key
+  yaml: "%YAML 2.0\n---\n\"a\u007Fb\": 1\n"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a\u007Fb
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a\u007fb": "1"}

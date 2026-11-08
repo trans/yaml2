@@ -1,0 +1,29 @@
+---
+- name: 'A comment before a repeated %YAML 2.0 stops the parser'
+  from: part 1, section 4.4
+  tags: ending comment directive
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x
+    ...
+    # c
+    %YAML 2.0
+    ---
+    b: y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x"}
+  rest: |
+    # c
+    %YAML 2.0
+    ---
+    b: y

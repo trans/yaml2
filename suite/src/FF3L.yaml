@@ -1,0 +1,6 @@
+---
+- name: U+2029 in a literal scalar
+  from: part 1, section 3
+  tags: character literal error
+  fail: true
+  yaml: "%YAML 2.0\n---\na: |\n  \u2029\n"

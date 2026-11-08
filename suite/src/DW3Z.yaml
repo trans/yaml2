@@ -1,0 +1,20 @@
+---
+- name: A tab after a colon at the end of a line in a flow mapping
+  from: part 1, section 3
+  tags: flow whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    {a:»
+      b}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :b
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "b"}

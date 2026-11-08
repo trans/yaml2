@@ -1,0 +1,9 @@
+---
+- name: An empty name
+  from: part 1, section 4.3
+  tags: name error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- !
+    a: 1

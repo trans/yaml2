@@ -1,0 +1,14 @@
+---
+- name: 'The size limit''s second example: an interface keeping references allows it at 17'
+  from: part 1, section 10
+  tags: size table
+  limit: 17
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    --- &
+    a: [z]
+    ---
+    b: *a

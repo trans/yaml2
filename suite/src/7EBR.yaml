@@ -1,0 +1,12 @@
+---
+- name: '%YAML 1.2 later in a stream'
+  from: part 1, section 4.1
+  tags: directive error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    %YAML 1.2
+    ---
+    b: 2

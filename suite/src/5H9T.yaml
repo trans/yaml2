@@ -1,0 +1,43 @@
+---
+- name: Documents that start on the marker line, and an empty one
+  from: part 1, section 4.2
+  tags: marker empty flow literal spec
+  yaml: |
+    %YAML 2.0
+    ---
+    title: first
+    ---
+    second
+    --- [third]
+    --- |
+      fourth
+    ---
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :title
+       =VAL :first
+      -MAP
+     -DOC
+     +DOC
+      =VAL :second
+     -DOC
+     +DOC
+      +SEQ
+       =VAL :third
+      -SEQ
+     -DOC
+     +DOC
+      =VAL :fourth\n
+     -DOC
+     +DOC
+      =VAL :
+     -DOC
+    -STR
+  json: |
+    {"title": "first"}
+    "second"
+    ["third"]
+    "fourth\n"
+    ""

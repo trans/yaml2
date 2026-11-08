@@ -1,0 +1,20 @@
+---
+- name: A literal scalar holding one line of spaces is empty
+  from: part 1, section 6.4
+  tags: literal whitespace empty
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+    ␣␣␣␣␣
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": ""}

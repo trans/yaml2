@@ -1,0 +1,24 @@
+---
+- name: 'Compact JSON: numbers, true and null are strings'
+  from: part 1, section 7.3
+  tags: json flow
+  yaml: |
+    %YAML 2.0
+    ---
+    {"a":1,"b":[true,null]}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :b
+       +SEQ
+        =VAL :true
+        =VAL :null
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": ["true", "null"]}

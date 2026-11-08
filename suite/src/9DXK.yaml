@@ -1,0 +1,11 @@
+---
+- name: '> in a merge''s path'
+  from: part 1, section 8.2
+  tags: reference merge flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    m: {"a>b": {p: 1}}
+    ---
+    {<<: *m:a>b}

@@ -1,0 +1,18 @@
+---
+- name: Bidirectional controls in plain and literal scalars and in a comment
+  from: part 1, section 3
+  tags: character comment
+  yaml: "%YAML 2.0\n---\na: \u2068b\u2069\nc: |\n  \u202Bd\u202C\n# \u202E\n"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :\u2068b\u2069
+       =VAL :c
+       =VAL :\u202Bd\u202C\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "\u2068b\u2069", "c": "\u202bd\u202c\n"}

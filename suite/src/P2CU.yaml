@@ -1,0 +1,9 @@
+---
+- name: 'A plain key that starts with %'
+  from: part 1, section 6.1
+  tags: plain directive spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    %reserved: a

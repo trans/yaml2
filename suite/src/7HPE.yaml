@@ -1,0 +1,39 @@
+---
+- name: References and merges inside the table
+  from: part 1, section 8.4
+  tags: table merge spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    b:
+      <<: *a
+      q: 2
+    s: [x]
+    t:
+      -<< *s
+      - y
+    ---
+    b: *b
+    t: *t
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       +MAP
+        =VAL :p
+        =VAL :1
+        =VAL :q
+        =VAL :2
+       -MAP
+       =VAL :t
+       +SEQ
+        =VAL :x
+        =VAL :y
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": {"p": "1", "q": "2"}, "t": ["x", "y"]}

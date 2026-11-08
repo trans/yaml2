@@ -1,0 +1,20 @@
+---
+- name: '-<< with a reference right after it is text'
+  from: part 1, section 9.3
+  tags: merge flow plain
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    [-<<*s]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :-<<*s
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["-<<*s"]

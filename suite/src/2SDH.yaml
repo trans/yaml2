@@ -1,0 +1,21 @@
+---
+- name: 'A leading line of spaces as wide as a literal scalar''s text'
+  from: part 1, section 6.4
+  tags: literal whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+    ␣␣
+      x
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :\nx\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "\nx\n"}

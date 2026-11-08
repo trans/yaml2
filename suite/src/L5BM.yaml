@@ -1,0 +1,21 @@
+---
+- name: '! starts a plain scalar in the table'
+  from: part 1, section 6.1
+  tags: table tag
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !Ref foo
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :!Ref foo
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "!Ref foo"}

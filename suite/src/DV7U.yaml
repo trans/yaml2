@@ -1,0 +1,11 @@
+---
+- name: 'No space after <<: in a flow mapping'
+  from: part 1, section 9.3
+  tags: merge flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    ---
+    m: {<<:*a}

@@ -1,0 +1,20 @@
+---
+- name: A literal scalar at the end of a stream with no final line break
+  from: part 1, section 6.4
+  tags: literal
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+      x∎
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x\n"}

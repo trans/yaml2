@@ -1,0 +1,19 @@
+---
+- name: 'An indented key that starts with %'
+  from: part 1, section 6.1
+  tags: plain directive
+  yaml: |
+    %YAML 2.0
+    ---
+      %a: 1
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :%a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"%a": "1"}

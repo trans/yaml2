@@ -1,0 +1,11 @@
+---
+- name: 'An empty <...>'
+  from: part 1, section 8.2
+  tags: reference error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ---
+    b: *<>

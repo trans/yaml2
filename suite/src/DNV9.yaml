@@ -1,0 +1,11 @@
+---
+- name: '<< as a flow table''s key'
+  from: part 1, section 8.4
+  tags: table merge flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    --- &
+    {<<: *a}

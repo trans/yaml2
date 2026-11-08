@@ -1,0 +1,19 @@
+---
+- name: '! in a quoted key'
+  from: part 1, section 6.1
+  tags: tag key double
+  yaml: |
+    %YAML 2.0
+    ---
+    "!x": 1
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :!x
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"!x": "1"}

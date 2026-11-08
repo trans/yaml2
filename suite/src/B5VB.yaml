@@ -1,0 +1,19 @@
+---
+- name: A tab after a plain scalar
+  from: part 1, section 3
+  tags: whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a: foo—»
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :foo
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "foo"}

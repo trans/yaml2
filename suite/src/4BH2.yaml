@@ -1,0 +1,10 @@
+---
+- name: A sequence item after a table entry
+  from: part 1, section 7.1
+  tags: table sequence merge error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x]
+    - -<< *a

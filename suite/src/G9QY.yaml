@@ -1,0 +1,10 @@
+---
+- name: A block entry after a flow table
+  from: part 1, section 8.1
+  tags: table flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    {a: 1}
+    b: 2

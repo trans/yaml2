@@ -1,0 +1,31 @@
+---
+- name: 'A comment between a repeated %YAML 2.0 and its marker'
+  from: part 1, section 4.4
+  tags: ending directive comment spec
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x
+    ...
+    %YAML 2.0
+    # Its copyright line
+    ---
+    b: y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :y
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x"}
+    {"b": "y"}

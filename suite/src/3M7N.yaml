@@ -1,0 +1,20 @@
+---
+- name: A flow table on its marker line
+  from: part 1, section 4.2
+  tags: table flow marker
+  yaml: |
+    %YAML 2.0
+    --- & {a: 1}
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "1"}

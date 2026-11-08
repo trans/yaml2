@@ -1,0 +1,20 @@
+---
+- name: 'A document''s name counts as a scalar does'
+  from: part 1, section 10
+  tags: size name
+  limit: 9
+  yaml: |
+    %YAML 2.0
+    --- !abc
+    a: 1
+  tree: |
+    +STR
+     +DOC !abc
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}

@@ -1,0 +1,9 @@
+---
+- name: 'The non-specific tag ! before a quoted scalar'
+  from: part 1, section 6.1
+  tags: tag single error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: ! 'b'

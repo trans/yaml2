@@ -1,0 +1,38 @@
+---
+- name: A table entry merged into a document
+  from: part 1, section 1
+  tags: table merge flow mapping spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    defaults:
+      adapter: postgres
+      pool: 5
+    ---
+    development:
+      <<: *defaults
+      database: dev
+      ports: [80, 443]
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :development
+       +MAP
+        =VAL :adapter
+        =VAL :postgres
+        =VAL :pool
+        =VAL :5
+        =VAL :database
+        =VAL :dev
+        =VAL :ports
+        +SEQ
+         =VAL :80
+         =VAL :443
+        -SEQ
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"development": {"adapter": "postgres", "pool": "5", "database": "dev", "ports": ["80", "443"]}}

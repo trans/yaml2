@@ -1,0 +1,21 @@
+---
+- name: An indented flow table
+  from: part 1, section 8.1
+  tags: table flow
+  yaml: |
+    %YAML 2.0
+    --- &
+      {a: 1}
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "1"}

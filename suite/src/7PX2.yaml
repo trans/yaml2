@@ -1,0 +1,11 @@
+---
+- name: '-<< and a tab as a whole document'
+  from: part 1, section 9.2
+  tags: merge whitespace error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    -<<»*s

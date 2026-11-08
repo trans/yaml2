@@ -1,0 +1,51 @@
+---
+- name: 'Paths: keys with colons, <...>, and steps into mappings'
+  from: part 1, section 8.2
+  tags: reference spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    versions:
+      app: 1.4
+      Fn::Sub: x
+      foo:bar: y
+      foo:
+        bar: z
+    .deps:rocm:
+      before_script: [install]
+    ---
+    a: *versions:app
+    b: *versions:Fn::Sub
+    c: *versions:<foo:bar>
+    d: *versions:foo:bar
+    e: [*versions:app, *versions:foo]
+    f: *<.deps:rocm>:before_script
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1.4
+       =VAL :b
+       =VAL :x
+       =VAL :c
+       =VAL :y
+       =VAL :d
+       =VAL :z
+       =VAL :e
+       +SEQ
+        =VAL :1.4
+        +MAP
+         =VAL :bar
+         =VAL :z
+        -MAP
+       -SEQ
+       =VAL :f
+       +SEQ
+        =VAL :install
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1.4", "b": "x", "c": "y", "d": "z", "e": ["1.4", {"bar": "z"}], "f": ["install"]}

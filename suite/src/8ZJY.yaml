@@ -1,0 +1,6 @@
+---
+- name: Paragraph separator, U+2029, in a key
+  from: part 1, section 3
+  tags: character key error
+  fail: true
+  yaml: "%YAML 2.0\n---\na\u2029b: 1\n"

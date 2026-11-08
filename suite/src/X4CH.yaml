@@ -1,0 +1,9 @@
+---
+- name: A tab indenting a key with a value
+  from: part 1, section 3
+  tags: whitespace mapping error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    ———»key: v

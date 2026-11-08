@@ -1,0 +1,14 @@
+---
+- name: Each document of a stream is checked against the limit
+  from: part 1, section 10
+  tags: size error
+  fail: true
+  limit: 4
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    ---
+    b: 2
+    ---
+    c: 3

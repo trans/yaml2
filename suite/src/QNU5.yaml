@@ -1,0 +1,19 @@
+---
+- name: A global name with a domain not in ASCII
+  from: part 1, section 4.3
+  tags: name
+  yaml: |
+    %YAML 2.0
+    --- !例え.jp/設定/v1
+    a: 1
+  tree: |
+    +STR
+     +DOC !例え.jp/設定/v1
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}

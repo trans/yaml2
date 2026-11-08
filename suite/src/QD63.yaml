@@ -1,0 +1,14 @@
+---
+- name: A replacement that merges the entry it replaces passes a limit of 13
+  from: part 1, section 10
+  tags: size table merge error
+  fail: true
+  limit: 13
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    --- &
+    a:
+      -<< *a
+      - z

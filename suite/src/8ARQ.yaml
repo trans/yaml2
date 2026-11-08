@@ -1,0 +1,11 @@
+---
+- name: A tab before a comment line
+  from: part 1, section 3
+  tags: whitespace comment error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    ———»# c
+    b: 2

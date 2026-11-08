@@ -1,0 +1,9 @@
+---
+- name: A flow table entry that refers to a later one
+  from: part 1, section 8.3
+  tags: table reference flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    {b: *c, c: 1}

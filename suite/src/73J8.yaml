@@ -1,0 +1,9 @@
+---
+- name: A tab before a flow mapping at the start of a line
+  from: part 1, section 3
+  tags: whitespace flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    ———»{"a": 1}

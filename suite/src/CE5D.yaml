@@ -1,0 +1,11 @@
+---
+- name: A path that steps into a sequence
+  from: part 1, section 8.3
+  tags: reference spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    steps: [x, y]
+    ---
+    c: *steps:0

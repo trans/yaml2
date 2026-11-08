@@ -1,0 +1,22 @@
+---
+- name: 'Single quotes escape only '', and double quotes keep leading spaces'
+  from: part 1, section 6.3
+  tags: single double spec
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 'it''s \n'
+    b: "  two spaces"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :it's \\n
+       =VAL :b
+       =VAL :  two spaces
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "it's \\n", "b": "  two spaces"}

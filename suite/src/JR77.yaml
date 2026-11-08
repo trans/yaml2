@@ -1,0 +1,22 @@
+---
+- name: 'The reference on the line after -<< in a flow sequence'
+  from: part 1, section 9.3
+  tags: merge flow
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    [-<<
+      *s, y]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :x
+       =VAL :y
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["x", "y"]

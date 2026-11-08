@@ -1,0 +1,25 @@
+---
+- name: 'The reference on the line after <<: in a flow mapping'
+  from: part 1, section 9.3
+  tags: merge flow
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    ---
+    m: {<<:
+      *a}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :m
+       +MAP
+        =VAL :p
+        =VAL :1
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"m": {"p": "1"}}

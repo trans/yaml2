@@ -1,0 +1,13 @@
+---
+- name: 'A sequence of references after <<'
+  from: part 1, section 9.1
+  tags: merge spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    b: {q: 1}
+    ---
+    m:
+      <<: [*a, *b]

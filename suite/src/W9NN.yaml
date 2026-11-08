@@ -1,0 +1,6 @@
+---
+- name: Next line, U+0085, in a plain scalar
+  from: part 1, section 3
+  tags: character plain error
+  fail: true
+  yaml: "%YAML 2.0\n---\na: x\u0085y\n"

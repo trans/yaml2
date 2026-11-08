@@ -1,0 +1,46 @@
+---
+- name: 'Named documents: global, local and not in ASCII'
+  from: part 1, section 4.3
+  tags: name spec
+  yaml: |
+    %YAML 2.0
+    --- !github.com/actions/workflow/v1
+    on: push
+    --- !job
+    name: build
+    --- !配置
+    端口: 80
+    ---
+    plain: yes
+  tree: |
+    +STR
+     +DOC !github.com/actions/workflow/v1
+      +MAP
+       =VAL :on
+       =VAL :push
+      -MAP
+     -DOC
+     +DOC !job
+      +MAP
+       =VAL :name
+       =VAL :build
+      -MAP
+     -DOC
+     +DOC !配置
+      +MAP
+       =VAL :端口
+       =VAL :80
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :plain
+       =VAL :yes
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"on": "push"}
+    {"name": "build"}
+    {"端口": "80"}
+    {"plain": "yes"}

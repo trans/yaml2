@@ -1,0 +1,10 @@
+---
+- name: No marker after a comment and a blank line
+  from: part 1, section 4.2
+  tags: marker comment error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    # c
+
+    a: 1

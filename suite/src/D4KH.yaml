@@ -1,0 +1,20 @@
+---
+- name: A tab before a comment in a flow sequence
+  from: part 1, section 3
+  tags: flow whitespace comment
+  yaml: |
+    %YAML 2.0
+    ---
+    [a,»# c
+     b]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :a
+       =VAL :b
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["a", "b"]

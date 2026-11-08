@@ -1,0 +1,11 @@
+---
+- name: A stream holding only the directive and a comment
+  from: part 1, section 4.1
+  tags: directive comment empty
+  yaml: |
+    %YAML 2.0
+    # only a comment
+  tree: |
+    +STR
+    -STR
+  json: ''

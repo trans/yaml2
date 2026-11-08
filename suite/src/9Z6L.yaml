@@ -1,0 +1,22 @@
+---
+- name: A reference as a whole document
+  from: part 1, section 8.2
+  tags: reference table
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    b:
+      - *a
+    ---
+    *b
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :1
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["1"]

@@ -1,0 +1,11 @@
+---
+- name: A path that ends with a colon
+  from: part 1, section 8.2
+  tags: reference error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ---
+    b: *a:

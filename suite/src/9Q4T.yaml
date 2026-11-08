@@ -1,0 +1,39 @@
+---
+- name: An interface delivering documents together adds up their sizes
+  from: part 1, section 10
+  tags: size
+  limit: 15
+  together: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    ---
+    b: 2
+    ---
+    c: 3
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :c
+       =VAL :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}
+    {"b": "2"}
+    {"c": "3"}

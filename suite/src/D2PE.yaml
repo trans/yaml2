@@ -1,0 +1,21 @@
+---
+- name: Tabs on either side of a colon in a flow mapping
+  from: part 1, section 3
+  tags: flow whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    {a:»b, c———»: d}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :b
+       =VAL :c
+       =VAL :d
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "b", "c": "d"}

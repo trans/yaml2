@@ -1,0 +1,22 @@
+---
+- name: Spaces before the colon in a block mapping
+  from: part 1, section 7.1
+  tags: mapping whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a : 1
+    longer : 2
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :longer
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "longer": "2"}

@@ -1,0 +1,12 @@
+---
+- name: '<< naming a sequence'
+  from: part 1, section 9.3
+  tags: merge spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    m:
+      <<: *s

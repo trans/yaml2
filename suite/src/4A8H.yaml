@@ -1,0 +1,9 @@
+---
+- name: No space after the colon in a flow mapping
+  from: part 1, section 7.3
+  tags: flow spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    {a:1}

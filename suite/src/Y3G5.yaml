@@ -1,0 +1,14 @@
+---
+- name: A merged key that a later line replaces still counts, so 18 refuses
+  from: part 1, section 10
+  tags: size merge error
+  fail: true
+  limit: 18
+  yaml: |
+    %YAML 2.0
+    --- &
+    m: {k: v}
+    ---
+    c:
+      <<: *m
+      k: w

@@ -1,0 +1,8 @@
+---
+- name: 'No space between & and a flow table'
+  from: part 1, section 4.2
+  tags: table marker error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &{a: 1}

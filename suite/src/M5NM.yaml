@@ -1,0 +1,10 @@
+---
+- name: An entry that refers to itself
+  from: part 1, section 8.4
+  tags: table reference spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      b: *a

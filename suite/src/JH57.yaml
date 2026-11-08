@@ -1,0 +1,15 @@
+---
+- name: A quoted scalar on the marker line
+  from: part 1, section 4.2
+  tags: marker double
+  yaml: |
+    %YAML 2.0
+    --- "x"
+  tree: |
+    +STR
+     +DOC
+      =VAL :x
+     -DOC
+    -STR
+  json: |
+    "x"

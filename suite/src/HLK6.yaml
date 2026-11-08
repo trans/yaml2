@@ -1,0 +1,19 @@
+---
+- name: '% and @ in a flow sequence'
+  from: part 1, section 6.1
+  tags: plain flow
+  yaml: |
+    %YAML 2.0
+    ---
+    [%a, @b]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :%a
+       =VAL :@b
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["%a", "@b"]

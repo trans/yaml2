@@ -1,0 +1,11 @@
+---
+- name: A leading line of spaces wider than the text in a top-level literal scalar
+  from: part 1, section 6.4
+  tags: literal whitespace error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    |
+    ␣␣␣
+      x

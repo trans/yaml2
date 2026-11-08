@@ -1,0 +1,9 @@
+---
+- name: A key repeated in a flow mapping
+  from: part 1, section 7.4
+  tags: flow duplicate-key error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    {a: 1, a: 2}

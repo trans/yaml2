@@ -1,0 +1,31 @@
+---
+- name: '-<< with a path into an entry'
+  from: part 1, section 9.2
+  tags: merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    .setup: {script: [apt-get update]}
+    .build:
+      script:
+        -<< *.setup:script
+        - make
+    ---
+    build: *.build
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :build
+       +MAP
+        =VAL :script
+        +SEQ
+         =VAL :apt-get update
+         =VAL :make
+        -SEQ
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"build": {"script": ["apt-get update", "make"]}}

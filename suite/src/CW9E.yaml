@@ -1,0 +1,24 @@
+---
+- name: CR LF line breaks read as LF
+  from: part 1, section 3
+  tags: character literal
+  yaml: |
+    %YAML 2.0←
+    ---←
+    a: 1←
+    b: |←
+      x←
+      y←
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :b
+       =VAL :x\ny\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": "x\ny\n"}

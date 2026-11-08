@@ -1,0 +1,31 @@
+---
+- name: A hidden key in the table, as GitLab uses
+  from: part 1, section 8.4
+  tags: table merge sequence spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    .setup: [apt-get update]
+    .build:
+      script:
+        -<< *.setup
+        - make
+    ---
+    build: *.build
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :build
+       +MAP
+        =VAL :script
+        +SEQ
+         =VAL :apt-get update
+         =VAL :make
+        -SEQ
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"build": {"script": ["apt-get update", "make"]}}

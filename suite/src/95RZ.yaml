@@ -1,0 +1,9 @@
+---
+- name: A flow sequence as a table, on the next line
+  from: part 1, section 8.1
+  tags: table flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    [a]

@@ -1,0 +1,9 @@
+---
+- name: 'An escape JSON lacks: \x41'
+  from: part 1, section 6.2
+  tags: double escape spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: "\x41"

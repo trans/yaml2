@@ -1,0 +1,26 @@
+---
+- name: '-<< as the first item of a sequence on its parent''s line'
+  from: part 1, section 9.2
+  tags: merge sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    - -<< *s
+      - y
+    - z
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       +SEQ
+        =VAL :x
+        =VAL :y
+       -SEQ
+       =VAL :z
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [["x", "y"], "z"]

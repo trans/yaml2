@@ -1,0 +1,13 @@
+---
+- name: A double-quoted scalar holds separators and bidirectional controls
+  from: part 1, section 3
+  tags: double character
+  yaml: "%YAML 2.0\n---\n\"\u2028\u202E\u0085\u2066\"\n"
+  tree: |
+    +STR
+     +DOC
+      =VAL :\u2028\u202E\u0085\u2066
+     -DOC
+    -STR
+  json: |
+    "\u2028\u202e\u0085\u2066"

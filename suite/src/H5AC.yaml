@@ -1,0 +1,10 @@
+---
+- name: Two escaped e-acutes count 2 bytes each, so a limit of 6 refuses
+  from: part 1, section 10
+  tags: size double escape error
+  fail: true
+  limit: 6
+  yaml: |
+    %YAML 2.0
+    ---
+    "\u00e9": "\u00e9"

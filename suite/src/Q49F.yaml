@@ -1,0 +1,28 @@
+---
+- name: Replaced entries stay in held until ...
+  from: part 1, section 10
+  tags: size table error
+  fail: true
+  limit: 31
+  yaml: |
+    %YAML 2.0
+    --- &
+    e: xxxxxxxxxx00
+    ---
+    v: *e
+    --- &
+    e: xxxxxxxxxx01
+    ---
+    v: *e
+    --- &
+    e: xxxxxxxxxx02
+    ---
+    v: *e
+    --- &
+    e: xxxxxxxxxx03
+    ---
+    v: *e
+    --- &
+    e: xxxxxxxxxx04
+    ---
+    v: *e

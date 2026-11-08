@@ -1,0 +1,11 @@
+---
+- name: '! in a document after a flow table'
+  from: part 1, section 6.1
+  tags: tag table flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    {a: !x}
+    ---
+    b: !y

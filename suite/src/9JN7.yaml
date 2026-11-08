@@ -1,0 +1,25 @@
+---
+- name: What follows ... with CR LF line breaks
+  from: part 1, section 4.4
+  tags: ending character
+  yaml: |
+    %YAML 2.0←
+    ---←
+    a: 1←
+    ...←
+    # Heading←
+    body←
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}
+  rest: |
+    # Heading←
+    body←

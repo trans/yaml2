@@ -1,0 +1,28 @@
+---
+- name: 'A stop after text outside ASCII: the offset counts bytes'
+  from: part 1, section 4.4
+  tags: ending character
+  yaml: |
+    %YAML 2.0
+    ---
+    name: Zoë
+    city: 東京
+    ...
+    # Notes
+    Body.
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :name
+       =VAL :Zoë
+       =VAL :city
+       =VAL :東京
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"name": "Zoë", "city": "東京"}
+  rest: |
+    # Notes
+    Body.

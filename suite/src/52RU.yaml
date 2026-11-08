@@ -1,0 +1,6 @@
+---
+- name: A C1 control in a comment
+  from: part 1, section 3
+  tags: character comment error
+  fail: true
+  yaml: "%YAML 2.0\n# \u0080\n"

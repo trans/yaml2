@@ -1,0 +1,24 @@
+---
+- name: '... then a new table'
+  from: part 1, section 8.1
+  tags: table ending
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ...
+    --- &
+    a: 2
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "2"}

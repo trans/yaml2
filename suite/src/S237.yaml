@@ -1,0 +1,10 @@
+---
+- name: 'Each node counts 1 and each scalar its bytes: 7 passes a limit of 6'
+  from: part 1, section 10
+  tags: size sequence error
+  fail: true
+  limit: 6
+  yaml: |
+    %YAML 2.0
+    ---
+    [x, x, x]

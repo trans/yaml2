@@ -1,0 +1,10 @@
+---
+- name: The directive twice at the start
+  from: part 1, section 4.1
+  tags: directive error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    %YAML 2.0
+    ---
+    a: 1

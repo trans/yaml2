@@ -1,0 +1,28 @@
+---
+- name: A flow mapping keeps its keys in document order
+  from: part 1, section 11
+  tags: flow mapping order
+  yaml: |
+    %YAML 2.0
+    ---
+    {z: 1, a: 2, m: {y: 3, b: 4}}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :z
+       =VAL :1
+       =VAL :a
+       =VAL :2
+       =VAL :m
+       +MAP
+        =VAL :y
+        =VAL :3
+        =VAL :b
+        =VAL :4
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"z": "1", "a": "2", "m": {"y": "3", "b": "4"}}

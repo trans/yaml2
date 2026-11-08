@@ -1,0 +1,24 @@
+---
+- name: Entry and key names not in ASCII, in both forms of path
+  from: part 1, section 8.2
+  tags: reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    配置: {键: 值}
+    ---
+    a: *配置:键
+    b: *<配置>:键
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :值
+       =VAL :b
+       =VAL :值
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "值", "b": "值"}

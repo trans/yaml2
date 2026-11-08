@@ -1,0 +1,17 @@
+---
+- name: Text after ... may hold any character
+  from: part 1, section 4.4
+  tags: ending character
+  yaml: "%YAML 2.0\n---\na: 1\n...\nbody \u0001\r \uFEFF text\n"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}
+  rest: "body \u0001\r \uFEFF text\n"

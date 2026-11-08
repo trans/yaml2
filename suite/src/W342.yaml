@@ -1,0 +1,12 @@
+---
+- name: A key repeated in the second table document
+  from: part 1, section 8.1
+  tags: table duplicate-key error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    --- &
+    b: 2
+    b: 3

@@ -1,0 +1,23 @@
+---
+- name: An empty table document
+  from: part 1, section 8.1
+  tags: table ending empty
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ...
+    --- &
+    ---
+    b: 2
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "2"}

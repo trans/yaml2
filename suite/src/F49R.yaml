@@ -1,0 +1,29 @@
+---
+- name: A tab after ...
+  from: part 1, section 4.4
+  tags: ending whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    ...»
+    ---
+    b: 2
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}
+    {"b": "2"}

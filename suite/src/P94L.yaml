@@ -1,0 +1,10 @@
+---
+- name: 'A document''s name counts, so a limit of 8 refuses'
+  from: part 1, section 10
+  tags: size name error
+  fail: true
+  limit: 8
+  yaml: |
+    %YAML 2.0
+    --- !abc
+    a: 1

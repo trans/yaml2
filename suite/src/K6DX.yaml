@@ -1,0 +1,9 @@
+---
+- name: A lone CR between flow items
+  from: part 1, section 3
+  tags: character flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    [a,←b]

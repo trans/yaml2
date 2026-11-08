@@ -1,0 +1,18 @@
+---
+- name: A tab after a flow sequence
+  from: part 1, section 3
+  tags: flow whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    [1]»
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :1
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["1"]

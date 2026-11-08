@@ -1,0 +1,19 @@
+---
+- name: An escaped surrogate pair
+  from: part 1, section 6.2
+  tags: double escape
+  yaml: |
+    %YAML 2.0
+    ---
+    a: "\ud83d\ude00"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :😀
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "😀"}

@@ -1,0 +1,70 @@
+---
+- name: '... between replacements keeps held small'
+  from: part 1, section 10
+  tags: size table ending
+  limit: 31
+  yaml: |
+    %YAML 2.0
+    --- &
+    e: xxxxxxxxxx00
+    ---
+    v: *e
+    ...
+    --- &
+    e: xxxxxxxxxx01
+    ---
+    v: *e
+    ...
+    --- &
+    e: xxxxxxxxxx02
+    ---
+    v: *e
+    ...
+    --- &
+    e: xxxxxxxxxx03
+    ---
+    v: *e
+    ...
+    --- &
+    e: xxxxxxxxxx04
+    ---
+    v: *e
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :v
+       =VAL :xxxxxxxxxx00
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :v
+       =VAL :xxxxxxxxxx01
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :v
+       =VAL :xxxxxxxxxx02
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :v
+       =VAL :xxxxxxxxxx03
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :v
+       =VAL :xxxxxxxxxx04
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"v": "xxxxxxxxxx00"}
+    {"v": "xxxxxxxxxx01"}
+    {"v": "xxxxxxxxxx02"}
+    {"v": "xxxxxxxxxx03"}
+    {"v": "xxxxxxxxxx04"}

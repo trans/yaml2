@@ -1,0 +1,8 @@
+---
+- name: A 1.2 anchor on a marker
+  from: part 1, section 4.2
+  tags: table marker anchor error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &a {x: 1}

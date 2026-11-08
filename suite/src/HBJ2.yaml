@@ -1,0 +1,10 @@
+---
+- name: A plain scalar continued on the next line
+  from: part 1, section 6.1
+  tags: plain spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    key: value
+      more text

@@ -1,0 +1,21 @@
+---
+- name: A leading empty line in a literal scalar
+  from: part 1, section 6.4
+  tags: literal
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+
+      x
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :\nx\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "\nx\n"}

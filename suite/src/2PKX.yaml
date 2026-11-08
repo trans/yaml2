@@ -1,0 +1,30 @@
+---
+- name: A replacement that merges the entry it replaces
+  from: part 1, section 8.4
+  tags: table merge
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    --- &
+    a:
+      <<: *a
+      q: 2
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       +MAP
+        =VAL :p
+        =VAL :1
+        =VAL :q
+        =VAL :2
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": {"p": "1", "q": "2"}}

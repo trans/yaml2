@@ -1,0 +1,17 @@
+---
+- name: 'A replacement takes the old entry''s size off full, so full never reaches 18'
+  from: part 1, section 10
+  tags: size table merge
+  limit: 14
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    --- &
+    a:
+      -<< *a
+      - z
+  tree: |
+    +STR
+    -STR
+  json: ''

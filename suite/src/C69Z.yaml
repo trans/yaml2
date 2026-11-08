@@ -1,0 +1,13 @@
+---
+- name: 'A reference to an entry that ... and %YAML 2.0 emptied'
+  from: part 1, section 8.1
+  tags: table ending reference directive error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ...
+    %YAML 2.0
+    ---
+    b: *a

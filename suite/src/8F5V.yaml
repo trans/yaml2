@@ -1,0 +1,24 @@
+---
+- name: A table written as JSON
+  from: part 1, section 8.1
+  tags: table flow json spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    {"port": 80, "hosts": {"main": "a.example"}}
+    ---
+    a: *port
+    b: *hosts:main
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :80
+       =VAL :b
+       =VAL :a.example
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "80", "b": "a.example"}

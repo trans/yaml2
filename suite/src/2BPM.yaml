@@ -1,0 +1,21 @@
+---
+- name: Tabs at the ends of lines in a flow sequence
+  from: part 1, section 3
+  tags: flow whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    [a,»
+     b—»
+    ]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :a
+       =VAL :b
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["a", "b"]

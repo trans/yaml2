@@ -1,0 +1,8 @@
+---
+- name: A tab between a marker and a value
+  from: part 1, section 4.2
+  tags: marker whitespace error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---»foo

@@ -1,0 +1,41 @@
+---
+- name: Literal and folded scalars, with and without -, and a comment on the header
+  from: part 1, section 6.4
+  tags: literal folded comment spec
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+      one
+        two
+
+    b: |-
+      three
+    c: >
+      four
+      five
+
+      six
+    d: >-
+      seven
+    e: |  # a comment here is fine
+      # this is text
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :one\n  two\n
+       =VAL :b
+       =VAL :three
+       =VAL :c
+       =VAL :four five\nsix\n
+       =VAL :d
+       =VAL :seven
+       =VAL :e
+       =VAL :# this is text\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "one\n  two\n", "b": "three", "c": "four five\nsix\n", "d": "seven", "e": "# this is text\n"}

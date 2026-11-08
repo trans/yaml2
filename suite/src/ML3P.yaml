@@ -1,0 +1,18 @@
+---
+- name: DEL, a C1 control, U+FFFF and U+FFFE in double quotes
+  from: part 1, section 3
+  tags: double character
+  yaml: "%YAML 2.0\n---\n[\"\u007F\", \"\u009F\", \"\uFFFF\", \"\uFFFE\"]\n"
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :\u007F
+       =VAL :\u009F
+       =VAL :\uFFFF
+       =VAL :\uFFFE
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["\u007f", "\u009f", "\uffff", "\ufffe"]

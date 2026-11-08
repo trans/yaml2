@@ -1,0 +1,9 @@
+---
+- name: A tab between a dash and its item
+  from: part 1, section 3
+  tags: whitespace sequence error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    -——»b

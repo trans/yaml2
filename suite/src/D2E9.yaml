@@ -1,0 +1,21 @@
+---
+- name: 'An entry named with ::'
+  from: part 1, section 8.2
+  tags: reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    Fn::Sub: {x: 1}
+    ---
+    a: *Fn::Sub:x
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}

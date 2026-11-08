@@ -1,0 +1,11 @@
+---
+- name: '> at the end of a path after -<<'
+  from: part 1, section 8.2
+  tags: reference merge error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    "a>": [x]
+    ---
+    - -<< *a>

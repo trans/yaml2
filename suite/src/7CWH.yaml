@@ -1,0 +1,9 @@
+---
+- name: A pair inside a flow sequence
+  from: part 1, section 7.3
+  tags: flow spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    [a: b]

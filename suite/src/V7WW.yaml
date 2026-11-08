@@ -1,0 +1,25 @@
+---
+- name: A merge nested in a flow table entry
+  from: part 1, section 8.4
+  tags: table merge flow
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    b: {c: {<<: *a}}
+    ---
+    *b
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :c
+       +MAP
+        =VAL :p
+        =VAL :1
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"c": {"p": "1"}}

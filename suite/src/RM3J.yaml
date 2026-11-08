@@ -1,0 +1,22 @@
+---
+- name: '<< quoted or inside text is not a merge'
+  from: part 1, section 9.1
+  tags: merge spec
+  yaml: |
+    %YAML 2.0
+    ---
+    "<<": x
+    run: << parameters.x >>
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :<<
+       =VAL :x
+       =VAL :run
+       =VAL :<< parameters.x >>
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"<<": "x", "run": "<< parameters.x >>"}

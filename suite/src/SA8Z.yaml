@@ -1,0 +1,20 @@
+---
+- name: 'A tab after -<< in a flow sequence'
+  from: part 1, section 9.3
+  tags: merge flow whitespace
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    [-<<———»*s]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :x
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["x"]

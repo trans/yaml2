@@ -1,0 +1,20 @@
+---
+- name: A scalar counts the UTF-8 bytes of its value, not of its escape
+  from: part 1, section 10
+  tags: size double escape
+  limit: 7
+  yaml: |
+    %YAML 2.0
+    ---
+    "\u00e9": "\u00e9"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :é
+       =VAL :é
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"é": "é"}

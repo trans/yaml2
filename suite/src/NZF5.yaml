@@ -1,0 +1,10 @@
+---
+- name: Keep chomping on a folded scalar
+  from: part 1, section 6.4
+  tags: folded error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: >+
+      x

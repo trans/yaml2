@@ -1,0 +1,23 @@
+---
+- name: 'A quoted key''s colon on the next line in a flow mapping'
+  from: part 1, section 7.3
+  tags: flow key
+  yaml: |
+    %YAML 2.0
+    ---
+    {"a"
+    : 1, 'b'———»
+      : 2}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": "2"}

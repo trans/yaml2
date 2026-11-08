@@ -1,0 +1,23 @@
+---
+- name: '! in a key and in items in the table'
+  from: part 1, section 6.1
+  tags: table tag
+  yaml: |
+    %YAML 2.0
+    --- &
+    !a:
+      - !b
+      - [!c]
+    ---
+    d: 1
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :d
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"d": "1"}

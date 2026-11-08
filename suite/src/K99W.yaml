@@ -1,0 +1,27 @@
+---
+- name: A merged key that a later line replaces still counts in full
+  from: part 1, section 10
+  tags: size merge
+  limit: 19
+  yaml: |
+    %YAML 2.0
+    --- &
+    m: {k: v}
+    ---
+    c:
+      <<: *m
+      k: w
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :c
+       +MAP
+        =VAL :k
+        =VAL :w
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"c": {"k": "w"}}

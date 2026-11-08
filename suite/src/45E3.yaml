@@ -1,0 +1,19 @@
+---
+- name: '! inside a plain scalar'
+  from: part 1, section 6.1
+  tags: tag plain
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x !y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x !y
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x !y"}

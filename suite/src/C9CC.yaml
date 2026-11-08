@@ -1,0 +1,11 @@
+---
+- name: A path to a key that is missing
+  from: part 1, section 8.3
+  tags: reference spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {b: 1}
+    ---
+    c: *a:missing

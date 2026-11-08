@@ -1,0 +1,19 @@
+---
+- name: A tab inside a plain scalar
+  from: part 1, section 3
+  tags: plain whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x———»y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x\ty
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x\ty"}

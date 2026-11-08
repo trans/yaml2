@@ -1,0 +1,26 @@
+---
+- name: 'The size limit''s second example: held is 17, so a limit of 17 allows it'
+  from: part 1, section 10
+  tags: size table
+  limit: 17
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    --- &
+    a: [z]
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       +SEQ
+        =VAL :z
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": ["z"]}

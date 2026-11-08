@@ -1,0 +1,9 @@
+---
+- name: 'A top-level block scalar''s text at column 0'
+  from: part 1, section 6.4
+  tags: literal marker spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- |
+    top level text must be indented

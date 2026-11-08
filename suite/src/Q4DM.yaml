@@ -1,0 +1,9 @@
+---
+- name: A lone CR at the end of the stream
+  from: part 1, section 3
+  tags: character error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1←∎

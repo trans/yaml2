@@ -1,0 +1,45 @@
+---
+- name: 'Merging sequences with -<<'
+  from: part 1, section 9.2
+  tags: merge sequence spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    common: [a, b]
+    m: {k: v}
+    ---
+    steps:
+      - first
+      -<< *common
+      - last
+    items:
+      - <<: *m
+        extra: 1
+      -<< *common
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :steps
+       +SEQ
+        =VAL :first
+        =VAL :a
+        =VAL :b
+        =VAL :last
+       -SEQ
+       =VAL :items
+       +SEQ
+        +MAP
+         =VAL :k
+         =VAL :v
+         =VAL :extra
+         =VAL :1
+        -MAP
+        =VAL :a
+        =VAL :b
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"steps": ["first", "a", "b", "last"], "items": [{"k": "v", "extra": "1"}, "a", "b"]}

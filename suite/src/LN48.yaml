@@ -1,0 +1,21 @@
+---
+- name: A literal scalar header on the line after its key
+  from: part 1, section 6.4
+  tags: literal
+  yaml: |
+    %YAML 2.0
+    ---
+    a:
+      |
+        text
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :text\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "text\n"}

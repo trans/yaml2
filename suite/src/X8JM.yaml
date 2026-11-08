@@ -1,0 +1,9 @@
+---
+- name: No comma between flow pairs
+  from: part 1, section 7.3
+  tags: flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    {"a": 1 "b": 2}

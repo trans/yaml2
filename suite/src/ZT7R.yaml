@@ -1,0 +1,25 @@
+---
+- name: 'The size limit''s second example, at the default limit'
+  from: part 1, section 10
+  tags: size table spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    --- &
+    a: [z]
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       +SEQ
+        =VAL :z
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": ["z"]}

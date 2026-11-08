@@ -1,0 +1,9 @@
+---
+- name: '! in a named document'
+  from: part 1, section 6.1
+  tags: tag name error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- !n
+    b: !y

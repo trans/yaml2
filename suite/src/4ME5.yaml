@@ -1,0 +1,27 @@
+---
+- name: A comment between ... and a marker stops the parser
+  from: part 1, section 4.4
+  tags: ending comment
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x
+    ...
+    # c
+    ---
+    b: y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x"}
+  rest: |
+    # c
+    ---
+    b: y

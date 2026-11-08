@@ -1,0 +1,19 @@
+---
+- name: A tab after a key with no value
+  from: part 1, section 3
+  tags: whitespace empty
+  yaml: |
+    %YAML 2.0
+    ---
+    a:—»
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": ""}

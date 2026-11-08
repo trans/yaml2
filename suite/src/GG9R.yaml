@@ -1,0 +1,21 @@
+---
+- name: A path into a flow table entry
+  from: part 1, section 8.2
+  tags: table flow reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    {a: 1, b: {x: 2}}
+    ---
+    c: *b:x
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :c
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"c": "2"}

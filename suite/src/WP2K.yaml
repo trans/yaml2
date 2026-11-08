@@ -1,0 +1,10 @@
+---
+- name: A key repeated in one table document
+  from: part 1, section 8.1
+  tags: table duplicate-key spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    port: 80
+    port: 8080

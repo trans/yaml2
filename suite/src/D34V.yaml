@@ -1,0 +1,12 @@
+---
+- name: A reference after ... has emptied the table
+  from: part 1, section 8.1
+  tags: table ending reference spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    port: 80
+    ...
+    ---
+    a: *port

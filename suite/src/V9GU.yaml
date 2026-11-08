@@ -1,0 +1,9 @@
+---
+- name: '<< as a table''s key'
+  from: part 1, section 8.4
+  tags: table merge error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    <<: *a

@@ -1,0 +1,16 @@
+---
+- name: An empty table, then an empty document
+  from: part 1, section 4.2
+  tags: table empty
+  yaml: |
+    %YAML 2.0
+    --- &
+    ---
+  tree: |
+    +STR
+     +DOC
+      =VAL :
+     -DOC
+    -STR
+  json: |
+    ""

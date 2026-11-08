@@ -1,0 +1,32 @@
+---
+- name: 'A blank line after ..., then %YAML 2.0 and a comment'
+  from: part 1, section 4.4
+  tags: ending directive comment
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x
+    ...
+
+    %YAML 2.0
+    # d
+    ---
+    b: y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :y
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x"}
+    {"b": "y"}

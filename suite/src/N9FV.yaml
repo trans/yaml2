@@ -1,0 +1,21 @@
+---
+- name: A literal scalar as a sequence item
+  from: part 1, section 6.4
+  tags: literal sequence
+  yaml: |
+    %YAML 2.0
+    ---
+    - |
+      x
+    - y
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :x\n
+       =VAL :y
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["x\n", "y"]

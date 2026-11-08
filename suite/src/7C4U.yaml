@@ -1,0 +1,9 @@
+---
+- name: A colon and a space inside a plain value
+  from: part 1, section 6.1
+  tags: plain mapping spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: b: c

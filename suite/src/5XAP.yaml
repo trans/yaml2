@@ -1,0 +1,6 @@
+---
+- name: DEL in a single-quoted scalar
+  from: part 1, section 3
+  tags: character single error
+  fail: true
+  yaml: "%YAML 2.0\n---\n'\u007F'\n"

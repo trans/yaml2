@@ -1,0 +1,42 @@
+---
+- name: Flow collections with trailing commas, an empty value and a comment
+  from: part 1, section 7.3
+  tags: flow comment empty spec
+  yaml: |
+    %YAML 2.0
+    ---
+    a: [1, two, "three",]
+    b: {c: 1, "d":2, e: }
+    f: [
+      x,  # a comment
+      y
+    ]
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       +SEQ
+        =VAL :1
+        =VAL :two
+        =VAL :three
+       -SEQ
+       =VAL :b
+       +MAP
+        =VAL :c
+        =VAL :1
+        =VAL :d
+        =VAL :2
+        =VAL :e
+        =VAL :
+       -MAP
+       =VAL :f
+       +SEQ
+        =VAL :x
+        =VAL :y
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": ["1", "two", "three"], "b": {"c": "1", "d": "2", "e": ""}, "f": ["x", "y"]}

@@ -1,0 +1,10 @@
+---
+- name: A stream holding only the directive
+  from: part 1, section 4.1
+  tags: directive empty
+  yaml: |
+    %YAML 2.0
+  tree: |
+    +STR
+    -STR
+  json: ''

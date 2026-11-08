@@ -1,0 +1,7 @@
+---
+- name: 'A stream with no %YAML 2.0'
+  from: part 1, section 4.1
+  tags: directive error
+  fail: true
+  yaml: |
+    a: 1

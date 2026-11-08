@@ -1,0 +1,11 @@
+---
+- name: '! outside the table, after a table'
+  from: part 1, section 6.1
+  tags: tag table error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !x
+    ---
+    !y

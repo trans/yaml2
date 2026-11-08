@@ -1,0 +1,21 @@
+---
+- name: '! starts a plain scalar in the table, and a quoted one anywhere'
+  from: part 1, section 6.1
+  tags: plain table tag double spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    kind: !int
+    ---
+    note: "!important"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :note
+       =VAL :!important
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"note": "!important"}

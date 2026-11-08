@@ -1,0 +1,41 @@
+---
+- name: 'The size limit''s first example, at the default limit'
+  from: part 1, section 10
+  tags: size merge table spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    m: {k: v}
+    ---
+    b: *a
+    c:
+      -<< *a
+      - z
+    d:
+      <<: *m
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       +SEQ
+        =VAL :x
+        =VAL :yy
+       -SEQ
+       =VAL :c
+       +SEQ
+        =VAL :x
+        =VAL :yy
+        =VAL :z
+       -SEQ
+       =VAL :d
+       +MAP
+        =VAL :k
+        =VAL :v
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": ["x", "yy"], "c": ["x", "yy", "z"], "d": {"k": "v"}}

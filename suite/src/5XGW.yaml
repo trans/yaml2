@@ -1,0 +1,44 @@
+---
+- name: Table entries replaced, and the table emptied by ...
+  from: part 1, section 8.1
+  tags: table ending spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    port: 80
+    ---
+    a: *port
+    --- &
+    port: 8080
+    ---
+    b: *port
+    ...
+    --- &
+    port: 443
+    ---
+    c: *port
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :80
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :8080
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :c
+       =VAL :443
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "80"}
+    {"b": "8080"}
+    {"c": "443"}

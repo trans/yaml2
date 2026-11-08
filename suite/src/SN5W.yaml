@@ -1,0 +1,9 @@
+---
+- name: 'A document that starts with %'
+  from: part 1, section 6.1
+  tags: directive plain error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    %foo

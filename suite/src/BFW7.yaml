@@ -1,0 +1,30 @@
+---
+- name: References inside a flow table
+  from: part 1, section 8.4
+  tags: table reference flow
+  yaml: |
+    %YAML 2.0
+    --- &
+    {a: {p: 1}, b: {c: *a}, d: *a}
+    ---
+    [*b, *d]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       +MAP
+        =VAL :c
+        +MAP
+         =VAL :p
+         =VAL :1
+        -MAP
+       -MAP
+       +MAP
+        =VAL :p
+        =VAL :1
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"c": {"p": "1"}}, {"p": "1"}]

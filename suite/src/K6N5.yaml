@@ -1,0 +1,9 @@
+---
+- name: An escaped lone surrogate
+  from: part 1, section 6.2
+  tags: double escape error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    "\ud800"

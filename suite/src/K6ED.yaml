@@ -1,0 +1,10 @@
+---
+- name: Indentation indicator 0
+  from: part 1, section 6.4
+  tags: literal error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |0
+      x

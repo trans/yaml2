@@ -1,0 +1,9 @@
+---
+- name: A flow mapping holding only a comma
+  from: part 1, section 7.3
+  tags: flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    {,}

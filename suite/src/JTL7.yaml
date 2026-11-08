@@ -1,0 +1,19 @@
+---
+- name: '! in a double-quoted scalar'
+  from: part 1, section 6.1
+  tags: tag double
+  yaml: |
+    %YAML 2.0
+    ---
+    a: "!x"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :!x
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "!x"}

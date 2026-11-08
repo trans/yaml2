@@ -1,0 +1,8 @@
+---
+- name: A document with no marker
+  from: part 1, section 4.2
+  tags: marker spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    title: first

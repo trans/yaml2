@@ -1,0 +1,16 @@
+---
+- name: An escaped U+FEFF
+  from: part 1, section 6.2
+  tags: double escape character
+  yaml: |
+    %YAML 2.0
+    ---
+    "\uFEFF"
+  tree: |
+    +STR
+     +DOC
+      =VAL :\uFEFF
+     -DOC
+    -STR
+  json: |
+    "\ufeff"

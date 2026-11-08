@@ -1,0 +1,25 @@
+---
+- name: A comment at column 0 inside a block sequence
+  from: part 1, section 3
+  tags: comment sequence
+  yaml: |
+    %YAML 2.0
+    ---
+    a:
+      - x
+    # c
+      - y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       +SEQ
+        =VAL :x
+        =VAL :y
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": ["x", "y"]}

@@ -1,0 +1,9 @@
+---
+- name: '-<< as a flow mapping value'
+  from: part 1, section 9.2
+  tags: merge flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    {a: -<< *s}

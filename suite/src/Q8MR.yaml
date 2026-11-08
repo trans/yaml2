@@ -1,0 +1,19 @@
+---
+- name: A last line with no line break
+  from: part 1, section 3
+  tags: mapping
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1∎
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}

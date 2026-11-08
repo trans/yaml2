@@ -1,0 +1,18 @@
+---
+- name: A tab after a sequence item
+  from: part 1, section 3
+  tags: whitespace sequence
+  yaml: |
+    %YAML 2.0
+    ---
+    - x»
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :x
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["x"]

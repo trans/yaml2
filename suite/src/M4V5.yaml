@@ -1,0 +1,22 @@
+---
+- name: An empty literal scalar followed by a key
+  from: part 1, section 6.4
+  tags: literal empty
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+    b: 1
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :
+       =VAL :b
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "", "b": "1"}

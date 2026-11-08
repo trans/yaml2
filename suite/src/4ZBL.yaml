@@ -1,0 +1,25 @@
+---
+- name: 'Plain scalars that start with %, @ and `'
+  from: part 1, section 6.1
+  tags: plain spec
+  yaml: |
+    %YAML 2.0
+    ---
+    a: %{count} items
+    b: @home
+    c: `code`
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :%{count} items
+       =VAL :b
+       =VAL :@home
+       =VAL :c
+       =VAL :`code`
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "%{count} items", "b": "@home", "c": "`code`"}

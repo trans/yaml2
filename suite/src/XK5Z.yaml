@@ -1,0 +1,14 @@
+---
+- name: 'The size limit''s second example: a limit of 16 refuses it'
+  from: part 1, section 10
+  tags: size table error
+  fail: true
+  limit: 16
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    --- &
+    a: [z]
+    ---
+    b: *a

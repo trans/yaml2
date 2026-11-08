@@ -1,0 +1,6 @@
+---
+- name: A raw U+0001 as a double-quoted scalar
+  from: part 1, section 3
+  tags: character double error
+  fail: true
+  yaml: "%YAML 2.0\n---\n\"\u0001\"\n"

@@ -1,0 +1,1040 @@
+---
+- name: Every parser accepts 256 levels of block mappings
+  from: part 1, section 10
+  tags: depth mapping
+  yaml: |
+    %YAML 2.0
+    ---
+    k:
+     k:
+      k:
+       k:
+        k:
+         k:
+          k:
+           k:
+            k:
+             k:
+              k:
+               k:
+                k:
+                 k:
+                  k:
+                   k:
+                    k:
+                     k:
+                      k:
+                       k:
+                        k:
+                         k:
+                          k:
+                           k:
+                            k:
+                             k:
+                              k:
+                               k:
+                                k:
+                                 k:
+                                  k:
+                                   k:
+                                    k:
+                                     k:
+                                      k:
+                                       k:
+                                        k:
+                                         k:
+                                          k:
+                                           k:
+                                            k:
+                                             k:
+                                              k:
+                                               k:
+                                                k:
+                                                 k:
+                                                  k:
+                                                   k:
+                                                    k:
+                                                     k:
+                                                      k:
+                                                       k:
+                                                        k:
+                                                         k:
+                                                          k:
+                                                           k:
+                                                            k:
+                                                             k:
+                                                              k:
+                                                               k:
+                                                                k:
+                                                                 k:
+                                                                  k:
+                                                                   k:
+                                                                    k:
+                                                                     k:
+                                                                      k:
+                                                                       k:
+                                                                        k:
+                                                                         k:
+                                                                          k:
+                                                                           k:
+                                                                            k:
+                                                                             k:
+                                                                              k:
+                                                                               k:
+                                                                                k:
+                                                                                 k:
+                                                                                  k:
+                                                                                   k:
+                                                                                    k:
+                                                                                     k:
+                                                                                      k:
+                                                                                       k:
+                                                                                        k:
+                                                                                         k:
+                                                                                          k:
+                                                                                           k:
+                                                                                            k:
+                                                                                             k:
+                                                                                              k:
+                                                                                               k:
+                                                                                                k:
+                                                                                                 k:
+                                                                                                  k:
+                                                                                                   k:
+                                                                                                    k:
+                                                                                                     k:
+                                                                                                      k:
+                                                                                                       k:
+                                                                                                        k:
+                                                                                                         k:
+                                                                                                          k:
+                                                                                                           k:
+                                                                                                            k:
+                                                                                                             k:
+                                                                                                              k:
+                                                                                                               k:
+                                                                                                                k:
+                                                                                                                 k:
+                                                                                                                  k:
+                                                                                                                   k:
+                                                                                                                    k:
+                                                                                                                     k:
+                                                                                                                      k:
+                                                                                                                       k:
+                                                                                                                        k:
+                                                                                                                         k:
+                                                                                                                          k:
+                                                                                                                           k:
+                                                                                                                            k:
+                                                                                                                             k:
+                                                                                                                              k:
+                                                                                                                               k:
+                                                                                                                                k:
+                                                                                                                                 k:
+                                                                                                                                  k:
+                                                                                                                                   k:
+                                                                                                                                    k:
+                                                                                                                                     k:
+                                                                                                                                      k:
+                                                                                                                                       k:
+                                                                                                                                        k:
+                                                                                                                                         k:
+                                                                                                                                          k:
+                                                                                                                                           k:
+                                                                                                                                            k:
+                                                                                                                                             k:
+                                                                                                                                              k:
+                                                                                                                                               k:
+                                                                                                                                                k:
+                                                                                                                                                 k:
+                                                                                                                                                  k:
+                                                                                                                                                   k:
+                                                                                                                                                    k:
+                                                                                                                                                     k:
+                                                                                                                                                      k:
+                                                                                                                                                       k:
+                                                                                                                                                        k:
+                                                                                                                                                         k:
+                                                                                                                                                          k:
+                                                                                                                                                           k:
+                                                                                                                                                            k:
+                                                                                                                                                             k:
+                                                                                                                                                              k:
+                                                                                                                                                               k:
+                                                                                                                                                                k:
+                                                                                                                                                                 k:
+                                                                                                                                                                  k:
+                                                                                                                                                                   k:
+                                                                                                                                                                    k:
+                                                                                                                                                                     k:
+                                                                                                                                                                      k:
+                                                                                                                                                                       k:
+                                                                                                                                                                        k:
+                                                                                                                                                                         k:
+                                                                                                                                                                          k:
+                                                                                                                                                                           k:
+                                                                                                                                                                            k:
+                                                                                                                                                                             k:
+                                                                                                                                                                              k:
+                                                                                                                                                                               k:
+                                                                                                                                                                                k:
+                                                                                                                                                                                 k:
+                                                                                                                                                                                  k:
+                                                                                                                                                                                   k:
+                                                                                                                                                                                    k:
+                                                                                                                                                                                     k:
+                                                                                                                                                                                      k:
+                                                                                                                                                                                       k:
+                                                                                                                                                                                        k:
+                                                                                                                                                                                         k:
+                                                                                                                                                                                          k:
+                                                                                                                                                                                           k:
+                                                                                                                                                                                            k:
+                                                                                                                                                                                             k:
+                                                                                                                                                                                              k:
+                                                                                                                                                                                               k:
+                                                                                                                                                                                                k:
+                                                                                                                                                                                                 k:
+                                                                                                                                                                                                  k:
+                                                                                                                                                                                                   k:
+                                                                                                                                                                                                    k:
+                                                                                                                                                                                                     k:
+                                                                                                                                                                                                      k:
+                                                                                                                                                                                                       k:
+                                                                                                                                                                                                        k:
+                                                                                                                                                                                                         k:
+                                                                                                                                                                                                          k:
+                                                                                                                                                                                                           k:
+                                                                                                                                                                                                            k:
+                                                                                                                                                                                                             k:
+                                                                                                                                                                                                              k:
+                                                                                                                                                                                                               k:
+                                                                                                                                                                                                                k:
+                                                                                                                                                                                                                 k:
+                                                                                                                                                                                                                  k:
+                                                                                                                                                                                                                   k:
+                                                                                                                                                                                                                    k:
+                                                                                                                                                                                                                     k:
+                                                                                                                                                                                                                      k:
+                                                                                                                                                                                                                       k:
+                                                                                                                                                                                                                        k:
+                                                                                                                                                                                                                         k:
+                                                                                                                                                                                                                          k:
+                                                                                                                                                                                                                           k:
+                                                                                                                                                                                                                            k:
+                                                                                                                                                                                                                             k:
+                                                                                                                                                                                                                              k:
+                                                                                                                                                                                                                               k:
+                                                                                                                                                                                                                                k:
+                                                                                                                                                                                                                                 k:
+                                                                                                                                                                                                                                  k:
+                                                                                                                                                                                                                                   k:
+                                                                                                                                                                                                                                    k:
+                                                                                                                                                                                                                                     k:
+                                                                                                                                                                                                                                      k:
+                                                                                                                                                                                                                                       k:
+                                                                                                                                                                                                                                        k:
+                                                                                                                                                                                                                                         k:
+                                                                                                                                                                                                                                          k:
+                                                                                                                                                                                                                                           k:
+                                                                                                                                                                                                                                            k:
+                                                                                                                                                                                                                                             k:
+                                                                                                                                                                                                                                              k:
+                                                                                                                                                                                                                                               k:
+                                                                                                                                                                                                                                                k:
+                                                                                                                                                                                                                                                 k:
+                                                                                                                                                                                                                                                  k:
+                                                                                                                                                                                                                                                   k:
+                                                                                                                                                                                                                                                    k:
+                                                                                                                                                                                                                                                     k:
+                                                                                                                                                                                                                                                      k:
+                                                                                                                                                                                                                                                       k:
+                                                                                                                                                                                                                                                        k:
+                                                                                                                                                                                                                                                         k:
+                                                                                                                                                                                                                                                          k:
+                                                                                                                                                                                                                                                           k:
+                                                                                                                                                                                                                                                            k:
+                                                                                                                                                                                                                                                             k:
+                                                                                                                                                                                                                                                              k:
+                                                                                                                                                                                                                                                               k:
+                                                                                                                                                                                                                                                                k:
+                                                                                                                                                                                                                                                                 k:
+                                                                                                                                                                                                                                                                  k:
+                                                                                                                                                                                                                                                                   k:
+                                                                                                                                                                                                                                                                    v
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :k
+       +MAP
+        =VAL :k
+        +MAP
+         =VAL :k
+         +MAP
+          =VAL :k
+          +MAP
+           =VAL :k
+           +MAP
+            =VAL :k
+            +MAP
+             =VAL :k
+             +MAP
+              =VAL :k
+              +MAP
+               =VAL :k
+               +MAP
+                =VAL :k
+                +MAP
+                 =VAL :k
+                 +MAP
+                  =VAL :k
+                  +MAP
+                   =VAL :k
+                   +MAP
+                    =VAL :k
+                    +MAP
+                     =VAL :k
+                     +MAP
+                      =VAL :k
+                      +MAP
+                       =VAL :k
+                       +MAP
+                        =VAL :k
+                        +MAP
+                         =VAL :k
+                         +MAP
+                          =VAL :k
+                          +MAP
+                           =VAL :k
+                           +MAP
+                            =VAL :k
+                            +MAP
+                             =VAL :k
+                             +MAP
+                              =VAL :k
+                              +MAP
+                               =VAL :k
+                               +MAP
+                                =VAL :k
+                                +MAP
+                                 =VAL :k
+                                 +MAP
+                                  =VAL :k
+                                  +MAP
+                                   =VAL :k
+                                   +MAP
+                                    =VAL :k
+                                    +MAP
+                                     =VAL :k
+                                     +MAP
+                                      =VAL :k
+                                      +MAP
+                                       =VAL :k
+                                       +MAP
+                                        =VAL :k
+                                        +MAP
+                                         =VAL :k
+                                         +MAP
+                                          =VAL :k
+                                          +MAP
+                                           =VAL :k
+                                           +MAP
+                                            =VAL :k
+                                            +MAP
+                                             =VAL :k
+                                             +MAP
+                                              =VAL :k
+                                              +MAP
+                                               =VAL :k
+                                               +MAP
+                                                =VAL :k
+                                                +MAP
+                                                 =VAL :k
+                                                 +MAP
+                                                  =VAL :k
+                                                  +MAP
+                                                   =VAL :k
+                                                   +MAP
+                                                    =VAL :k
+                                                    +MAP
+                                                     =VAL :k
+                                                     +MAP
+                                                      =VAL :k
+                                                      +MAP
+                                                       =VAL :k
+                                                       +MAP
+                                                        =VAL :k
+                                                        +MAP
+                                                         =VAL :k
+                                                         +MAP
+                                                          =VAL :k
+                                                          +MAP
+                                                           =VAL :k
+                                                           +MAP
+                                                            =VAL :k
+                                                            +MAP
+                                                             =VAL :k
+                                                             +MAP
+                                                              =VAL :k
+                                                              +MAP
+                                                               =VAL :k
+                                                               +MAP
+                                                                =VAL :k
+                                                                +MAP
+                                                                 =VAL :k
+                                                                 +MAP
+                                                                  =VAL :k
+                                                                  +MAP
+                                                                   =VAL :k
+                                                                   +MAP
+                                                                    =VAL :k
+                                                                    +MAP
+                                                                     =VAL :k
+                                                                     +MAP
+                                                                      =VAL :k
+                                                                      +MAP
+                                                                       =VAL :k
+                                                                       +MAP
+                                                                        =VAL :k
+                                                                        +MAP
+                                                                         =VAL :k
+                                                                         +MAP
+                                                                          =VAL :k
+                                                                          +MAP
+                                                                           =VAL :k
+                                                                           +MAP
+                                                                            =VAL :k
+                                                                            +MAP
+                                                                             =VAL :k
+                                                                             +MAP
+                                                                              =VAL :k
+                                                                              +MAP
+                                                                               =VAL :k
+                                                                               +MAP
+                                                                                =VAL :k
+                                                                                +MAP
+                                                                                 =VAL :k
+                                                                                 +MAP
+                                                                                  =VAL :k
+                                                                                  +MAP
+                                                                                   =VAL :k
+                                                                                   +MAP
+                                                                                    =VAL :k
+                                                                                    +MAP
+                                                                                     =VAL :k
+                                                                                     +MAP
+                                                                                      =VAL :k
+                                                                                      +MAP
+                                                                                       =VAL :k
+                                                                                       +MAP
+                                                                                        =VAL :k
+                                                                                        +MAP
+                                                                                         =VAL :k
+                                                                                         +MAP
+                                                                                          =VAL :k
+                                                                                          +MAP
+                                                                                           =VAL :k
+                                                                                           +MAP
+                                                                                            =VAL :k
+                                                                                            +MAP
+                                                                                             =VAL :k
+                                                                                             +MAP
+                                                                                              =VAL :k
+                                                                                              +MAP
+                                                                                               =VAL :k
+                                                                                               +MAP
+                                                                                                =VAL :k
+                                                                                                +MAP
+                                                                                                 =VAL :k
+                                                                                                 +MAP
+                                                                                                  =VAL :k
+                                                                                                  +MAP
+                                                                                                   =VAL :k
+                                                                                                   +MAP
+                                                                                                    =VAL :k
+                                                                                                    +MAP
+                                                                                                     =VAL :k
+                                                                                                     +MAP
+                                                                                                      =VAL :k
+                                                                                                      +MAP
+                                                                                                       =VAL :k
+                                                                                                       +MAP
+                                                                                                        =VAL :k
+                                                                                                        +MAP
+                                                                                                         =VAL :k
+                                                                                                         +MAP
+                                                                                                          =VAL :k
+                                                                                                          +MAP
+                                                                                                           =VAL :k
+                                                                                                           +MAP
+                                                                                                            =VAL :k
+                                                                                                            +MAP
+                                                                                                             =VAL :k
+                                                                                                             +MAP
+                                                                                                              =VAL :k
+                                                                                                              +MAP
+                                                                                                               =VAL :k
+                                                                                                               +MAP
+                                                                                                                =VAL :k
+                                                                                                                +MAP
+                                                                                                                 =VAL :k
+                                                                                                                 +MAP
+                                                                                                                  =VAL :k
+                                                                                                                  +MAP
+                                                                                                                   =VAL :k
+                                                                                                                   +MAP
+                                                                                                                    =VAL :k
+                                                                                                                    +MAP
+                                                                                                                     =VAL :k
+                                                                                                                     +MAP
+                                                                                                                      =VAL :k
+                                                                                                                      +MAP
+                                                                                                                       =VAL :k
+                                                                                                                       +MAP
+                                                                                                                        =VAL :k
+                                                                                                                        +MAP
+                                                                                                                         =VAL :k
+                                                                                                                         +MAP
+                                                                                                                          =VAL :k
+                                                                                                                          +MAP
+                                                                                                                           =VAL :k
+                                                                                                                           +MAP
+                                                                                                                            =VAL :k
+                                                                                                                            +MAP
+                                                                                                                             =VAL :k
+                                                                                                                             +MAP
+                                                                                                                              =VAL :k
+                                                                                                                              +MAP
+                                                                                                                               =VAL :k
+                                                                                                                               +MAP
+                                                                                                                                =VAL :k
+                                                                                                                                +MAP
+                                                                                                                                 =VAL :k
+                                                                                                                                 +MAP
+                                                                                                                                  =VAL :k
+                                                                                                                                  +MAP
+                                                                                                                                   =VAL :k
+                                                                                                                                   +MAP
+                                                                                                                                    =VAL :k
+                                                                                                                                    +MAP
+                                                                                                                                     =VAL :k
+                                                                                                                                     +MAP
+                                                                                                                                      =VAL :k
+                                                                                                                                      +MAP
+                                                                                                                                       =VAL :k
+                                                                                                                                       +MAP
+                                                                                                                                        =VAL :k
+                                                                                                                                        +MAP
+                                                                                                                                         =VAL :k
+                                                                                                                                         +MAP
+                                                                                                                                          =VAL :k
+                                                                                                                                          +MAP
+                                                                                                                                           =VAL :k
+                                                                                                                                           +MAP
+                                                                                                                                            =VAL :k
+                                                                                                                                            +MAP
+                                                                                                                                             =VAL :k
+                                                                                                                                             +MAP
+                                                                                                                                              =VAL :k
+                                                                                                                                              +MAP
+                                                                                                                                               =VAL :k
+                                                                                                                                               +MAP
+                                                                                                                                                =VAL :k
+                                                                                                                                                +MAP
+                                                                                                                                                 =VAL :k
+                                                                                                                                                 +MAP
+                                                                                                                                                  =VAL :k
+                                                                                                                                                  +MAP
+                                                                                                                                                   =VAL :k
+                                                                                                                                                   +MAP
+                                                                                                                                                    =VAL :k
+                                                                                                                                                    +MAP
+                                                                                                                                                     =VAL :k
+                                                                                                                                                     +MAP
+                                                                                                                                                      =VAL :k
+                                                                                                                                                      +MAP
+                                                                                                                                                       =VAL :k
+                                                                                                                                                       +MAP
+                                                                                                                                                        =VAL :k
+                                                                                                                                                        +MAP
+                                                                                                                                                         =VAL :k
+                                                                                                                                                         +MAP
+                                                                                                                                                          =VAL :k
+                                                                                                                                                          +MAP
+                                                                                                                                                           =VAL :k
+                                                                                                                                                           +MAP
+                                                                                                                                                            =VAL :k
+                                                                                                                                                            +MAP
+                                                                                                                                                             =VAL :k
+                                                                                                                                                             +MAP
+                                                                                                                                                              =VAL :k
+                                                                                                                                                              +MAP
+                                                                                                                                                               =VAL :k
+                                                                                                                                                               +MAP
+                                                                                                                                                                =VAL :k
+                                                                                                                                                                +MAP
+                                                                                                                                                                 =VAL :k
+                                                                                                                                                                 +MAP
+                                                                                                                                                                  =VAL :k
+                                                                                                                                                                  +MAP
+                                                                                                                                                                   =VAL :k
+                                                                                                                                                                   +MAP
+                                                                                                                                                                    =VAL :k
+                                                                                                                                                                    +MAP
+                                                                                                                                                                     =VAL :k
+                                                                                                                                                                     +MAP
+                                                                                                                                                                      =VAL :k
+                                                                                                                                                                      +MAP
+                                                                                                                                                                       =VAL :k
+                                                                                                                                                                       +MAP
+                                                                                                                                                                        =VAL :k
+                                                                                                                                                                        +MAP
+                                                                                                                                                                         =VAL :k
+                                                                                                                                                                         +MAP
+                                                                                                                                                                          =VAL :k
+                                                                                                                                                                          +MAP
+                                                                                                                                                                           =VAL :k
+                                                                                                                                                                           +MAP
+                                                                                                                                                                            =VAL :k
+                                                                                                                                                                            +MAP
+                                                                                                                                                                             =VAL :k
+                                                                                                                                                                             +MAP
+                                                                                                                                                                              =VAL :k
+                                                                                                                                                                              +MAP
+                                                                                                                                                                               =VAL :k
+                                                                                                                                                                               +MAP
+                                                                                                                                                                                =VAL :k
+                                                                                                                                                                                +MAP
+                                                                                                                                                                                 =VAL :k
+                                                                                                                                                                                 +MAP
+                                                                                                                                                                                  =VAL :k
+                                                                                                                                                                                  +MAP
+                                                                                                                                                                                   =VAL :k
+                                                                                                                                                                                   +MAP
+                                                                                                                                                                                    =VAL :k
+                                                                                                                                                                                    +MAP
+                                                                                                                                                                                     =VAL :k
+                                                                                                                                                                                     +MAP
+                                                                                                                                                                                      =VAL :k
+                                                                                                                                                                                      +MAP
+                                                                                                                                                                                       =VAL :k
+                                                                                                                                                                                       +MAP
+                                                                                                                                                                                        =VAL :k
+                                                                                                                                                                                        +MAP
+                                                                                                                                                                                         =VAL :k
+                                                                                                                                                                                         +MAP
+                                                                                                                                                                                          =VAL :k
+                                                                                                                                                                                          +MAP
+                                                                                                                                                                                           =VAL :k
+                                                                                                                                                                                           +MAP
+                                                                                                                                                                                            =VAL :k
+                                                                                                                                                                                            +MAP
+                                                                                                                                                                                             =VAL :k
+                                                                                                                                                                                             +MAP
+                                                                                                                                                                                              =VAL :k
+                                                                                                                                                                                              +MAP
+                                                                                                                                                                                               =VAL :k
+                                                                                                                                                                                               +MAP
+                                                                                                                                                                                                =VAL :k
+                                                                                                                                                                                                +MAP
+                                                                                                                                                                                                 =VAL :k
+                                                                                                                                                                                                 +MAP
+                                                                                                                                                                                                  =VAL :k
+                                                                                                                                                                                                  +MAP
+                                                                                                                                                                                                   =VAL :k
+                                                                                                                                                                                                   +MAP
+                                                                                                                                                                                                    =VAL :k
+                                                                                                                                                                                                    +MAP
+                                                                                                                                                                                                     =VAL :k
+                                                                                                                                                                                                     +MAP
+                                                                                                                                                                                                      =VAL :k
+                                                                                                                                                                                                      +MAP
+                                                                                                                                                                                                       =VAL :k
+                                                                                                                                                                                                       +MAP
+                                                                                                                                                                                                        =VAL :k
+                                                                                                                                                                                                        +MAP
+                                                                                                                                                                                                         =VAL :k
+                                                                                                                                                                                                         +MAP
+                                                                                                                                                                                                          =VAL :k
+                                                                                                                                                                                                          +MAP
+                                                                                                                                                                                                           =VAL :k
+                                                                                                                                                                                                           +MAP
+                                                                                                                                                                                                            =VAL :k
+                                                                                                                                                                                                            +MAP
+                                                                                                                                                                                                             =VAL :k
+                                                                                                                                                                                                             +MAP
+                                                                                                                                                                                                              =VAL :k
+                                                                                                                                                                                                              +MAP
+                                                                                                                                                                                                               =VAL :k
+                                                                                                                                                                                                               +MAP
+                                                                                                                                                                                                                =VAL :k
+                                                                                                                                                                                                                +MAP
+                                                                                                                                                                                                                 =VAL :k
+                                                                                                                                                                                                                 +MAP
+                                                                                                                                                                                                                  =VAL :k
+                                                                                                                                                                                                                  +MAP
+                                                                                                                                                                                                                   =VAL :k
+                                                                                                                                                                                                                   +MAP
+                                                                                                                                                                                                                    =VAL :k
+                                                                                                                                                                                                                    +MAP
+                                                                                                                                                                                                                     =VAL :k
+                                                                                                                                                                                                                     +MAP
+                                                                                                                                                                                                                      =VAL :k
+                                                                                                                                                                                                                      +MAP
+                                                                                                                                                                                                                       =VAL :k
+                                                                                                                                                                                                                       +MAP
+                                                                                                                                                                                                                        =VAL :k
+                                                                                                                                                                                                                        +MAP
+                                                                                                                                                                                                                         =VAL :k
+                                                                                                                                                                                                                         +MAP
+                                                                                                                                                                                                                          =VAL :k
+                                                                                                                                                                                                                          +MAP
+                                                                                                                                                                                                                           =VAL :k
+                                                                                                                                                                                                                           +MAP
+                                                                                                                                                                                                                            =VAL :k
+                                                                                                                                                                                                                            +MAP
+                                                                                                                                                                                                                             =VAL :k
+                                                                                                                                                                                                                             +MAP
+                                                                                                                                                                                                                              =VAL :k
+                                                                                                                                                                                                                              +MAP
+                                                                                                                                                                                                                               =VAL :k
+                                                                                                                                                                                                                               +MAP
+                                                                                                                                                                                                                                =VAL :k
+                                                                                                                                                                                                                                +MAP
+                                                                                                                                                                                                                                 =VAL :k
+                                                                                                                                                                                                                                 +MAP
+                                                                                                                                                                                                                                  =VAL :k
+                                                                                                                                                                                                                                  +MAP
+                                                                                                                                                                                                                                   =VAL :k
+                                                                                                                                                                                                                                   +MAP
+                                                                                                                                                                                                                                    =VAL :k
+                                                                                                                                                                                                                                    +MAP
+                                                                                                                                                                                                                                     =VAL :k
+                                                                                                                                                                                                                                     +MAP
+                                                                                                                                                                                                                                      =VAL :k
+                                                                                                                                                                                                                                      +MAP
+                                                                                                                                                                                                                                       =VAL :k
+                                                                                                                                                                                                                                       +MAP
+                                                                                                                                                                                                                                        =VAL :k
+                                                                                                                                                                                                                                        +MAP
+                                                                                                                                                                                                                                         =VAL :k
+                                                                                                                                                                                                                                         +MAP
+                                                                                                                                                                                                                                          =VAL :k
+                                                                                                                                                                                                                                          +MAP
+                                                                                                                                                                                                                                           =VAL :k
+                                                                                                                                                                                                                                           +MAP
+                                                                                                                                                                                                                                            =VAL :k
+                                                                                                                                                                                                                                            +MAP
+                                                                                                                                                                                                                                             =VAL :k
+                                                                                                                                                                                                                                             +MAP
+                                                                                                                                                                                                                                              =VAL :k
+                                                                                                                                                                                                                                              +MAP
+                                                                                                                                                                                                                                               =VAL :k
+                                                                                                                                                                                                                                               +MAP
+                                                                                                                                                                                                                                                =VAL :k
+                                                                                                                                                                                                                                                +MAP
+                                                                                                                                                                                                                                                 =VAL :k
+                                                                                                                                                                                                                                                 +MAP
+                                                                                                                                                                                                                                                  =VAL :k
+                                                                                                                                                                                                                                                  +MAP
+                                                                                                                                                                                                                                                   =VAL :k
+                                                                                                                                                                                                                                                   +MAP
+                                                                                                                                                                                                                                                    =VAL :k
+                                                                                                                                                                                                                                                    +MAP
+                                                                                                                                                                                                                                                     =VAL :k
+                                                                                                                                                                                                                                                     +MAP
+                                                                                                                                                                                                                                                      =VAL :k
+                                                                                                                                                                                                                                                      +MAP
+                                                                                                                                                                                                                                                       =VAL :k
+                                                                                                                                                                                                                                                       +MAP
+                                                                                                                                                                                                                                                        =VAL :k
+                                                                                                                                                                                                                                                        +MAP
+                                                                                                                                                                                                                                                         =VAL :k
+                                                                                                                                                                                                                                                         +MAP
+                                                                                                                                                                                                                                                          =VAL :k
+                                                                                                                                                                                                                                                          +MAP
+                                                                                                                                                                                                                                                           =VAL :k
+                                                                                                                                                                                                                                                           +MAP
+                                                                                                                                                                                                                                                            =VAL :k
+                                                                                                                                                                                                                                                            +MAP
+                                                                                                                                                                                                                                                             =VAL :k
+                                                                                                                                                                                                                                                             +MAP
+                                                                                                                                                                                                                                                              =VAL :k
+                                                                                                                                                                                                                                                              +MAP
+                                                                                                                                                                                                                                                               =VAL :k
+                                                                                                                                                                                                                                                               +MAP
+                                                                                                                                                                                                                                                                =VAL :k
+                                                                                                                                                                                                                                                                +MAP
+                                                                                                                                                                                                                                                                 =VAL :k
+                                                                                                                                                                                                                                                                 +MAP
+                                                                                                                                                                                                                                                                  =VAL :k
+                                                                                                                                                                                                                                                                  +MAP
+                                                                                                                                                                                                                                                                   =VAL :k
+                                                                                                                                                                                                                                                                   +MAP
+                                                                                                                                                                                                                                                                    =VAL :k
+                                                                                                                                                                                                                                                                    +MAP
+                                                                                                                                                                                                                                                                     =VAL :k
+                                                                                                                                                                                                                                                                     +MAP
+                                                                                                                                                                                                                                                                      =VAL :k
+                                                                                                                                                                                                                                                                      =VAL :v
+                                                                                                                                                                                                                                                                     -MAP
+                                                                                                                                                                                                                                                                    -MAP
+                                                                                                                                                                                                                                                                   -MAP
+                                                                                                                                                                                                                                                                  -MAP
+                                                                                                                                                                                                                                                                 -MAP
+                                                                                                                                                                                                                                                                -MAP
+                                                                                                                                                                                                                                                               -MAP
+                                                                                                                                                                                                                                                              -MAP
+                                                                                                                                                                                                                                                             -MAP
+                                                                                                                                                                                                                                                            -MAP
+                                                                                                                                                                                                                                                           -MAP
+                                                                                                                                                                                                                                                          -MAP
+                                                                                                                                                                                                                                                         -MAP
+                                                                                                                                                                                                                                                        -MAP
+                                                                                                                                                                                                                                                       -MAP
+                                                                                                                                                                                                                                                      -MAP
+                                                                                                                                                                                                                                                     -MAP
+                                                                                                                                                                                                                                                    -MAP
+                                                                                                                                                                                                                                                   -MAP
+                                                                                                                                                                                                                                                  -MAP
+                                                                                                                                                                                                                                                 -MAP
+                                                                                                                                                                                                                                                -MAP
+                                                                                                                                                                                                                                               -MAP
+                                                                                                                                                                                                                                              -MAP
+                                                                                                                                                                                                                                             -MAP
+                                                                                                                                                                                                                                            -MAP
+                                                                                                                                                                                                                                           -MAP
+                                                                                                                                                                                                                                          -MAP
+                                                                                                                                                                                                                                         -MAP
+                                                                                                                                                                                                                                        -MAP
+                                                                                                                                                                                                                                       -MAP
+                                                                                                                                                                                                                                      -MAP
+                                                                                                                                                                                                                                     -MAP
+                                                                                                                                                                                                                                    -MAP
+                                                                                                                                                                                                                                   -MAP
+                                                                                                                                                                                                                                  -MAP
+                                                                                                                                                                                                                                 -MAP
+                                                                                                                                                                                                                                -MAP
+                                                                                                                                                                                                                               -MAP
+                                                                                                                                                                                                                              -MAP
+                                                                                                                                                                                                                             -MAP
+                                                                                                                                                                                                                            -MAP
+                                                                                                                                                                                                                           -MAP
+                                                                                                                                                                                                                          -MAP
+                                                                                                                                                                                                                         -MAP
+                                                                                                                                                                                                                        -MAP
+                                                                                                                                                                                                                       -MAP
+                                                                                                                                                                                                                      -MAP
+                                                                                                                                                                                                                     -MAP
+                                                                                                                                                                                                                    -MAP
+                                                                                                                                                                                                                   -MAP
+                                                                                                                                                                                                                  -MAP
+                                                                                                                                                                                                                 -MAP
+                                                                                                                                                                                                                -MAP
+                                                                                                                                                                                                               -MAP
+                                                                                                                                                                                                              -MAP
+                                                                                                                                                                                                             -MAP
+                                                                                                                                                                                                            -MAP
+                                                                                                                                                                                                           -MAP
+                                                                                                                                                                                                          -MAP
+                                                                                                                                                                                                         -MAP
+                                                                                                                                                                                                        -MAP
+                                                                                                                                                                                                       -MAP
+                                                                                                                                                                                                      -MAP
+                                                                                                                                                                                                     -MAP
+                                                                                                                                                                                                    -MAP
+                                                                                                                                                                                                   -MAP
+                                                                                                                                                                                                  -MAP
+                                                                                                                                                                                                 -MAP
+                                                                                                                                                                                                -MAP
+                                                                                                                                                                                               -MAP
+                                                                                                                                                                                              -MAP
+                                                                                                                                                                                             -MAP
+                                                                                                                                                                                            -MAP
+                                                                                                                                                                                           -MAP
+                                                                                                                                                                                          -MAP
+                                                                                                                                                                                         -MAP
+                                                                                                                                                                                        -MAP
+                                                                                                                                                                                       -MAP
+                                                                                                                                                                                      -MAP
+                                                                                                                                                                                     -MAP
+                                                                                                                                                                                    -MAP
+                                                                                                                                                                                   -MAP
+                                                                                                                                                                                  -MAP
+                                                                                                                                                                                 -MAP
+                                                                                                                                                                                -MAP
+                                                                                                                                                                               -MAP
+                                                                                                                                                                              -MAP
+                                                                                                                                                                             -MAP
+                                                                                                                                                                            -MAP
+                                                                                                                                                                           -MAP
+                                                                                                                                                                          -MAP
+                                                                                                                                                                         -MAP
+                                                                                                                                                                        -MAP
+                                                                                                                                                                       -MAP
+                                                                                                                                                                      -MAP
+                                                                                                                                                                     -MAP
+                                                                                                                                                                    -MAP
+                                                                                                                                                                   -MAP
+                                                                                                                                                                  -MAP
+                                                                                                                                                                 -MAP
+                                                                                                                                                                -MAP
+                                                                                                                                                               -MAP
+                                                                                                                                                              -MAP
+                                                                                                                                                             -MAP
+                                                                                                                                                            -MAP
+                                                                                                                                                           -MAP
+                                                                                                                                                          -MAP
+                                                                                                                                                         -MAP
+                                                                                                                                                        -MAP
+                                                                                                                                                       -MAP
+                                                                                                                                                      -MAP
+                                                                                                                                                     -MAP
+                                                                                                                                                    -MAP
+                                                                                                                                                   -MAP
+                                                                                                                                                  -MAP
+                                                                                                                                                 -MAP
+                                                                                                                                                -MAP
+                                                                                                                                               -MAP
+                                                                                                                                              -MAP
+                                                                                                                                             -MAP
+                                                                                                                                            -MAP
+                                                                                                                                           -MAP
+                                                                                                                                          -MAP
+                                                                                                                                         -MAP
+                                                                                                                                        -MAP
+                                                                                                                                       -MAP
+                                                                                                                                      -MAP
+                                                                                                                                     -MAP
+                                                                                                                                    -MAP
+                                                                                                                                   -MAP
+                                                                                                                                  -MAP
+                                                                                                                                 -MAP
+                                                                                                                                -MAP
+                                                                                                                               -MAP
+                                                                                                                              -MAP
+                                                                                                                             -MAP
+                                                                                                                            -MAP
+                                                                                                                           -MAP
+                                                                                                                          -MAP
+                                                                                                                         -MAP
+                                                                                                                        -MAP
+                                                                                                                       -MAP
+                                                                                                                      -MAP
+                                                                                                                     -MAP
+                                                                                                                    -MAP
+                                                                                                                   -MAP
+                                                                                                                  -MAP
+                                                                                                                 -MAP
+                                                                                                                -MAP
+                                                                                                               -MAP
+                                                                                                              -MAP
+                                                                                                             -MAP
+                                                                                                            -MAP
+                                                                                                           -MAP
+                                                                                                          -MAP
+                                                                                                         -MAP
+                                                                                                        -MAP
+                                                                                                       -MAP
+                                                                                                      -MAP
+                                                                                                     -MAP
+                                                                                                    -MAP
+                                                                                                   -MAP
+                                                                                                  -MAP
+                                                                                                 -MAP
+                                                                                                -MAP
+                                                                                               -MAP
+                                                                                              -MAP
+                                                                                             -MAP
+                                                                                            -MAP
+                                                                                           -MAP
+                                                                                          -MAP
+                                                                                         -MAP
+                                                                                        -MAP
+                                                                                       -MAP
+                                                                                      -MAP
+                                                                                     -MAP
+                                                                                    -MAP
+                                                                                   -MAP
+                                                                                  -MAP
+                                                                                 -MAP
+                                                                                -MAP
+                                                                               -MAP
+                                                                              -MAP
+                                                                             -MAP
+                                                                            -MAP
+                                                                           -MAP
+                                                                          -MAP
+                                                                         -MAP
+                                                                        -MAP
+                                                                       -MAP
+                                                                      -MAP
+                                                                     -MAP
+                                                                    -MAP
+                                                                   -MAP
+                                                                  -MAP
+                                                                 -MAP
+                                                                -MAP
+                                                               -MAP
+                                                              -MAP
+                                                             -MAP
+                                                            -MAP
+                                                           -MAP
+                                                          -MAP
+                                                         -MAP
+                                                        -MAP
+                                                       -MAP
+                                                      -MAP
+                                                     -MAP
+                                                    -MAP
+                                                   -MAP
+                                                  -MAP
+                                                 -MAP
+                                                -MAP
+                                               -MAP
+                                              -MAP
+                                             -MAP
+                                            -MAP
+                                           -MAP
+                                          -MAP
+                                         -MAP
+                                        -MAP
+                                       -MAP
+                                      -MAP
+                                     -MAP
+                                    -MAP
+                                   -MAP
+                                  -MAP
+                                 -MAP
+                                -MAP
+                               -MAP
+                              -MAP
+                             -MAP
+                            -MAP
+                           -MAP
+                          -MAP
+                         -MAP
+                        -MAP
+                       -MAP
+                      -MAP
+                     -MAP
+                    -MAP
+                   -MAP
+                  -MAP
+                 -MAP
+                -MAP
+               -MAP
+              -MAP
+             -MAP
+            -MAP
+           -MAP
+          -MAP
+         -MAP
+        -MAP
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": {"k": "v"}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}

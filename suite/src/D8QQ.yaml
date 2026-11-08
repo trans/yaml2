@@ -1,0 +1,6 @@
+---
+- name: A name with a no-break space
+  from: part 1, section 4.3
+  tags: name character error
+  fail: true
+  yaml: "%YAML 2.0\n--- !a\u00A0b\n"

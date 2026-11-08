@@ -1,0 +1,19 @@
+---
+- name: A tab after a marker
+  from: part 1, section 4.2
+  tags: marker whitespace
+  yaml: |
+    %YAML 2.0
+    ---»
+    a: 1
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}

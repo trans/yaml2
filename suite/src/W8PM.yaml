@@ -1,0 +1,26 @@
+---
+- name: A block table document, then a flow one
+  from: part 1, section 8.1
+  tags: table flow
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    --- &
+    {b: 2}
+    ---
+    c: [*a, *b]
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :c
+       +SEQ
+        =VAL :1
+        =VAL :2
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"c": ["1", "2"]}

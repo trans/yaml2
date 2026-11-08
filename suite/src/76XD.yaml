@@ -1,0 +1,9 @@
+---
+- name: 'A lone ! as a value'
+  from: part 1, section 6.1
+  tags: tag error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: !

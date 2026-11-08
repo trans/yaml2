@@ -1,0 +1,21 @@
+---
+- name: 'Each node counts 1 and each scalar its bytes: 7 fits a limit of 7'
+  from: part 1, section 10
+  tags: size sequence
+  limit: 7
+  yaml: |
+    %YAML 2.0
+    ---
+    [x, x, x]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :x
+       =VAL :x
+       =VAL :x
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["x", "x", "x"]

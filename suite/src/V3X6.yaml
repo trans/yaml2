@@ -1,0 +1,15 @@
+---
+- name: An interface delivering documents together refuses when their sum passes the limit
+  from: part 1, section 10
+  tags: size error
+  fail: true
+  limit: 14
+  together: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    ---
+    b: 2
+    ---
+    c: 3

@@ -1,0 +1,21 @@
+---
+- name: 'A comment between -<< and its reference in a flow sequence'
+  from: part 1, section 9.3
+  tags: merge flow comment
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    [-<< # c
+      *s]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :x
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["x"]

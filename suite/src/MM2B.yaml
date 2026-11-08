@@ -1,0 +1,19 @@
+---
+- name: 'The size limit''s first example: an interface keeping references refuses it at 28'
+  from: part 1, section 10
+  tags: size merge table error
+  fail: true
+  limit: 28
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [x, yy]
+    m: {k: v}
+    ---
+    b: *a
+    c:
+      -<< *a
+      - z
+    d:
+      <<: *m

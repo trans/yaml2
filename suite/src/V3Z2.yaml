@@ -1,0 +1,10 @@
+---
+- name: A key repeated in a block table
+  from: part 1, section 8.1
+  tags: table duplicate-key error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    a: 2

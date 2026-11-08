@@ -1,0 +1,24 @@
+---
+- name: '-<< inside a flow table'
+  from: part 1, section 8.4
+  tags: table flow merge
+  yaml: |
+    %YAML 2.0
+    --- &
+    {s: [x], t: [-<< *s, y]}
+    ---
+    c: *t
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :c
+       +SEQ
+        =VAL :x
+        =VAL :y
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"c": ["x", "y"]}

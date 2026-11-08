@@ -1,0 +1,10 @@
+---
+- name: A key after a block sequence
+  from: part 1, section 7.1
+  tags: mapping sequence error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    - x
+    y: 1

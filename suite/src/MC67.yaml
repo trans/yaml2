@@ -1,0 +1,9 @@
+---
+- name: Text after a single-quoted scalar
+  from: part 1, section 6.3
+  tags: single error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 'x' y

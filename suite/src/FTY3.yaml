@@ -1,0 +1,9 @@
+---
+- name: A flow table entry that refers to itself
+  from: part 1, section 8.4
+  tags: table reference flow error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    {a: {b: *a}}

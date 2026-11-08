@@ -1,0 +1,35 @@
+---
+- name: 'Block mappings, a sequence at its key''s column, and a value on the next line'
+  from: part 1, section 7.1
+  tags: mapping sequence spec
+  yaml: |
+    %YAML 2.0
+    ---
+    a:
+      b: 1
+    c:
+    - x
+    - y
+    d:
+      next line
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       +MAP
+        =VAL :b
+        =VAL :1
+       -MAP
+       =VAL :c
+       +SEQ
+        =VAL :x
+        =VAL :y
+       -SEQ
+       =VAL :d
+       =VAL :next line
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": {"b": "1"}, "c": ["x", "y"], "d": "next line"}

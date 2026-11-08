@@ -1,0 +1,20 @@
+---
+- name: '-<< followed by a comma on the next line is text'
+  from: part 1, section 9.3
+  tags: merge flow plain
+  yaml: |
+    %YAML 2.0
+    ---
+    [-<<
+    , a]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :-<<
+       =VAL :a
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["-<<", "a"]

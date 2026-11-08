@@ -1,0 +1,26 @@
+---
+- name: '-<< nested inside a table entry'
+  from: part 1, section 8.4
+  tags: table merge
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    t:
+      u:
+        -<< *s
+    ---
+    *t
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :u
+       +SEQ
+        =VAL :x
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"u": ["x"]}

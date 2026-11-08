@@ -1,0 +1,33 @@
+---
+- name: Merges in flow collections
+  from: part 1, section 9.3
+  tags: merge flow spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    s: [x]
+    ---
+    m: {<<: *a, q: 2}
+    n: [-<< *s, y]
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :m
+       +MAP
+        =VAL :p
+        =VAL :1
+        =VAL :q
+        =VAL :2
+       -MAP
+       =VAL :n
+       +SEQ
+        =VAL :x
+        =VAL :y
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"m": {"p": "1", "q": "2"}, "n": ["x", "y"]}

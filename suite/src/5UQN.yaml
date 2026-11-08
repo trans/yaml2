@@ -1,0 +1,9 @@
+---
+- name: An escaped high surrogate with no low one
+  from: part 1, section 6.2
+  tags: double escape error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: "\ud83d"

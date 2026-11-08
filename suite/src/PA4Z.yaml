@@ -1,0 +1,23 @@
+---
+- name: Two table documents add to one table
+  from: part 1, section 8.1
+  tags: table
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    --- &
+    b: 2
+    ---
+    [*a, *b]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL :1
+       =VAL :2
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["1", "2"]

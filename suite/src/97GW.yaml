@@ -1,0 +1,21 @@
+---
+- name: '<...> names an entry from a flow table'
+  from: part 1, section 8.2
+  tags: reference table flow
+  yaml: |
+    %YAML 2.0
+    --- &
+    {"a b": 1}
+    ---
+    c: *<a b>
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :c
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"c": "1"}

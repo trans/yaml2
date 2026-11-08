@@ -1,0 +1,12 @@
+---
+- name: '--- and text at column 0 inside a flow sequence'
+  from: part 1, section 4.4
+  tags: flow marker error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: [
+      1,
+    --- a
+    ]

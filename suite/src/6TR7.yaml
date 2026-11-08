@@ -1,0 +1,24 @@
+---
+- name: Empty lines in a folded scalar
+  from: part 1, section 6.4
+  tags: folded
+  yaml: |
+    %YAML 2.0
+    ---
+    a: >
+
+      x
+
+
+      y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :\nx\n\ny\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "\nx\n\ny\n"}

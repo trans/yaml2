@@ -1,0 +1,22 @@
+---
+- name: A line of spaces one wider than the text keeps the extra space
+  from: part 1, section 6.4
+  tags: literal whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+      x
+    ␣␣␣
+      y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x\n \ny\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x\n \ny\n"}

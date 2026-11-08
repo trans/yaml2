@@ -1,0 +1,12 @@
+---
+- name: 'A tab after -<< in a block sequence'
+  from: part 1, section 9.2
+  tags: merge whitespace error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: [x]
+    ---
+    - 1
+    -<<»*s

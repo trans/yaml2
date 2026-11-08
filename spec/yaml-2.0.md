@@ -227,7 +227,8 @@ part of that marker, the table starts empty again (section 8.1), and blank lines
 between it and the marker are skipped.
 
 A parser stops at any other `...`, and reads nothing after it. It reports the offset
-of the line after the `...`, so an application can take the rest. A comment is not skipped
+of the line after the `...`, in bytes from the start of the stream with a CR LF counted as two,
+so an application can take the rest. A comment is not skipped
 straight after `...`, so `# Heading` there is not YAML, and that one line settles it.
 
 ```yaml

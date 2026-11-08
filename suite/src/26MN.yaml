@@ -1,0 +1,19 @@
+---
+- name: '# with no space before it is text'
+  from: part 1, section 3
+  tags: plain comment
+  yaml: |
+    %YAML 2.0
+    ---
+    a: b#c
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :b#c
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "b#c"}

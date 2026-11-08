@@ -1,0 +1,10 @@
+---
+- name: A more-indented key after a value
+  from: part 1, section 7.1
+  tags: mapping error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+      b: 2

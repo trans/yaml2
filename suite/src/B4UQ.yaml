@@ -1,0 +1,12 @@
+---
+- name: A merge of an entry that ... emptied
+  from: part 1, section 8.1
+  tags: table ending merge error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    ...
+    ---
+    <<: *a

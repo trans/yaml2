@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""Write the tests in src/ out as one directory per test, as yaml-test-suite's data branch has them.
+
+    python3 bin/suite-to-data src data
+
+Needs PyYAML. The src files use only what YAML 1.1 and 1.2 read alike: strings, `true` and integers.
+"""
+import os, re, sys
+import yaml
+
+def unescape(t):
+    """The suite's visible characters, as yaml-test-suite reads them, with ⇔ as U+FEFF."""
+    t = t.replace('␣', ' ')
+    t = re.sub('—*»', '\t', t)
+    t = t.replace('←', '\r').replace('⇔', '﻿').replace('↵', '')
+    return re.sub('∎\n\\Z', '', t)
+
+def write(path, text):
+    with open(path, 'wb') as f: f.write(text.encode('utf-8'))
+
+def main(src, out):
+    if os.path.isdir(out) and os.listdir(out): sys.exit(f'{out} is not empty')
+    made = 0
+    for file in sorted(os.listdir(src)):
+        if not file.endswith('.yaml'): continue
+        with open(os.path.join(src, file), encoding='utf-8') as f: tests = yaml.safe_load(f)
+        multi = len(tests) > 1
+        width = len(str(len(tests) - 1)) + 1
+        cache = {}
+        for n, test in enumerate(tests):
+            if test.get('name') and cache.get('name'): sys.exit(f"{file}: a subtest can't change the name")
+            for key in ('name', 'from', 'tags', 'yaml', 'tree', 'json', 'rest'):
+                if key not in test and key in cache: test[key] = cache[key]
+            cache = dict(test)
+            d = os.path.join(out, file[:-5], f'{n:0{width}d}' if multi else '')
+            os.makedirs(d)
+            write(os.path.join(d, '==='), test['name'] + '\n')
+            write(os.path.join(d, 'in.yaml'), unescape(test['yaml']))
+            if test.get('fail'):
+                write(os.path.join(d, 'error'), '')
+            else:
+                if 'tree' in test:
+                    tree = re.sub('^[ \t]+', '', unescape(test['tree']), flags=re.M)
+                    write(os.path.join(d, 'test.event'), tree.rstrip('\n') + '\n')
+                if 'json' in test: write(os.path.join(d, 'in.json'), unescape(test['json']))
+                if 'rest' in test: write(os.path.join(d, 'rest'), unescape(test['rest']))
+            if 'limit' in test: write(os.path.join(d, 'limit'), f"{test['limit']}\n")
+            for flag in ('keep', 'together'):
+                if test.get(flag): write(os.path.join(d, flag), '')
+            made += 1
+    print(f'wrote {made} tests to {out}')
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3: sys.exit(__doc__.strip())
+    main(sys.argv[1], sys.argv[2])

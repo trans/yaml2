@@ -1,0 +1,16 @@
+---
+- name: '-<< with no space after it is text'
+  from: part 1, section 9.2
+  tags: merge plain
+  yaml: |
+    %YAML 2.0
+    ---
+    -<<x
+  tree: |
+    +STR
+     +DOC
+      =VAL :-<<x
+     -DOC
+    -STR
+  json: |
+    "-<<x"

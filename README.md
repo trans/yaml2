@@ -72,22 +72,24 @@ from 1.2, and section 13.1 what they cost.
   what is still open.
 - **YAML Easy Schema (YES), part 2:** Draft 1 is in [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Section 15
   lists what is open.
-- **Reference parser, test suite and converter:** not written yet.
+- **Test suite:** part 1's is in [`suite/`](suite/), 351 tests in yaml-test-suite's format, the draft's
+  examples among them. Part 2's isn't written yet.
+- **Reference parser and converter:** not written yet.
 
 ## Checking it
 
-The draft's examples and edge cases run through a small checker built from the grammar. It
+The draft's examples and the test suite run through a small checker built from the grammar. It
 is a test of the draft, not a reference parser.
 It's on the `ai` branch, with the working notes behind each decision and the measurements
 on real files:
 
 ```sh
-python3 -I memory/draftcheck.py spec/yaml-2.0.md
+python3 -I memory/draftcheck.py spec/yaml-2.0.md suite/src
 ```
 
 Comments are welcome as issues.
 
 ## License
 
-© 2026 Thomas Sawyer. The spec and this README are under [CC BY 4.0](LICENSE). The code on
-the `ai` branch is under the MIT license.
+© 2026 Thomas Sawyer. The spec and this README are under [CC BY 4.0](LICENSE). The test suite
+in `suite/` and the code on the `ai` branch are under the MIT license.

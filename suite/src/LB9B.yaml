@@ -1,0 +1,24 @@
+---
+- name: 'A key with > in a referenced entry'
+  from: part 1, section 8.2
+  tags: reference key
+  yaml: |
+    %YAML 2.0
+    --- &
+    m: {"a>b": 1}
+    ---
+    x: *m
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :x
+       +MAP
+        =VAL :a>b
+        =VAL :1
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": {"a>b": "1"}}

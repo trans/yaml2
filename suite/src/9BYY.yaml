@@ -1,0 +1,23 @@
+---
+- name: 'A table, then ... and %YAML 2.0, then a document'
+  from: part 1, section 4.4
+  tags: ending directive table
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ...
+    %YAML 2.0
+    ---
+    b: 2
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "2"}

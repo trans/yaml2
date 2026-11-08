@@ -1,0 +1,8 @@
+---
+- name: A block sequence on the marker line
+  from: part 1, section 4.2
+  tags: marker sequence error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- - x

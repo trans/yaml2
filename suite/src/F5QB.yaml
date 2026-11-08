@@ -1,0 +1,38 @@
+---
+- name: CloudFormation and Ansible tags rewritten as keys and text
+  from: part 1, section 13.1
+  tags: mapping
+  yaml: |
+    %YAML 2.0
+    ---
+    a:
+      Ref: name
+    b:
+      Fn::Sub: ${a}-b
+    c:
+      vault: |
+        $ANSIBLE
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       +MAP
+        =VAL :Ref
+        =VAL :name
+       -MAP
+       =VAL :b
+       +MAP
+        =VAL :Fn::Sub
+        =VAL :${a}-b
+       -MAP
+       =VAL :c
+       +MAP
+        =VAL :vault
+        =VAL :$ANSIBLE\n
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": {"Ref": "name"}, "b": {"Fn::Sub": "${a}-b"}, "c": {"vault": "$ANSIBLE\n"}}

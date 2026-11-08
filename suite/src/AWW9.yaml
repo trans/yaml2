@@ -1,0 +1,9 @@
+---
+- name: '! starts a plain scalar outside the table'
+  from: part 1, section 6.1
+  tags: tag plain spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: !Ref foo

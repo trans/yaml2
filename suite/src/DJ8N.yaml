@@ -1,0 +1,30 @@
+---
+- name: JSON indented with tabs
+  from: part 1, section 3
+  tags: json flow whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    {
+    ———»"a": 1,
+    ———»"b": [
+    ———»———»1,
+    ———»———»2
+    ———»]
+    }
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :b
+       +SEQ
+        =VAL :1
+        =VAL :2
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": ["1", "2"]}

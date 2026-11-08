@@ -1,0 +1,27 @@
+---
+- name: A path into a mapping with merged keys in the table
+  from: part 1, section 8.4
+  tags: table merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {p: 1}
+    b: {c: {<<: *a, q: 2}}
+    ---
+    d: *b:c
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :d
+       +MAP
+        =VAL :p
+        =VAL :1
+        =VAL :q
+        =VAL :2
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"d": {"p": "1", "q": "2"}}

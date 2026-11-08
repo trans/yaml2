@@ -1,0 +1,25 @@
+---
+- name: '--- and ... indented inside a flow sequence'
+  from: part 1, section 7.3
+  tags: flow marker
+  yaml: |
+    %YAML 2.0
+    ---
+    a: [
+      ---,
+      ...
+    ]
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       +SEQ
+        =VAL :---
+        =VAL :...
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": ["---", "..."]}

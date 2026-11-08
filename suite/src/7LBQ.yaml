@@ -1,0 +1,6 @@
+---
+- name: A name with U+2028
+  from: part 1, section 4.3
+  tags: name character error
+  fail: true
+  yaml: "%YAML 2.0\n--- !a\u2028b\n"

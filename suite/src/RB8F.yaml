@@ -1,0 +1,12 @@
+---
+- name: '! in a document after ... has emptied the table'
+  from: part 1, section 6.1
+  tags: tag table ending error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ...
+    ---
+    b: !y

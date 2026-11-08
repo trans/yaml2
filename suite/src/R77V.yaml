@@ -1,0 +1,25 @@
+---
+- name: A line starting with a tab after ... is not YAML
+  from: part 1, section 4.4
+  tags: ending whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a: x
+    ...
+    # c
+    ———»not yaml
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x"}
+  rest: |
+    # c
+    ———»not yaml

@@ -1,0 +1,9 @@
+---
+- name: 'A block sequence on its key''s line'
+  from: part 1, section 7.1
+  tags: mapping sequence spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: - x

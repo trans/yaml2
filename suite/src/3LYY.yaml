@@ -1,0 +1,22 @@
+---
+- name: A line of spaces as wide as the text inside a literal scalar is empty
+  from: part 1, section 6.4
+  tags: literal whitespace
+  yaml: |
+    %YAML 2.0
+    ---
+    a: |
+      x
+    ␣␣
+      y
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :x\n\ny\n
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "x\n\ny\n"}

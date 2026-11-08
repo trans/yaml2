@@ -1,0 +1,12 @@
+---
+- name: '%YAML 2.0 again with no ... before it'
+  from: part 1, section 4.1
+  tags: directive spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    %YAML 2.0
+    ---
+    b: 2

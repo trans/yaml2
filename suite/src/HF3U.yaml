@@ -1,0 +1,11 @@
+---
+- name: A reference as a key
+  from: part 1, section 7.4
+  tags: key reference spec error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: b
+    ---
+    *a: c

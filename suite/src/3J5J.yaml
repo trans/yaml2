@@ -1,0 +1,32 @@
+---
+- name: 'Replacing an entry doesn''t change a document already read'
+  from: part 1, section 8.1
+  tags: table
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: 1
+    ---
+    b: *a
+    --- &
+    a: 2
+    ---
+    b: *a
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :1
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": "1"}
+    {"b": "2"}
