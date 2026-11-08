@@ -1,6 +1,6 @@
 # A proposal for YAML 2.0: the language
 
-*Draft 1, 2026-11-04*
+*Draft 1, 2026-11-07*
 
 This is a proposal to the YAML core team, not the YAML specification. "YAML" and
 its version numbers are theirs. Part 2 is [YAML Easy Schema (YES)](yaml-easy-schema.md). Section 14
@@ -101,7 +101,7 @@ there, including a later 2.x, a stream isn't 2.0: a 2.0 parser must refuse it, o
 it to a parser for that version if its caller asked for that. It must never read it as
 2.0. Any other directive is refused.
 
-The line may appear again after `...`, directly before a marker line (section 4.4).
+The line may appear again after `...`, ahead of a marker line (section 4.4).
 Anywhere else it is refused, and so is any other version. So whoever joins files has to
 choose. Independent files take `...` between them, and files sharing one table drop the
 line and use `---`.
@@ -222,13 +222,13 @@ scalar can't start with `!` (section 6.1).
 
 A line of `...` at column 0, followed by a space, a tab or the end of the line, ends
 the YAML, unless the next non-blank line is a marker, in which case another document
-starts. A `%YAML 2.0` line directly before that marker counts as part of it, and the
-table starts empty again (section 8.1).
+starts. If that line is `%YAML 2.0` and a marker follows, the same happens: the line counts as
+part of that marker, the table starts empty again (section 8.1), and blank lines and comments
+between it and the marker are skipped.
 
 A parser stops at any other `...`, and reads nothing after it. It reports the offset
-of the line after the `...`, so an application can take the rest. Blank lines are
-skipped when looking for a marker, and comments aren't, so `# Heading` after `...` is
-not YAML.
+of the line after the `...`, so an application can take the rest. A comment is not skipped
+straight after `...`, so `# Heading` there is not YAML, and that one line settles it.
 
 ```yaml
 %YAML 2.0
@@ -242,6 +242,24 @@ Body text: this isn't YAML, so it can say anything.
 
 ```json
 {"title": "Hello"}
+```
+
+A `%YAML 2.0` line can't be taken for a heading, so a comment after it doesn't end the YAML:
+
+```yaml
+%YAML 2.0
+---
+a: x
+...
+%YAML 2.0
+# Its copyright line
+---
+b: y
+```
+
+```json
+{"a": "x"}
+{"b": "y"}
 ```
 
 This gives front matter a specified form. Today it is only a convention: a tool finds
@@ -392,6 +410,7 @@ A comment may follow the header. Anything else is refused, including `|+`, `>+`,
 `|0` and `|text`.
 
 The first non-blank line sets the indent, which must be deeper than the parent node's.
+A blank line before it can't hold more spaces than that indent, as in 1.x.
 A later non-blank line that is less indented ends the scalar. The value is the text
 with that indent removed.
 
@@ -1115,7 +1134,9 @@ block-text(n)   ::= blank* indent(m) [> printable - space] text-line
 text-line       ::= printable* (break | EOF)
 ```
 
-In a folded scalar, a `text-line` must not start with a space or a tab.
+A `blank` before the first `text-line` holds at most `m` spaces. After it, a line of more than
+`m` spaces is `indent(m) text-line`, never `blank`. In a folded scalar, a `text-line` must not
+start with a space or a tab.
 
 ### Flow collections
 
@@ -1213,9 +1234,10 @@ Existing files need converting. Of 4,651 public files, 3,418 read as written onc
 `%YAML 2.0`, and `---` where it's missing, are added. The rest hit one of the changes above.
 
 JSON is a subset of 2.0 once `%YAML 2.0` and `---` are on top, apart from repeated keys, which YAML
-1.2 forbids too, and a lone CR between tokens. Without a schema, numbers, `true`, `false`
+1.2 forbids too, a lone CR between tokens, a tab before the value or on a line after it, and a `\u`
+escape for a lone surrogate, which names no character. Without a schema, numbers, `true`, `false`
 and `null` are text. A small schema restores them: a plain scalar takes its JSON type,
-and a quoted scalar stays a string. That matched a JSON parser exactly on 994 real JSON
+and a quoted scalar stays a string. That matched a JSON parser exactly on 1,015 real JSON
 files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept. The
 other 2 are repeated keys.
 

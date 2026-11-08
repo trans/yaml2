@@ -49,8 +49,9 @@ job:
 - **Merge is part of the language**, for mappings and sequences.
 - **Keys are strings**, each one once, and their order is kept.
 - **One size limit** stops a small file from expanding into a huge one.
-- **JSON is a subset** once `%YAML 2.0` and `---` are on top, apart from repeated keys and a lone CR
-  between tokens. A small schema restores JSON's types.
+- **JSON is a subset** once `%YAML 2.0` and `---` are on top, apart from repeated keys, a lone CR
+  between tokens, a tab before the value or on a line after it, and a lone surrogate escape. A small
+  schema restores JSON's types.
 - **A schema is a shadow of the data**, and it is optional. Its base form is the data's keys and
   structure with a type where each value would be. Table definitions, recursion and the key globs
   `!*` and `!**` compress that form.
