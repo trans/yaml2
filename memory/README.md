@@ -22,7 +22,8 @@ working on the code needs belongs in the project's own docs, not here.
 | [growth.py](growth.py) | Measures how far references expand files, and checks a size limit against a file |
 | [syntax.py](syntax.py) | Measures how much real YAML uses each piece of syntax, as a basis for cuts |
 | [patterns.py](patterns.py) | Sorts real schema patterns by the simplest notation that could write them |
-| [draftcheck.py](draftcheck.py) | Tests the spec draft: a throwaway parser from its grammar, not a reference |
+| [draftcheck.py](draftcheck.py) | Tests the spec draft and runs part 1's test suite, `suite/src` in the code checkout: a throwaway parser from its grammar, not a reference |
+| [suitenew.py](suitenew.py) | Adds a test to part 1's suite, with the answers from draftcheck.py to read before keeping it |
 | [schemacheck.py](schemacheck.py) | Tests YAML Easy Schema (YES), part 2, on top of draftcheck.py: also throwaway |
 
 Keep each note short and dated (`*Updated YYYY-MM-DD*`), with absolute

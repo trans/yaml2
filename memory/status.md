@@ -52,6 +52,24 @@ picture `28.10` open, both explained in part 2, section 15. The user also chose 
 too precise for a float type's store refuses the document rather than being no match, and kept the store
 sizes, since validation before use is what a schema is for. All in `bafa4ce`. The covering note now mentions JSYNC under tags. See the end of [rules.md](rules.md). Only a comment after a repeated `%YAML 2.0` is skipped now, not one before it.
 
+**Test suite, part 1 (2026-11-08).** The user asked for it and plans to hand it to the reference
+parser's builders when it's ready (see Working with @oyl). It is `suite/` in the code checkout, first in
+`b44793d`: 351 tests in yaml-test-suite's `src` format, with a README and `bin/suite-to-data`. They are
+the draft's 59 examples, the 250 edge cases that were in `draftcheck.py` (its 253, less 4 repeats, plus 1
+it skipped for want of an answer, `a: [x]` then `- -<< *a` in a table, which it refuses), and 42 new ones:
+each size boundary and one under it, 256 levels, CR LF, the stop offset, and key order. `draftcheck.py`
+now reads `suite/src` in place of its own lists (with PyYAML), checks that every example in the draft is
+a test tagged `spec` with the same result, and exits 1 on any failure. Before, a failing edge case only
+printed. `suitenew.py` adds a test. The changes from yaml-test-suite's format are the agent's, and the
+user hasn't ruled on them: `=VAL :` for every string, `+DOC !name`, `rest` for a stop, `limit`, `keep`
+and `together`, a fixed list of escaped characters, and IDs from a hash of each test. The user left two
+questions to the agent on 2026-11-08, and it chose: the suite is under MIT, as yaml-test-suite is, so a
+parser can copy it in; and section 4.4's offset counts bytes, with a CR LF as two (`b44793d`). The checker
+now reports that offset (`P.offset()`) and the suite's `rest` is checked against the bytes after it; an
+offset in characters, or one that drops the CRs, fails a test. yaml-test-suite's `⇔` mark unescapes to
+the text `x{FEFF}`, not U+FEFF (a missing backslash in `bin/YAMLTestSuite.pm`), and none of its tests
+uses it.
+
 **YAML Easy Schema (YES), part 2.** Draft 1 is `spec/yaml-easy-schema.md`, first in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
@@ -100,7 +118,7 @@ measurements on real files. It is the obvious place to test ideas here.
 inside Oyl, and the Oyl project builds it, applying what it learned. The user will set
 that up. The user expects it to beat 1.x parsers on speed, given the simplifications:
 measure speed and size for the proposal. It needs the spec draft, or at least
-[rules.md](rules.md), to build from. The agent suggested the 1.2-to-2.0 converter sit
+[rules.md](rules.md), to build from, and on 2026-11-08 the user said the test suite goes to it when ready. The agent suggested the 1.2-to-2.0 converter sit
 in Oyl beside `oyl_upgrade`; not decided.
 
 Oyl's notes are private. Read them in place, and bring only what the user has

@@ -817,3 +817,10 @@ to ignore this rule, so it needs a case in the test suite.
   loses: the same check in every program, and a minimum that fails on the first value, not on the first
   long one, perhaps in production. The user chose to keep them: validation before use is what a schema is
   for. Part 2, section 4.4, now says so. **In `bafa4ce`.**
+- **The stop offset counts bytes (the agent chose, when the user left it to the agent, 2026-11-08).**
+  Section 4.4 said "the offset of the line after the `...`" with no unit, and the test suite found it. A
+  stream is UTF-8 with no byte order mark (section 3), so every parser can count bytes, and an application
+  takes the rest by cutting its buffer there. Characters would give a different number after any text
+  outside ASCII. A CR LF counts as two, because the offset is into the stream as written. **In part 1,
+  section 4.4, in `b44793d`;** the suite's `N7ZD` and `9JN7` fail an offset in characters or without the
+  CRs.

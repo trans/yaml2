@@ -1,14 +1,17 @@
 """Test spec/yaml-2.0.md: a throwaway parser written from its grammar. Not a reference.
 
-    python3 -I draftcheck.py SPEC
+    python3 -I draftcheck.py SPEC SUITE
 
-Runs every example in the draft, then edge cases. The size limit is counted after each
+Runs every example in the draft, then every test in the suite's src directory (it needs
+PyYAML for that), then checks the size limit's internal counts. Every example must be in the
+suite, tagged spec, with the same result, and every test tagged spec must be in the draft.
+Exits with 1 if anything fails. The size limit is counted after each
 document and table entry, both held and full, and is off by default. With keep=True a
 reference stays a reference, so `-<<` adds its size and builds nothing, and data read that
 way has to pass expand() first. Python integers don't wrap, so the count that stops at its
 largest value is shown in size_tests by working it out at a fixed width.
 """
-import json, re, sys
+import json, os, re, sys
 class No(Exception): pass
 FLOWI = ',[]{}'
 sys.setrecursionlimit(20000)
@@ -21,7 +24,7 @@ class P:
     def __init__(s, t, limit=None, together=False, keep=False, maxlevels=None):
         s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.sizes = []; s.keep = keep; s.theld = 0; s.saved = 0; s.helds = []
         s.dheld = s.dfull = 0; s.maxlevels = maxlevels; s.lmemo = {}
-        s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None; s.intable = False
+        s.raw = t; s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None; s.intable = False
     def nsize(s, v):
         """A node's size. A shared object counts in full at every use."""
         if isinstance(v, str): return 1 + len(v.encode('utf-8', 'surrogatepass'))
@@ -71,6 +74,12 @@ class P:
         s.tally(h, n)
         if not s.keep: s.deep(v)
         s.docs.append((name, v))
+    def offset(s):
+        """Section 4.4's offset of the line after a stopping `...`: bytes of the stream as written."""
+        if s.stopped is None: return None
+        n = s.t.count('\n', 0, s.stopped); i = 0
+        for _ in range(n): i = s.raw.index('\n', i) + 1
+        return len(s.raw[:i].encode('utf-8', 'surrogatepass'))
     def finish(s):
         """Characters, over what was read: nothing after a final `...` counts."""
         t = s.t if s.stopped is None else s.t[:s.stopped]
@@ -497,18 +506,21 @@ def read(t, limit=None, together=False, keep=False, maxlevels=None):
 
 spec = open(sys.argv[1], encoding='utf-8').read()
 ok = bad = 0
+examples = []
 blocks = list(re.finditer(r'```(yaml refused|yaml|json)\n(.*?)```', spec, re.S))
 i = 0
 while i < len(blocks):
     kind, body = blocks[i].group(1), blocks[i].group(2)
     line = spec.count('\n', 0, blocks[i].start()) + 1
     if kind == 'yaml refused':
+        examples.append((framed(body), None))
         try:
             r = read(body); print(f'line {line}: NOT REFUSED: {body!r} -> {r.docs}'); bad += 1
         except No: ok += 1
     elif kind == 'yaml':
         want = [json.loads(l) for l in blocks[i + 1].group(2).splitlines()] if i + 1 < len(blocks) and blocks[i + 1].group(1) == 'json' else None
         i += 1
+        examples.append((framed(body), want))
         try:
             got = [d[1] for d in read(body).docs]
             if json.dumps(got) != json.dumps(want):
@@ -519,148 +531,74 @@ while i < len(blocks):
     i += 1
 print(f'spec examples: {ok} pass, {bad} fail')
 
-D = '%YAML 2.0\n'
-good = [
- ('---\na: x\n...\n%YAML 2.0\n# c\n\n---\nb: y\n', [{"a": "x"}, {"b": "y"}]),
- ('---\na: x\n...\n\n%YAML 2.0\n# d\n---\nb: y\n', [{"a": "x"}, {"b": "y"}]),
- ('---\na: x\n...\n\n# c\n%YAML 2.0\n# d\n---\nb: y\n', [{"a": "x"}]),
- ('---\na: x\n...\n# c\n%YAML 2.0\n---\nb: y\n', [{"a": "x"}]),
- ('---\na: x\n...\n# c\n---\nb: y\n', [{"a": "x"}]),
- ('---\na: x\n...\n# c\n%YAML 2.0\nb: y\n', [{"a": "x"}]),
- ('---\na: x\n...\n# c\n\tnot yaml\n', [{"a": "x"}]),
- ('a: |\n  \n  x\n', [{"a": "\nx\n"}]),
- ('a: |\n \n  x\n', [{"a": "\nx\n"}]),
- ('a: |\n     \n', [{"a": ""}]),
- ('a: |\n  x\n   \n  y\n', [{"a": "x\n \ny\n"}]),
- ('[1]\t\n', [["1"]]),
- ('a : 1\nlonger : 2\n', [{"a": "1", "longer": "2"}]),
- ('{"a":1,"b":[true,null]}\n', [{"a": "1", "b": ["true", "null"]}]),
- ('--- &\na: [x]\n- -<< *a\n', None),
- ('--- &\ns: [x]\n---\n- -<< *s\n  - y\n- z\n', [[["x", "y"], "z"]]),
- ('- a:\n  - x\n  b: 1\n', [[{"a": ["x"], "b": "1"}]]),
- ('- - - x\n', [[[["x"]]]]),
- ('a:\n  |\n    text\n', [{"a": "text\n"}]),
- ('a: |\n\n  x\n', [{"a": "\nx\n"}]),
- ('a: >\n\n  x\n\n\n  y\n', [{"a": "\nx\n\ny\n"}]),
- ('- |\n  x\n- y\n', [["x\n", "y"]]),
- ('a: |\n  x', [{"a": "x\n"}]),
- ('a: |\n  x\n    \n  y\n', [{"a": "x\n  \ny\n"}]),
- ('a: |\n  x\n  \n  y\n', [{"a": "x\n\ny\n"}]),
- ('a: |\nb: 1\n', [{"a": "", "b": "1"}]),
- ('---\na: 1\n...\n\n---\nb: 2\n', [{"a": "1"}, {"b": "2"}]),
- ('--- &\na: 1\n...\n%YAML 2.0\n---\nb: 2\n', [{"b": "2"}]),
- ('--- &\na: 1\n--- &\nb: 2\n---\n[*a, *b]\n', [["1", "2"]]),
- ('--- &\na: 1\n--- &\na: 2\n---\nb: *a\n', [{"b": "2"}]),
- ('--- &\na: 1\n---\nb: *a\n--- &\na: 2\n---\nb: *a\n', [{"b": "1"}, {"b": "2"}]),
- ('--- &\na: {p: 1}\n--- &\na:\n  <<: *a\n  q: 2\n---\nb: *a\n', [{"b": {"p": "1", "q": "2"}}]),
- ('--- &\na: {p: 1}\nb:\n  <<: *a\n--- &\na: {p: 2}\n---\n[*a:p, *b:p]\n', [["2", "1"]]),
- ('--- &\na: 1\n...\n--- &\na: 2\n---\nb: *a\n', [{"b": "2"}]),
- ('--- &\na: 1\n...\n--- &\n---\nb: 2\n', [{"b": "2"}]),
- ('--- &\nFn::Sub: {x: 1}\n---\na: *Fn::Sub:x\n', [{"a": "1"}]),
- ('--- &\n"my key": {x: 1}\n---\na: *<my key>:x\nb: [*<my key>:x, 1]\n', [{"a": "1", "b": ["1", "1"]}]),
- ('--- &\na: !Ref foo\n---\nb: *a\n', [{"b": "!Ref foo"}]),
- ('--- &\n{!a: !b}\n---\nc: 1\n', [{"c": "1"}]),
- ('--- &\n!a:\n  - !b\n  - [!c]\n---\nd: 1\n', [{"d": "1"}]),
- ('a: "!x"\n', [{"a": "!x"}]),
- ("a: '!x'\n", [{"a": "!x"}]),
- ('"!x": 1\n', [{"!x": "1"}]),
- ('a: x !y\n', [{"a": "x !y"}]),
- ('a: |\n  !x\n', [{"a": "!x\n"}]),
- ('--- &\na: !x\n...\n--- &\nb: !y\n---\nc: *b\n', [{"c": "!y"}]),
- ('- %d\n- @x\n- `y`\n', [["%d", "@x", "`y`"]]),
- ('  %a: 1\n', [{"%a": "1"}]),
- ('[%a, @b]\n', [["%a", "@b"]]),
- ('a: b#c\n', [{"a": "b#c"}]),
- ('a: x:y:z\nb: http://x.y/z\n', [{"a": "x:y:z", "b": "http://x.y/z"}]),
- ('a: "\\ud83d\\ude00"\n', [{"a": "\U0001F600"}]),
- ('a: x\ty\n', [{"a": "x\ty"}]),
- ('a: foo\t\n', [{"a": "foo"}]),
- ('a: foo \t \n', [{"a": "foo"}]),
- ('a: foo\t# c\n', [{"a": "foo"}]),
- ('a: "x"\t\n', [{"a": "x"}]),
- ('a:\t\n', [{"a": ""}]),
- ('- x\t\n', [["x"]]),
- ('-\t\n', [[""]]),
- ('--- &\n{a: {p: 1}, b: {c: *a}, d: *a}\n---\n[*b, *d]\n', [[{"c": {"p": "1"}}, {"p": "1"}]]),
- ('--- &\na: {p: 1}\nb: {c: {<<: *a, q: 2}}\n---\nd: *b:c\n', [{"d": {"p": "1", "q": "2"}}]),
- ('a: [\n  ---,\n  ...\n]\n', [{"a": ["---", "..."]}]),
- ('--- &\na: 1\nb:\n  - *a\n---\n*b\n', [["1"]]),
- ('--- &\ns: [x]\nt:\n  u:\n    -<< *s\n---\n*t\n', [{"u": ["x"]}]),
- ('--- &\na: {p: 1}\nb: {c: {<<: *a}}\n---\n*b\n', [{"c": {"p": "1"}}]),
- ('--- &\n.setup: {script: [apt-get update]}\n.build:\n  script:\n    -<< *.setup:script\n    - make\n---\nbuild: *.build\n', [{"build": {"script": ["apt-get update", "make"]}}]),
- ('a:\n  Ref: name\nb:\n  Fn::Sub: ${a}-b\nc:\n  vault: |\n    $ANSIBLE\n', [{"a": {"Ref": "name"}, "b": {"Fn::Sub": "${a}-b"}, "c": {"vault": "$ANSIBLE\n"}}]),
- ('"\u2028\u202e\x85\u2066"\n', ["\u2028\u202e\x85\u2066"]),
- ('a: \u2068b\u2069\nc: |\n  \u202bd\u202c\n# \u202e\n', [{"a": "\u2068b\u2069", "c": "\u202bd\u202c\n"}]),
- ('[a\t, b\t]\n', [["a", "b"]]),
- ('{\n\t"a": 1,\n\t"b": [\n\t\t1,\n\t\t2\n\t]\n}\n', [{"a": "1", "b": ["1", "2"]}]),
- ('{a:\tb, c\t: d}\n', [{"a": "b", "c": "d"}]),
- ('{"a"\n: 1, \'b\'\t\n  : 2}\n', [{"a": "1", "b": "2"}]),
- ('{"a" # c\n: 1}\n', [{"a": "1"}]),
- ('--- &\n{"a"\n: 1}\n---\nb: *a\n', [{"b": "1"}]),
- ('"a\ufeffb"\n', ["a\ufeffb"]),
- ('["\x7f", "\x9f", "\uffff", "\ufffe"]\n', [["\x7f", "\x9f", "\uffff", "\ufffe"]]),
- ('"a\x7fb": 1\n', [{"a\x7fb": "1"}]),
- ('---\na: 1\n...\nbody \x01\r \ufeff text\n', [{"a": "1"}]),
- ('--- !配置\na: 1\n', [{"a": "1"}]),
- ('--- !例え.jp/設定/v1\na: 1\n', [{"a": "1"}]),
- ('--- &\n配置: {键: 值}\n---\na: *配置:键\nb: *<配置>:键\n', [{"a": "值", "b": "值"}]),
- ('--- & {a: 1}\n---\nb: *a\n', [{"b": "1"}]),
- ('--- &\n{a: 1, b: {x: 2}}\n---\nc: *b:x\n', [{"c": "2"}]),
- ('--- &\n  {a: 1}\n---\nb: *a\n', [{"b": "1"}]),
- ('--- &\n{\n  a: 1,\n  b: 2,\n}\n---\nc: [*a, *b]\n', [{"c": ["1", "2"]}]),
- ('--- &\n{a: {p: 1}, b: {<<: *a, q: 2}}\n---\nc: *b\n', [{"c": {"p": "1", "q": "2"}}]),
- ('--- &\n{s: [x], t: [-<< *s, y]}\n---\nc: *t\n', [{"c": ["x", "y"]}]),
- ('--- &\n{a: 1}\n--- &\n{a: 2}\n---\nb: *a\n', [{"b": "2"}]),
- ('--- &\na: 1\n--- &\n{b: 2}\n---\nc: [*a, *b]\n', [{"c": ["1", "2"]}]),
- ('--- &\n{a: 1}\n...\n--- &\n{a: 2}\n---\nb: *a\n', [{"b": "2"}]),
- ('--- & {}\n---\na: 1\n', [{"a": "1"}]),
- ('--- &\n{"a b": 1}\n---\nc: *<a b>\n', [{"c": "1"}]),
- ('--- &\n{a: 1} # c\n# d\n---\nb: *a\n', [{"b": "1"}]),
- ('---\t\na: 1\n', [{"a": "1"}]),
- ('---\na: 1\n...\t\n---\nb: 2\n', [{"a": "1"}, {"b": "2"}]),
- ('[a,\t\n b\t\n]\n', [["a", "b"]]),
- ('[a,\t# c\n b]\n', [["a", "b"]]),
- ('{a:\t\n  b}\n', [{"a": "b"}]),
- ('"\\uFEFF"\n', [chr(0xfeff)]),
- ('-<<x\n', ['-<<x']),
- ('--- &\na: {p: 1}\n---\nm: {<<:\t*a}\n', [{"m": {"p": "1"}}]),
- ('--- &\na: {p: 1}\n---\nm: {<<:\n  *a}\n', [{"m": {"p": "1"}}]),
- ('--- &\na: {p: 1}\n---\nm: {<<: # c\n  *a, q: 2}\n', [{"m": {"p": "1", "q": "2"}}]),
- ('--- &\ns: [x]\n---\n[-<<\t*s]\n', [["x"]]),
- ('--- &\ns: [x]\n---\n[-<<\n  *s, y]\n', [["x", "y"]]),
- ('--- &\ns: [x]\n---\n[-<< # c\n  *s]\n', [["x"]]),
- ('[-<<\n, a]\n', [["-<<", "a"]]),
- ('[-<<]\n', [["-<<"]]),
- ('--- &\ns: [x]\n---\n[-<<*s]\n', [["-<<*s"]]),
- ('--- &\nm: {"a>b": 1}\n---\nx: *m\n', [{"x": {"a>b": "1"}}]),
- ('[1,\n 2,  # c\n]\n', [["1", "2"]]),
- ('a:\n  - x\n# c\n  - y\n', [{"a": ["x", "y"]}]),
- ('--- !job {a: 1}\n', [{"a": "1"}]),
- ('--- "x"\n', ["x"]),
- ('--- &\n---\n', [""]),
- ('', []),
- ('# only a comment\n', []),
-]
-refused = ['a: |\n     \n  x\n', 'a: >-\n   \n x\n', '|\n   \n  x\n', '\t{"a": 1}\n', '{"a": 1}\n\t\n', '"\\ud800"\n', '--- &\n"a>b": yes\n---\nx: *a>b\n', '--- &\na: {"b>c": 1}\n---\nx: *a:b>c\n', '--- &\n"a>b": yes\n---\nx: [*a>b]\n', '--- &\nm: {"a>b": {p: 1}}\n---\n{<<: *m:a>b}\n', '--- &\n"a>": [x]\n---\n- -<< *a>\n', '--- &\ns: [x]\n---\n- 1\n-<<\t*s\n', '--- &\ns: [x]\n---\n-<<\t*s\n', '--- &\na: {p: 1}\n---\nm: {<<:*a}\n', 'a: !Ref foo\n', 'a: !x\n', '!x\n', '---\n!x\n', '- !x\n', '!x: 1\n', '[!x]\n', '{a: !x}\n', '{!x: 1}\n', 'a: ! b\n', "a: ! 'b'\n", 'a: !\n', '--- &\na: !x\n---\n!y\n', '--- &\n{a: !x}\n---\nb: !y\n', '--- &\na: 1\n...\n---\nb: !y\n', '--- !n\nb: !y\n', '%YAML 2.0\na: 1\n', '%YAML 2.0\n# c\n\na: 1\n', '%YAML 2.0\n[a]\n', '--- &\na: 1\n%YAML 2.0\n---\nb: *a\n', 'a: 1\n%YAML 2.0\n---\nb: 2\n', '%YAML 2.0\n%YAML 2.0\n---\na: 1\n', '---\na: 1\n%YAML 2.0\n--- &\nb: 2\n', '--- &\na:\n  b: *a\n', '--- &\n{a: {b: *a}}\n', 'a: [\n  1,\n---\n]\n', 'a: [\n  1,\n--- a\n]\n', 'a: [\n  1,\n...\n]\n', 'a: x\x85y\n', 'a: x\u2028y\n', 'a\u2029b: 1\n', "'\u2028'\n", 'a: |\n  \u2029\n', '--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
- "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
- '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
- 'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', 
- 'a: "\\ud83d"\n', 'a: "x\n', "a: 'x\n", 'a: *nope\n', '[1, 2\n---\n', '{a: 1, a: 2}\n', '{"a": 1 "b": 2}\n', '[,]\n', '{,}\n', ': x\n', '- x\ny: 1\n', 'a: 1\n- x\n', 'a: 1\n  b: 2\n']
+DEFAULT = 64 * 2 ** 20
+MARKS = '␣»—←⇔↵∎'
+ESCAPED = re.compile('[\x00-\x1f\x7f-\x9f\u00a0\u00ad\u1680\u180e\u2000-\u200f\u2028-\u202f\u205f-\u206f\u3000\ufeff\ufff9-\ufffb\ufffe\uffff' + MARKS + ']')
+NAMED = {'\\': '\\\\', '\0': '\\0', '\b': '\\b', '\t': '\\t', '\n': '\\n', '\r': '\\r'}
+def unescape(t):
+    """The suite's visible characters: suite/README.md."""
+    t = t.replace(MARKS[0], ' '); t = re.sub(MARKS[2] + '*' + MARKS[1], '\t', t)
+    t = t.replace(MARKS[3], '\r').replace(MARKS[4], '\ufeff').replace(MARKS[5], '')
+    return re.sub(MARKS[6] + '\n\\Z', '', t)
+def esc(v):
+    return ''.join(NAMED.get(c) or (f'\\u{ord(c):04X}' if ESCAPED.match(c) else c) for c in v)
+def events(docs):
+    """The suite's event notation, without indentation."""
+    out = ['+STR']
+    def node(v):
+        if isinstance(v, str): out.append('=VAL :' + esc(v))
+        elif isinstance(v, list): out.append('+SEQ'); [node(x) for x in v]; out.append('-SEQ')
+        else:
+            out.append('+MAP')
+            for k, x in v.items(): node(k); node(x)
+            out.append('-MAP')
+    for name, v in docs:
+        out.append('+DOC' + (' !' + esc(name) if name else '')); node(v); out.append('-DOC')
+    return '\n'.join(out + ['-STR']) + '\n'
+def ordered(v):
+    """JSON that compares keys in order."""
+    return json.dumps(json.loads(json.dumps(v), object_pairs_hook=lambda p: p))
+def suite(path):
+    """(file, test) for each test, with what a subtest leaves out taken from the one before."""
+    import yaml
+    for f in sorted(os.listdir(path)):
+        if not f.endswith('.yaml'): continue
+        cache = {}
+        for t in yaml.safe_load(open(os.path.join(path, f), encoding='utf-8')):
+            for k in ('name', 'from', 'tags', 'yaml', 'tree', 'json', 'rest'):
+                if k not in t and k in cache: t[k] = cache[k]
+            cache = dict(t)
+            yield f, t
+tests = list(suite(sys.argv[2]))
+tagged = {}
+for f, t in tests:
+    if 'spec' in t['tags'].split():
+        assert unescape(t['yaml']) not in tagged, f
+        tagged[unescape(t['yaml'])] = (f, t)
+for text, want in examples:
+    f, t = tagged.pop(text, (None, None))
+    if t is None: print('NOT IN THE SUITE', repr(text)); bad += 1
+    elif bool(t.get('fail')) != (want is None) or want is not None and [ordered(json.loads(l)) for l in unescape(t['json']).splitlines()] != [ordered(w) for w in want]:
+        print(f, 'NOT AS IN THE DRAFT', t['name']); bad += 1
+for f, t in tagged.values(): print(f, 'NOT IN THE DRAFT', t['name']); bad += 1
 f = 0
-for t, want in good:
-    if want is None: continue
-    try:
-        got = [d[1] for d in read(t).docs]
-        if json.dumps(got) != json.dumps(want): print('WRONG', repr(t), got, want); f += 1
-    except No as e: print('REFUSED', repr(t), e); f += 1
-for t in refused:
-    try:
-        r = read(t); print('NOT REFUSED', repr(t), [d[1] for d in r.docs]); f += 1
-    except No: pass
-for t in ('a: 1\n', '%YAML 1.2\na: 1\n', '# c\n%YAML 2.0\n', '\ufeff%YAML 2.0\n'):
-    try: P(t).stream(); print('NOT REFUSED', repr(t)); f += 1
-    except No: pass
-assert read('--- !配置\na: 1\n').docs[0][0] == '配置'
+for file, t in tests:
+    text = unescape(t['yaml'])
+    try: r = P(text, t.get('limit', DEFAULT), t.get('together', False), t.get('keep', False)).stream().finish()
+    except No as e:
+        if not t.get('fail'): print(file, 'REFUSED', t['name'], e); f += 1
+        continue
+    if t.get('fail'): print(file, 'NOT REFUSED', t['name']); f += 1; continue
+    if t.get('keep'): continue
+    if 'tree' not in t or 'json' not in t: print(file, 'NO TREE OR JSON', t['name']); f += 1; continue
+    if events(r.docs) != re.sub('^[ \t]+', '', unescape(t['tree']), flags=re.M):
+        print(file, 'TREE', t['name']); f += 1
+    if [ordered(json.loads(l)) for l in unescape(t['json']).splitlines()] != [ordered(d[1]) for d in r.docs]:
+        print(file, 'JSON', t['name']); f += 1
+    # The offset counts bytes of the stream as written (section 4.4): the rest is what follows it.
+    rest = None if r.offset() is None else text.encode('utf-8', 'surrogatepass')[r.offset():].decode('utf-8', 'surrogatepass')
+    want = None if 'rest' not in t else unescape(t['rest'])
+    if rest != want: print(file, 'REST', t['name'], repr(rest), repr(want)); f += 1
 def size_tests():
     ex = '--- &\na: [x, yy]\nm: {k: v}\n---\nb: *a\nc:\n  -<< *a\n  - z\nd:\n  <<: *m\n'
     assert read(ex).sizes == [(15, 26)], read(ex).sizes
@@ -743,6 +681,5 @@ def size_tests():
     r = read(spl, None, False, True); assert r.levels(r.docs[-1][1]) == 4, r.levels(r.docs[-1][1])
     assert read(spl).levels(read(spl).docs[-1][1]) == 4
 size_tests()
-r = read('---\nt: 1\n...\n# H\n'); assert r.stopped == len('%YAML 2.0\n---\nt: 1\n...\n'), r.stopped
-r = read('---\nt: 1\n...\n# H\n%YAML 2.0\n---\nb: 2\n'); assert r.stopped == len('%YAML 2.0\n---\nt: 1\n...\n'), r.stopped
-print(f'edge cases: {len(good) + len(refused) + 4 - sum(1 for g in good if g[1] is None)} run, {f} fail')
+print(f'suite: {len(tests)} tests, {f} fail')
+sys.exit(1 if bad or f else 0)
