@@ -1,6 +1,6 @@
 # Typed shadow experiments
 
-*Updated 2026-11-04*
+*Updated 2026-11-07*
 
 Does a typed shadow carry a full real format? `github-workflow.shadow` is
 GitHub's workflow format, written from SchemaStore's `github-workflow.json`, and
@@ -15,8 +15,42 @@ To repeat it, with jsonschema installed:
     python3 compare.py compose compose-spec.json DIR
 
 `schema2.py` reads a schema with the real grammar, through `draftcheck.py`, and tests JSON as
-an ordinary recursive schema (2026-11-05). It matched on all 994 SchemaStore files and on 93
-of 95 in JSONTestSuite; the other 2 are repeated keys.
+an ordinary recursive schema (2026-11-05). It matched on all 994 SchemaStore files under
+300,000 bytes and on 93 of 95 in JSONTestSuite; the other 2 are repeated keys. The two-line form with
+`!**`, on all 1,015 files, is the current result (2026-11-07).
+
+`current.py` runs a shadow through the current checker, `schemacheck.py`, against its JSON Schema. Its
+results are below; those in the sections after it are from `shadow.py`, an earlier prototype.
+
+## Through the current checker (2026-11-07)
+
+To repeat it, with jsonschema and PyYAML installed:
+
+    python3 current.py compose compose.shadow compose compose.json DIR
+    python3 current.py workflows github-workflow.shadow workflow github-workflow.json DIR
+
+| Files | Compared | Agree | Both accept | Both refuse | Only the shadow refuses | Only the JSON Schema refuses |
+|---|---|---|---|---|---|---|
+| Workflows, the original local set | 131 | 131 | 128 | 3 | 0 | 0 |
+| Workflows, public, never run before | 398 | 396 | 365 | 31 | 1 | 1 |
+| Compose, public | 311 | 308 | 306 | 2 | 3 | 0 |
+
+- **Reading.** Files are read by PyYAML with quoted scalars marked, so that a file the 2.0 grammar refuses
+  is still compared. Of the files compared, the grammar also reads 125, 391 and 257, and it gave the
+  same verdict as PyYAML's reading on every one. Of the public workflows, 15 of 418 unique files don't
+  parse under 1.x and 3 have no mapping at the root.
+- **Workflows, public.** No earlier run used these, and they share no file with the local set. The only
+  change to the shadow since they were downloaded moved its root into an entry.
+- **Changes.** `github-workflow.shadow` loads as it stands. `compose.shadow` was refused until
+  `!str(/^x-/)` became `!str(/x-.*/)`, since a pattern now matches the whole key.
+- **All 5 disagreements are about null.** Three Compose files have `pgdata: null` or `default: null`,
+  which the JSON Schema takes as `["object", "null"]`. The shadow, written before `!null` existed, has
+  `''`. One workflow has `pull_request: ~`, which is the text `~` in 2.0. One has `TESTFLAGS:` empty,
+  which the JSON Schema refuses as a null and which is an empty string in 2.0.
+- **Fitted, not counted above.** Adding `!null` on the 3 lines in a copy of `compose.shadow`
+  gives 311 of 311.
+- **Full size.** `compose.shadow` is 10,163 bytes with a full size of 2,616, and `github-workflow.shadow`
+  is 6,275 bytes with a full size of 1,575. Both are under 0.004% of the 64 MiB limit.
 
 ## Results: GitHub workflows (2026-11-03)
 

@@ -1,7 +1,7 @@
 %YAML 2.0
 # A typed shadow of a Compose file, written blind from compose-spec.json: no
-# Compose file was looked at. Changed once since the blind run, with the same
-# results: `!str?: !x` became `!str: !x | ''`.
+# Compose file was looked at. Changed twice since the blind run: `!str?: !x` became `!str: !x | ''`,
+# with the same results, and a pattern became whole-match, `/x-.*/`, as patterns now are.
 --- &
 # Compose substitutes ${VAR} anywhere, so its schema takes a string wherever it
 # takes a number or a boolean. These are named strings an app could bind.
@@ -10,7 +10,7 @@ number: !str
 
 # Every mapping in the format allows x- keys.
 ext:
-  !str(/^x-/): !any
+  !str(/x-.*/): !any
 
 str-map:
   !str: !str
