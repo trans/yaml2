@@ -1,6 +1,6 @@
 # Review of Draft 1
 
-*Updated 2026-11-06*
+*Updated 2026-11-08*
 
 @oyl reviewed Draft 1 at the user's request (2026-11-04, against `f9727d5`). Its view:
 strong, nothing changes the core design. The agent reran the probes marked **Checked**
@@ -65,8 +65,8 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
 
 ## @oyl on sharing and load-all (2026-11-04, decided 2026-11-05)
 
-@oyl answered three questions, and the agent reran its probes. The results are in the
-working copy of the spec, **not committed yet**. @oyl was told the outcome on 2026-11-05.
+@oyl answered three questions, and the agent reran its probes. The results are in `2d5a90d`.
+@oyl was told the outcome on 2026-11-05.
 
 - **Later documents.** @oyl would limit sharing to what is delivered together. The user's
   rule replaced that: nothing is writable while parsing (rules.md).
@@ -146,9 +146,8 @@ Python dict.
 ## @oyl on section 10 at `2d5a90d` (2026-11-05)
 
 Message `993df806`. @oyl found no way around held for the table cases, and both worked
-examples hold. Four points in the wording. The agent reproduced all four. **Points 1 to 3 fixed,
-not yet committed** (the user approved them, 2026-11-05): section 10 has them in the working copy,
-and `draftcheck.py` counts names, with tests that fail if any of the three is broken on purpose.
+examples hold. Four points in the wording. The agent reproduced all four. **Points 1 to 3 fixed
+in `1c1d724`** (the user approved them, 2026-11-05): `draftcheck.py` counts names, with tests that fail if any of the three is broken on purpose.
 That a tree keeping comments adds their bytes is in the text and untested, because the checker keeps
 no comments. Point 4 was replaced by the user's rule on joins, below.
 
@@ -468,3 +467,52 @@ Its own probe agrees with the nearest `!*` in the section 11 fix in the working 
 
 Then the key split in `211757b`: part 1, 58 examples and 235 edge cases; part 2, 51 and 334; 94 of 94 deliberate
 breaks of part 2 caught.
+
+## Second independent review by Codex at `101d920` (2026-11-07)
+
+Read-only, of both specs and both checkers, with extra attention on the `!` rule, `!*` and `!**`, a
+schema's full size, the digits rule, publishing, kept references and part 2's overview. It reported no
+way past reference expansion, `!*` and `!**`, the hash check or per-use typing of kept references, and
+the ceiling and full-size boundaries held. Six findings. The agent reran every one, with neighbouring
+cases, and found one more.
+
+**Ruled by the user (2026-11-07), and fixed:** 2 and 4 in `ef07a4e`, 1 and 3 in `e92b1a2`. See the end of [rules.md](rules.md).
+
+1. **Which number a `!float` limit tests** (part 2, sections 4.2 and 4.4). `!float(..0.1)` refuses `0.1`
+   in the checker, because it compares the stored binary64 value with the exact limit, and so do
+   `!float(0.3..)` on `0.3` and `!float(..1.1)` on `1.1`. A parser comparing written with written, or
+   stored with stored, accepts them. In a union the refusal turns silent: `!float(..0.1) | !str` on `0.1`
+   delivers the text `"0.1"` here and the number on those parsers. The limit now tests the number as
+   written, so what a parser stores can't matter. Stored values order the same way unless they're equal,
+   so only a tie needs the exact comparison. None of SchemaStore's 4,220 number limits has a fractional
+   part.
+2. **A comment between a repeated `%YAML 2.0` and its marker** (part 1, sections 4.1, 4.4 and 12). The
+   prose says directly before the marker and that comments aren't skipped, so YAML stops at the `...`.
+   The grammar has `gap` there, and `draftcheck.py` reads on. Joining a file that has a comment after
+   its directive shows what's at stake: on the prose's reading its data is silently dropped. The prose
+   now follows the grammar. The user first took this to both sides of the line, then pointed out that a
+   comment before it might be Markdown, so only a comment after the line is skipped.
+3. **A tie when rounding is accepted** (part 2, section 4.4). `1.00000000000000011102230246251565404236316680908203125`
+   is exactly halfway between two binary64 values, and "the nearest" names neither. It now takes the
+   even one, as IEEE 754 does by default. This only arises for an application that accepts rounding.
+4. **A leading blank line wider than the text** (part 1, section 6.4; found by the agent while checking
+   finding 5). In `a: |`, a line of five spaces and then `  x`, the checker silently drops the extra
+   spaces, though it keeps them on a blank line inside the text. 1.2.2 calls this an error, and PyYAML
+   refuses it. Now refused. None of 4,418 real blocks in 4,651 files has one.
+
+**Fixed in `ef07a4e`.**
+
+5. **Block grammar.** A line of more than `m` spaces could match `blank` as well as `indent(m) text-line`,
+   which would lose text. The prose and `draftcheck.py` already agreed, so part 1 section 12 now says
+   which. It arises on 20 lines in 8 of 4,651 files.
+6. **The JSON claim.** Part 1 section 13.1, the README and the covering note left out two exceptions: a tab
+   before the value or on a line after it, and a `\u` escape for a lone surrogate. Probing the rest,
+   the `i_` files in JSONTestSuite and 34 hand-written cases found no others. Refusing a number too large
+   to hold happens in the schema, not the syntax. PyYAML also refuses a leading tab.
+
+**Not a defect.** Codex read part 2 section 3, a stamp isn't replaced, against section 16, an application
+ignores a file's schema, as a conflict. Section 3 goes on to let a library do that, and section 15 lists
+whether one must as open.
+
+Checks after the fixes: part 1, 59 examples and 251 edge cases, 6 of 6 deliberate breaks caught; part 2,
+54 and 347, 95 of 95; real files still 3,418 of 4,651; JSON still 1,015 of 1,015 and 93 of 95.

@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-06*
+*Updated 2026-11-08*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -16,7 +16,7 @@ rules are in [rules.md](rules.md). The user chose a clean break on
 what is open; the user went through it on 2026-11-04. @oyl's review is applied in `caece25`.
 The later decisions on shared nodes and the size limit, @oyl's five gaps and the limit on
 shared tables are in `2d5a90d`. Section 15, Security, is in `bf225ba`. @oyl's four points on
-section 10 and how files join are open for the user ([review.md](review.md)).
+section 10 are done: 1 to 3 in `1c1d724`, and 4 replaced by the user's rule on joins ([review.md](review.md)).
 
 **`!*` and publishing (2026-11-06).** `!*` is in `c54395c` and publishing is in `19aad50`, both pushed.
 The covering note now covers both. See [rules.md](rules.md).
@@ -34,18 +34,30 @@ changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `21
 [review.md](review.md) and [rules.md](rules.md). Part 2 is now YAML Easy Schema (YES), in
 `spec/yaml-easy-schema.md`, and its overview opens with the shadow.
 
-**Proposed before sending, not started (the user hasn't answered):** rerun the JSON check on real files,
-since part 1 section 13.1 says 994 and part 2 and the covering note say 1,015; run the two real schemas
-through the current checker; a second independent review.
+**Checks before sending (2026-11-07).** JSON with `!**` matches on 1,015 of 1,015 SchemaStore files and
+93 of 95 in JSONTestSuite; the 994 in part 1 was the files under 300,000 bytes. Rerun after the precision
+changes on 2026-11-08, with the same result. On the current checker the
+workflow schema agrees with its JSON Schema on 131 of 131 and on 396 of 398 public files it had never been
+run on, and the Compose schema on 308 of 311, all 5 disagreements being about null: see
+[shadow/README.md](shadow/README.md). A second independent review found four things, and the user ruled on all four the same day: see
+[review.md](review.md). They're in `ef07a4e` and `e92b1a2`. Nothing has been sent.
 
-**YAML Schema, part 2.** Draft 1 is `spec/yaml-easy-schema.md`, in `bf225ba` (2026-11-05), and its
+**Asked next (2026-11-07).** The user is more concerned about `!float` precision than limits, and asked
+whether it has been worked out. The user said yes to width names and patterns on `!decimal`. Width against
+digit count stays open in section 15. The user then chose patterns on `!str`, `!int`, `!float` and its
+widths, `!decimal` and `!null` (part 2, section 4.5), `!decimal(38:10)` (4.6), and a precision, a limit and
+a pattern together in one pair of parentheses (4.7). All of it is in `e92b1a2`. Merging `!float` and
+`!float64` is open: the user isn't sure. So is the user's picture form, `28.10` for `38:10`. See the end of
+[rules.md](rules.md). Only a comment after a repeated `%YAML 2.0` is skipped now, not one before it.
+
+**YAML Easy Schema (YES), part 2.** Draft 1 is `spec/yaml-easy-schema.md`, first in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
 scalar in a schema is always a literal, a reference is typed where it's used, `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
-every named type reachable from the root is checked. `schemacheck.py` tests the draft: 37
-examples and 144 edge cases pass, and breaking 21 new rules on purpose fails a test each time.
-Not done yet: the same for the older rules, and running the two real shadows through it. @oyl
+every named type reachable from the root is checked. `schemacheck.py` tests the draft: 65
+examples and 552 edge cases pass, and breaking 149 rules on purpose fails a test each time. Not done
+yet: the same for any older rules not covered. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
 [review.md](review.md). The list of standard types stays open in section 15: the user
 judged on 2026-11-05 that the draft is far enough along for the core team to work out final details
@@ -61,20 +73,15 @@ Background is in [landscape.md](landscape.md).
 
 1. **The design's open points:** marked as such in [rules.md](rules.md). Merge, the
    size limit, the syntax cuts and how schemas are named were chosen on 2026-11-04,
-   and margin strings are parked for later. Patterns are proposed as I-Regexp. Left:
-   whether to refuse leftover tags (the `!` rule), which the user wants left as an open
-   question for the core team, with pros and cons in section 14.
+   and margin strings are parked for later. Patterns are proposed as I-Regexp. The
+   user chose to refuse leftover tags (the `!` rule) on 2026-11-06, with a proviso in section 6.1.
 2. **Whose name it is.** The user's plan (2026-11-04): make this as complete as
    possible, then present it to the YAML core team. If they reject it whole, decide
    where to take it then. If they take it up, they'll hammer out the final details.
    So I-Regexp and other proposals needn't be settled first. See landscape.md, How the
    core team takes proposals. Until they answer, call it a proposal for YAML 2.0.
 3. **Publishing.** `origin` is `trans/yaml2` on GitHub, public. The user added it and
-   approved the first push of `main` and `ai` on 2026-11-04, with @oyl's figures in
-   `landscape.md` and with `ai`'s history rewritten first to drop one private sentence,
-   a second push of `ai` the same day, and a third of both, with the spec, README and
-   licenses, also that day, and a fourth of both, with the review applied, also that day, a fifth of both on
-   2026-11-05, with `2d5a90d`, a sixth of both that day, with `bf225ba`, a seventh of both that day, with `7689ea6`, an eighth of both that day, with `d645ce9`, a ninth of both that day, with `cc84227`, and a tenth of both that day, with `e1eef1b`. The spec and README are CC BY 4.0, and the code on `ai` is
+   approved the first push of `main` and `ai` on 2026-11-04, and has approved each one since. The spec and README are CC BY 4.0, and the code on `ai` is
    MIT (the user, 2026-11-04). So the `ai` branch is public: write nothing
    private here. Ask before pushing again. No transcripts are kept in this repository yet, so `transcript.encrypt` can
    wait.

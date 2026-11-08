@@ -1,6 +1,6 @@
 # The rules of YAML 2.0
 
-*Updated 2026-11-04*
+*Updated 2026-11-08*
 
 The design, rule by rule, as the user sets them. Keep the user's wording for
 each rule, and keep what the agent derived from it marked as such until the
@@ -425,7 +425,7 @@ tests settled on, all proposals, left open for the core team:
   string types only. JSON is then four lines of ordinary schema (`shadow/schema2.py`):
   `json: !null | !bool | !int | !float | !str | !array | !object`, `array: [!json, ...]`,
   and `object:` with `!str: !json`. Read by the real grammar, that matched a JSON parser
-  exactly on all 994 SchemaStore files and on 93 of 95 in JSONTestSuite, the other 2 being
+  exactly on all 994 SchemaStore files under 300,000 bytes and on 93 of 95 in JSONTestSuite, the other 2 being
   repeated keys. It needs a `!null` standard name. The same form gives "every `timeout` key
   at any depth is an int" in five lines. The cost: `!float | !str` reads `1.10` as 1.1, the
   old Norway problem, but only where a schema's author asks, and the same on every parser.
@@ -704,3 +704,94 @@ to ignore this rule, so it needs a case in the test suite.
   replace `|-` (real ones run to 594 lines), and pasted text needs every line touched.
   The header rule means a margin string can't start with spaces and `#`, which the user
   sees as a possible reason to allow no comment on a `|` line at all (2026-11-04).
+
+## From the second review (the user, 2026-11-07)
+
+- **A `!float` limit tests the number as written.** The user's reading: `!float(..0.1)` is simply the
+  maximum allowed, so `0.1` passes. It no longer depends on what a parser stores.
+- **Comments after a repeated `%YAML 2.0` are skipped, and comments before it aren't.** The agent first
+  applied both sides. The user then pointed out that a comment before the line might be Markdown, so only
+  the side after it stands. The first non-blank line after `...` decides: a marker or `%YAML 2.0` carries
+  on, and anything else ends the YAML, so `# Heading` stays Markdown and a parser needn't read ahead
+  through comments. Nothing is lost in joining files, because a 2.0 file's first line must be the
+  directive, so no file brings a comment ahead of it. A comment written by hand between the `...` and the
+  line ends the YAML at the `...`, and the parser reports that offset.
+- **Rounding takes the even value on a tie**, where an application accepts rounding.
+- **A leading blank line wider than a block scalar's text is refused**, as in 1.x. The user asked whether
+  an escape for a space exists. No `\s` does, in 1.x or 2.0. In double quotes a space needs none and
+  `\u0020` also works; a block scalar has no escapes.
+- **A minimum precision on `!float` is still open** (part 2, section 15). `!float` never loses digits
+  silently, but its verdict depends on the parser: `3.14159265358979323846` is refused on binary64 and
+  delivered on binary128. The agent proposed width names, `!float32`, `!float64` and `!float128`, each
+  meaning that a value keeps its digits in that width and a parser that can't work in it refuses. The
+  user hasn't ruled.
+- **A digit count is a separate question from a width** (the user, 2026-11-07). The user asked what
+  separates `!float32` from `!float(32)`: the first is the store, the second 32 digits. The agent had said
+  a digit count matches nothing a program stores, which was wrong: SQL `NUMERIC(p,s)`, Avro and Parquet
+  `decimal`, and XSD `totalDigits` all count digits, and Ada and Fortran ask for digits and pick the store.
+  What holds is that a binary store has no round number of decimal digits. By exact arithmetic on 4,000
+  random values per count, every value of 6, 15 and 33 digits keeps its digits in binary32, 64 and 128, and
+  the next digit up starts to lose: 3,994, 3,631 and 3,732 of 4,000 keep. `16777216` keeps in binary32 and
+  `16777217` doesn't, with 8 digits each, so no count can tell them apart. `1234.5678` loses and
+  `0.0012345678` keeps, also 8 digits each. A float counts significant digits, not places after the point.
+- **`!decimal` already answers part of it.** It keeps every digit on every parser, whatever the count, so
+  a value that needs 32 digits is `!decimal` today. The agent missed this when first answering. Today
+  `!float(15)` is refused as a bad limit and `!decimal(/pattern/)` is refused, with patterns on other types
+  open in part 2, section 15. The agent's view: a digit cap belongs on `!decimal`, as `!decimal(32)` or a
+  pattern, not on `!float`, since `!float32` and `!float(32)` would be one typo apart and mean bits and
+  digits. The user hasn't ruled.
+- **Width names and patterns on `!decimal` are in `e92b1a2`** (the user, 2026-11-07). The user first
+  said they weren't keen on `!float32` and would rather have SQL's `!float(38,10)`, because `!float32` has to
+  cite a standard, and floats of one size can have different layouts: IEEE binary16 and bfloat16 are both 16
+  bits and hold 11 and 8 bits of mantissa. They then answered yes to adding both, and said they may be
+  thinking about floats wrong. So the draft names IEEE 754 binary32, binary64 and binary128 outright, and
+  part 2, section 15, keeps width against digit count open for the core team.
+- **SQL's form.** In SQL, two numbers go on `NUMERIC`, with precision the total digits and scale the digits
+  after the point, and `FLOAT(p)` takes one, counted in bits. MySQL's `FLOAT(M,D)` is a nonstandard extension,
+  deprecated as of 8.0.17. `12345678901234567890.1234567890` has 30 digits and 10 places: under `!float` it's
+  refused on binary64 and delivered on binary128, and `!decimal` keeps it on every parser.
+- **A pattern is not a minimum precision** (the user, 2026-11-07). The user pointed out that
+  `!decimal(/[0-9]{1,28}(\.[0-9]{1,10})?/)` only says how to read the text. The agent had called it the same
+  as `NUMERIC(38,10)`, which was wrong. Three things were run together: spelling (which text reads as a
+  number), a cap (how many digits a value can have) and a minimum (what a reader must be able to hold,
+  whatever the value). An application holding 15 digits takes `1.5` under that pattern and only fails on the
+  first long value. **Fixed in `e92b1a2`:** section 4.5 no longer says it, and section 15 says "minimum
+  precision" again.
+- **A pattern says which text is the type (the user, 2026-11-07),** and the user chose to allow one on
+  `!str`, `!int`, `!float` and its widths, `!decimal` and `!null`, under one rule: it replaces the spelling
+  the type matches. The agent's earlier idea of taking the pattern off `!decimal` is dropped. `!bool`,
+  `!date`, `!datetime`, `!binary` and `!any` take none: a pattern can't say which text is true, which digits
+  are the month, or which encoding. **In part 2, section 4.5, in `e92b1a2`.**
+- **Precision and scale on `!decimal` (the user chose, 2026-11-07),** as in SQL: `!decimal(38:10)` has at
+  most 28 digits before the point and 10 after, tested on the exact value and refused rather than rounded,
+  and an application that can't always keep 38 digits refuses every value of that type, even `1.5`. A
+  parser can't check that second half, because it keeps digits as written: it falls to the application.
+  `!float128` is already a minimum, since a parser without it refuses; `!float32` and `!float64` are only
+  caps. The user asked why SQL's comma couldn't stay: a type is a plain scalar, and in a flow collection
+  `[!decimal(38,10), ...]` is read as the items `!decimal(38`, `10)` and `...`. The agent suggested `38:10`,
+  since a colon ends a plain scalar only before a space or one of `, [ ] { }`, and the user agreed. **In
+  part 2, section 4.6, in `e92b1a2`.** The user then asked whether the comma problem is PyYAML's: it is
+  YAML's own, in every version (1.2.2, section 7.3.3), and PyYAML 6.0.3 and Psych 5.2.2 both read
+  `[f(38,10), x]` as three items. 2.0 keeps it because JSON writes `[1,2]` with no space. The user also
+  raised a picture of the number, `10.38` (2026-11-08); for `NUMERIC(38,10)` that would be `28.10`. The
+  agent's view: it reads as a number and isn't one, since `28.10` and `28.1` would differ. Open.
+- **A precision, a limit and a pattern together (the user agreed, 2026-11-07).** The user asked how a type
+  carries a range and a pattern, and whether it would ever need two ranges, which "can get pretty hairy if
+  we let it". The agent's proposal, which the user took: one pair of parentheses, at most one of each, one
+  space between them, in the order precision (`!decimal` only), range, pattern, as in
+  `!decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)`. The pattern last keeps "a pattern ends at the first `/)`". Two
+  ranges as alternatives are a union, `!int(1..10) | !int(20..30)`; two on one type are refused. Too many
+  digits is no match, as a range is: the agent's choice. Anything more, such as a multiple of 5 or a bound
+  that excludes its value, stays application code. **In part 2, section 4.7, in `e92b1a2`.**
+- **Arguments as YAML structure, dropped.** The user asked about `["!decimal", [38,10], "/.../"]`, then
+  noted it would affect every type. In a schema a sequence already stands for a sequence in the data, and a
+  quoted scalar for that literal text, so that line is already a schema for a three-item sequence. The
+  arguments stay inside the type's scalar.
+- **Merging `!float` and `!float64`:** the user isn't sure yet (2026-11-07). Open in part 2, section 15.
+- **What the agent chose in writing them, which the user hasn't ruled on.** A width is a test and delivers
+  what `!float` delivers, because a binary32 value widened to binary64 would read `0.10000000149011612`, not
+  `0.1`. A value that doesn't keep its digits in a width is no match, as with a limit, since every parser
+  gets the same answer, so `16777217` under `!float32 | !str` is text. Accepted rounding goes to the nearest
+  value in the named store. A parser without binary128 refuses any `!float128` value spelled as a number,
+  even `0.1`. `!decimal(/pattern/)` also reads `.5` and `5.`, and a match that isn't a number refuses the
+  document, as on `!int`.

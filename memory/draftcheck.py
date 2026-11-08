@@ -139,7 +139,7 @@ class P:
                     if s.ch() == '\n': s.i += 1
                     else: s.i = j; break
                 if s.eof(): return s
-                if not (s.marker() or s.directive_then_marker()):
+                if not s.marker() and not s.directive_then_marker():
                     s.stopped = after; return s
                 if s.keep and s.together: s.dheld += s.theld
                 s.table = {}; s.tsize = {}; s.theld = 0
@@ -364,16 +364,18 @@ class P:
     def block(s, n):
         fold = s.ch() == '>'; s.i += 1; chomp = False
         if s.ch() == '-': chomp = True; s.i += 1
-        s.eol(); lines = []; m = None
+        s.eol(); lines = []; m = None; wide = 0
         while not s.eof():
             e = s.t.find('\n', s.i); e = len(s.t) if e < 0 else e
             line = s.t[s.i:e]
             if line.strip(' ') == '' and (m is None or len(line) <= m):
+                if m is None: wide = max(wide, len(line))
                 lines.append(''); s.i = min(e + 1, len(s.t)); continue
             ind = len(line) - len(line.lstrip(' '))
             if m is None:
                 if ind <= n or ind < 1: break
                 m = ind
+                if wide > m: s.bad('a leading blank line wider than the text')
             elif ind < m: break
             lines.append(line[m:]); s.i = min(e + 1, len(s.t))
         while lines and lines[-1] == '': lines.pop()
@@ -519,6 +521,18 @@ print(f'spec examples: {ok} pass, {bad} fail')
 
 D = '%YAML 2.0\n'
 good = [
+ ('---\na: x\n...\n%YAML 2.0\n# c\n\n---\nb: y\n', [{"a": "x"}, {"b": "y"}]),
+ ('---\na: x\n...\n\n%YAML 2.0\n# d\n---\nb: y\n', [{"a": "x"}, {"b": "y"}]),
+ ('---\na: x\n...\n\n# c\n%YAML 2.0\n# d\n---\nb: y\n', [{"a": "x"}]),
+ ('---\na: x\n...\n# c\n%YAML 2.0\n---\nb: y\n', [{"a": "x"}]),
+ ('---\na: x\n...\n# c\n---\nb: y\n', [{"a": "x"}]),
+ ('---\na: x\n...\n# c\n%YAML 2.0\nb: y\n', [{"a": "x"}]),
+ ('---\na: x\n...\n# c\n\tnot yaml\n', [{"a": "x"}]),
+ ('a: |\n  \n  x\n', [{"a": "\nx\n"}]),
+ ('a: |\n \n  x\n', [{"a": "\nx\n"}]),
+ ('a: |\n     \n', [{"a": ""}]),
+ ('a: |\n  x\n   \n  y\n', [{"a": "x\n \ny\n"}]),
+ ('[1]\t\n', [["1"]]),
  ('a : 1\nlonger : 2\n', [{"a": "1", "longer": "2"}]),
  ('{"a":1,"b":[true,null]}\n', [{"a": "1", "b": ["true", "null"]}]),
  ('--- &\na: [x]\n- -<< *a\n', None),
@@ -627,7 +641,7 @@ good = [
  ('', []),
  ('# only a comment\n', []),
 ]
-refused = ['--- &\n"a>b": yes\n---\nx: *a>b\n', '--- &\na: {"b>c": 1}\n---\nx: *a:b>c\n', '--- &\n"a>b": yes\n---\nx: [*a>b]\n', '--- &\nm: {"a>b": {p: 1}}\n---\n{<<: *m:a>b}\n', '--- &\n"a>": [x]\n---\n- -<< *a>\n', '--- &\ns: [x]\n---\n- 1\n-<<\t*s\n', '--- &\ns: [x]\n---\n-<<\t*s\n', '--- &\na: {p: 1}\n---\nm: {<<:*a}\n', 'a: !Ref foo\n', 'a: !x\n', '!x\n', '---\n!x\n', '- !x\n', '!x: 1\n', '[!x]\n', '{a: !x}\n', '{!x: 1}\n', 'a: ! b\n', "a: ! 'b'\n", 'a: !\n', '--- &\na: !x\n---\n!y\n', '--- &\n{a: !x}\n---\nb: !y\n', '--- &\na: 1\n...\n---\nb: !y\n', '--- !n\nb: !y\n', '%YAML 2.0\na: 1\n', '%YAML 2.0\n# c\n\na: 1\n', '%YAML 2.0\n[a]\n', '--- &\na: 1\n%YAML 2.0\n---\nb: *a\n', 'a: 1\n%YAML 2.0\n---\nb: 2\n', '%YAML 2.0\n%YAML 2.0\n---\na: 1\n', '---\na: 1\n%YAML 2.0\n--- &\nb: 2\n', '--- &\na:\n  b: *a\n', '--- &\n{a: {b: *a}}\n', 'a: [\n  1,\n---\n]\n', 'a: [\n  1,\n--- a\n]\n', 'a: [\n  1,\n...\n]\n', 'a: x\x85y\n', 'a: x\u2028y\n', 'a\u2029b: 1\n', "'\u2028'\n", 'a: |\n  \u2029\n', '--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
+refused = ['a: |\n     \n  x\n', 'a: >-\n   \n x\n', '|\n   \n  x\n', '\t{"a": 1}\n', '{"a": 1}\n\t\n', '"\\ud800"\n', '--- &\n"a>b": yes\n---\nx: *a>b\n', '--- &\na: {"b>c": 1}\n---\nx: *a:b>c\n', '--- &\n"a>b": yes\n---\nx: [*a>b]\n', '--- &\nm: {"a>b": {p: 1}}\n---\n{<<: *m:a>b}\n', '--- &\n"a>": [x]\n---\n- -<< *a>\n', '--- &\ns: [x]\n---\n- 1\n-<<\t*s\n', '--- &\ns: [x]\n---\n-<<\t*s\n', '--- &\na: {p: 1}\n---\nm: {<<:*a}\n', 'a: !Ref foo\n', 'a: !x\n', '!x\n', '---\n!x\n', '- !x\n', '!x: 1\n', '[!x]\n', '{a: !x}\n', '{!x: 1}\n', 'a: ! b\n', "a: ! 'b'\n", 'a: !\n', '--- &\na: !x\n---\n!y\n', '--- &\n{a: !x}\n---\nb: !y\n', '--- &\na: 1\n...\n---\nb: !y\n', '--- !n\nb: !y\n', '%YAML 2.0\na: 1\n', '%YAML 2.0\n# c\n\na: 1\n', '%YAML 2.0\n[a]\n', '--- &\na: 1\n%YAML 2.0\n---\nb: *a\n', 'a: 1\n%YAML 2.0\n---\nb: 2\n', '%YAML 2.0\n%YAML 2.0\n---\na: 1\n', '---\na: 1\n%YAML 2.0\n--- &\nb: 2\n', '--- &\na:\n  b: *a\n', '--- &\n{a: {b: *a}}\n', 'a: [\n  1,\n---\n]\n', 'a: [\n  1,\n--- a\n]\n', 'a: [\n  1,\n...\n]\n', 'a: x\x85y\n', 'a: x\u2028y\n', 'a\u2029b: 1\n', "'\u2028'\n", 'a: |\n  \u2029\n', '--- !a:b\n', '--- !a%3Ab\n', '--- !a%41\n', '--- !http://x.org/a\n', '--- !a\u3000b\n', '--- !a\u00a0b\n', '--- !a\u200fb\n', '--- !a\u2028b\n', '--- &\n{a: 1, a: 2}\n', '--- &\na: {p: 1}\n--- &\n{<<: *a}\n', '--- &\n{a: 1} x\n', '--- &\n{a: 1}\nb: 2\n', '--- & [a]\n', '--- & a: 1\n', '--- &\n[a]\n', '--- &{a: 1}\n', '--- &a {x: 1}\n', '--- &\n{a}\n', '--- &\n{b: *c, c: 1}\n', 'a:\tb\n', '-\tb\n', 'a: \tfoo\n', '{a\n: 1}\n', '"a"\n: 1\n', "'\x7f'\n", 'a\x7f\n', '# \x80\n', 'a: \uffff\n', '"\x01"\n', '"a\rb"\n', '[a,\rb]\n', 'a: 1\n\t\nb: 2\n', 'a: 1\n\t# c\nb: 2\n', '---\tfoo\n', 'a\t: 1\n', '\ta: 1\n', '# \ufeff\n', '"a\x01b"\n', 'a: 1\n%YAML 1.2\n---\nb: 2\n', 'a: 1\n%YAML 2.1\n---\nb: 2\n', '--- &\na: 1\na: 2\n', '--- &\na: 1\n--- &\nb: 2\nb: 3\n', '--- &\na: 1\n...\n---\nb: *a\n', '--- &\na: 1\n...\n%YAML 2.0\n---\nb: *a\n', '--- &\na: {p: 1}\n...\n---\n<<: *a\n', '%a: 1\n', '---\n%foo\n', '[\n%a\n]\n', 'a: >\n  x\n     \n  y\n', 'a: -<< *s\n', '{a: -<< *s}\n', 'key:\tvalue\n', '\tkey: v\n', '--- & x\n', '--- !\na: 1\n', '--- ! x\n',
  "a: 'x' y\n", 'a: [1] b\n', '--- foo: bar\n', '--- - x\n', '--- &\na: 1\n---\nb: *a c\n', '--- &\na: 1\n---\nb: *<a>x\n',
  '--- &\na: 1\n---\nb: *<>\n', '--- &\na: 1\n---\nb: *a:\n', 'a: 1\na: 2\n', '<< : x\n', '<<:\n',
  'a: |0\n  x\n', 'a: |-2\n  x\n', 'a: >+\n  x\n', '--- &\n<<: *a\n', 
@@ -730,4 +744,5 @@ def size_tests():
     assert read(spl).levels(read(spl).docs[-1][1]) == 4
 size_tests()
 r = read('---\nt: 1\n...\n# H\n'); assert r.stopped == len('%YAML 2.0\n---\nt: 1\n...\n'), r.stopped
+r = read('---\nt: 1\n...\n# H\n%YAML 2.0\n---\nb: 2\n'); assert r.stopped == len('%YAML 2.0\n---\nt: 1\n...\n'), r.stopped
 print(f'edge cases: {len(good) + len(refused) + 4 - sum(1 for g in good if g[1] is None)} run, {f} fail')
