@@ -1,6 +1,6 @@
 # A proposal for YAML 2.0: YAML Easy Schema (YES)
 
-*Draft 1, 2026-11-05*
+*Draft 1, 2026-11-07*
 
 This is part 2 of a proposal to the YAML core team, not a YAML specification. Part 1 is
 [the language](yaml-2.0.md). Section 15 lists what is still open.
@@ -223,6 +223,7 @@ fixes uses an application's schema instead.
 | `!str` | any scalar | its text |
 | `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)` | an integer |
 | `!float` | a plain scalar: an integer, which may have `.digits`, an exponent or both | a number |
+| `!float32`, `!float64`, `!float128` | the same, if it keeps its digits in that store (section 4.4) | a number |
 | `!decimal` | a plain scalar, spelled as `!float` is | that exact number |
 | `!bool` | a plain `true` or `false` | a boolean |
 | `!null` | a plain `null` | null |
@@ -232,10 +233,10 @@ fixes uses an application's schema instead.
 | `!any` | any node | that node, untyped |
 
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans. A
-pattern on `!int` can change this for integers (section 4.5), and nothing else can.
+pattern can change this for a type that takes one (section 4.5), and nothing else can.
 
-`!int`, `!float`, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can be an integer, and
-`"3"` never is. A block scalar isn't plain. This is what a YAML 1.2 parser with JSON Schema
+`!int`, `!float` and its widths, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can
+be an integer, and `"3"` never is. A block scalar isn't plain. This is what a YAML 1.2 parser with JSON Schema
 does today.
 
 ```yaml
@@ -285,9 +286,10 @@ blob: !binary
 
 ### 4.2 Limits
 
-`!int`, `!float`, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
+`!int`, `!float` and its widths, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
 Both ends are inclusive, and either can be left out. A limit may have an exponent, as
-`!float(..3.4e38)` does.
+`!float(..3.4e38)` does. A limit tests the number as written, not what a parser stores, so
+`!float(..0.1)` takes `0.1` on every parser, and refuses `0.10000000000000001`.
 
 ```yaml
 --- &
@@ -319,8 +321,8 @@ scalar in a flow collection (part 1, section 6.1).
 
 ### 4.3 Patterns
 
-`!str(/pattern/)` limits a string by a pattern, and section 4.5 says what one does on `!int`. A
-pattern is I-Regexp (RFC 9485), and it must match the whole string. I-Regexp has literals, `.`, classes, counts, groups, `|` and `\p{..}`.
+`!str(/pattern/)` limits a string by a pattern, and section 4.5 says what one does on other
+types. A pattern is I-Regexp (RFC 9485), and it must match the whole string. I-Regexp has literals, `.`, classes, counts, groups, `|` and `\p{..}`.
 It has no lookaround, no backreferences, no captures and no `\d`, `\w` or `\s`, which is why
 it means the same in every language.
 
@@ -381,10 +383,10 @@ tags: [!str(/[a-z]+/), ...]
 
 ### 4.4 Numbers
 
-A number has no size in a schema. `!int` and `!float` say what is written, and each application
-keeps it in whatever it has, so a program with 128-bit floats or big integers needs nothing
-special. A width is a limit: `uint32: !int(0..4294967295)`. YAML writes digits, so byte order
-doesn't arise.
+`!int` and `!float` have no size. They say what is written, and each application keeps it in
+whatever it has, so a program with 128-bit floats or big integers needs nothing special. An integer's
+width is a limit: `uint32: !int(0..4294967295)`. A float's width is a name, as this section goes on
+to say. YAML writes digits, so byte order doesn't arise.
 
 A parser delivers the number written, or refuses. It never wraps an integer, and never loses
 digits without saying so. A value keeps its digits if what is stored is no more than half a unit of
@@ -396,8 +398,9 @@ magnitude is at least 2.2250738585072014e-308, but closer to 0 it may not: `1.23
 stored as about 1.23467e-320. A value too large to hold, or so small it would become 0, loses its
 digits too.
 
-An application can ask to accept rounding on `!float`, because the digits may not matter to it.
-A value then takes the nearest one it can hold, and one too large to hold is still refused.
+An application can ask to accept rounding on `!float` and its widths, because the digits may not
+matter to it. A value then takes the nearest one it can hold, or the nearest in the store a width
+names, the even one on a tie as IEEE 754 does, and one too large to hold is still refused.
 
 `!decimal` allows no rounding, and an application can't ask for it. It is for money and anything
 else where a rounded value is a wrong one. A parser keeps the digits and exponent as written and
@@ -437,11 +440,59 @@ n: !float | !str
 1e999
 ```
 
-### 4.5 A pattern on `!int`
+So `!float` depends on what a parser holds: `3.14159265358979323846` is refused on binary64 and
+delivered on binary128. A width doesn't. `!float32`, `!float64` and `!float128` name IEEE 754 binary32,
+binary64 and binary128, and a value matches if it would keep its digits in that store, by the rule
+above. Every parser gets the same answer, whatever it holds itself, so a value that doesn't keep them
+is no match, as one outside a limit is. A width is a test: it delivers what `!float` delivers, and an
+application with that store can keep the value without losing digits.
 
-`!int(/pattern/)` replaces the standard spelling with the pattern. It matches a plain scalar that
-the pattern matches, and reads the text as an optional sign and base-10 digits, so `+5` is 5 and
-`007` is 7. What section 4.3 says of patterns holds, and so does what section 4.4 says of numbers.
+Every parser works in binary32 and binary64. A parser that can't work in binary128 refuses any value
+of `!float128` that is spelled as a number, even `0.1`, so that what it refuses doesn't depend on which
+values happen to fit.
+
+```yaml
+--- &
+reading:
+  gain: !float32(0..1)
+  total: !float64
+  note: !float32 | !str
+--- !reading
+gain: 0.1
+total: 16777217
+note: 16777217
+```
+
+```json
+{"gain": 0.1, "total": 16777217.0, "note": "16777217"}
+```
+
+```yaml refused
+--- &
+gain: !float32
+--- !gain
+16777217
+```
+
+```yaml refused
+--- &
+pi: !float64
+--- !pi
+3.14159265358979323846
+```
+
+### 4.5 A pattern on another type
+
+`!int`, `!float` and its widths, `!decimal` and `!null` take a pattern too, and it replaces the type's
+standard spelling. The type matches a plain scalar that the pattern matches, and reads the value from it:
+
+- `!int` reads an optional sign and base-10 digits, so `+5` is 5 and `007` is 7.
+- `!float`, its widths and `!decimal` read an optional sign, digits with at most one `.`, and an optional
+  exponent, so `+19.99` is 19.99, `.5` is 0.5 and `1.` is 1.
+- `!null` is null whatever the pattern matched, so `!null(/~|null/)` reads both.
+
+What section 4.3 says of patterns holds, and so does what section 4.4 says of numbers. A pattern says
+which text is the type, and not how many digits a value may have: section 4.6 does that.
 
 ```yaml
 --- &
@@ -456,8 +507,33 @@ offsets: [!signed, ...]
 [5, -3]
 ```
 
-The pattern takes the place of the spelling and doesn't add to it, so `5` isn't `!signed`. A quoted
-scalar never is, as with any `!int`.
+```yaml
+--- &
+cents: !decimal(/[0-9]+\.[0-9]{2}/)
+none: !null(/(~|null)?/)
+item:
+  price: !cents
+  ratio: !float(/[0-9]*\.[0-9]+/)
+  note: !none | !str
+--- !item
+price: 19.99
+ratio: .5
+note: ~
+```
+
+```json
+{"price": 19.99, "ratio": 0.5, "note": null}
+```
+
+```yaml refused
+--- &
+cents: !decimal(/[0-9]+\.[0-9]{2}/)
+--- !cents
+19.9
+```
+
+The pattern takes the place of the spelling and doesn't add to it, so `5` isn't `!signed`, and under
+`!null(/~/)` a plain `null` isn't null. A quoted scalar never matches one, as section 4.1 says.
 
 ```yaml refused
 --- &
@@ -467,7 +543,7 @@ signed: !int(/[-+][0-9]+/)
 ```
 
 Text the pattern matches and that can't be read this way refuses the document, as a number that
-can't be held does. It doesn't count as no match, because the schema has said it is an integer, so
+can't be held does. It doesn't count as no match, because the schema has said it is that type, so
 `0x1f` below doesn't become a string.
 
 ```yaml refused
@@ -479,6 +555,99 @@ n: !hex | !str
 ```
 
 Section 10 shows how to apply a pattern like this to every value in a document.
+
+### 4.6 Precision and scale on `!decimal`
+
+`!decimal(38:10)` says what SQL's `NUMERIC(38,10)` says. The precision, 38, is how many digits a value
+may have in all, and the scale, 10, is how many of them may come after the point, so at most 28 come
+before it. The test is on the exact value, so `1.50` fits `!decimal(3:1)`, and `1e3` has 4 digits before
+the point. A value with more digits is no match, as one outside a limit is, and it is never rounded. The
+precision is at least 1, and the scale is no larger than it. A colon stands where SQL has a comma,
+because a comma would end the type in a flow collection (section 4.2).
+
+It also says what an application must hold. An application that can't keep every value of 38 digits
+refuses any value of `!decimal(38:10)`, even `1.5`, so that what it refuses doesn't depend on which
+values a file happens to have. A parser can't check this, because it keeps the digits as written, so it
+falls to the application. `!float128` makes the same kind of promise for a binary float (section 4.4).
+
+```yaml
+--- &
+prices: [!decimal(5:2), ...]
+--- !prices
+- 999.99
+- 1.50
+- -0.5
+```
+
+```json
+[999.99, 1.50, -0.5]
+```
+
+```yaml refused
+--- &
+price: !decimal(5:2)
+--- !price
+1.005
+```
+
+### 4.7 Precision, limit and pattern together
+
+A type can carry a precision, a limit and a pattern together, in one pair of parentheses, in that
+order, with one space between each. Each says something of its own: the pattern says which text is the
+type, the precision how many digits the value may have, and the limit which values are allowed. A
+precision goes on `!decimal` only, a limit on `!str` and the numbers, and a pattern on those and on
+`!null`.
+
+A type carries at most one of each, so each type has one spelling:
+`!int(/[-+][0-9]+/ 0..100)` is refused, and so is `!int(0..10 20..30)`. With the pattern last, it still
+ends at the first `/)`.
+
+```yaml
+--- &
+percent: !int(0..100 /[-+][0-9]+/)
+cents: !decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)
+row:
+  change: !percent
+  price: !cents
+--- !row
+change: +5
+price: 19.99
+```
+
+```json
+{"change": 5, "price": 19.99}
+```
+
+```yaml refused
+--- &
+cents: !decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)
+--- !cents
+1000.00
+```
+
+Two limits that must both hold are one narrower limit, so one is enough. A value in either of two
+ranges is a union (section 9).
+
+```yaml
+--- &
+n: !int(1..10) | !int(20..30)
+--- !n
+25
+```
+
+```json
+25
+```
+
+```yaml refused
+--- &
+n: !int(1..10) | !int(20..30)
+--- !n
+15
+```
+
+Anything more, such as a multiple of 5 or a bound that excludes its own value, as `0 < x` does, is left
+to the application (section 15).
 
 ## 5. Literals
 
@@ -1099,9 +1268,12 @@ of sequences and mappings are part 1's.
 ```ebnf
 expression ::= part (" | " part)*
 part       ::= type | sequence | "''" | literal
-type       ::= "!" name limit?
-limit      ::= "(" (range | "/" pattern "/") ")"
+type       ::= "!" name args?
+args       ::= "(" ((precision " ")? (range " ")? regex | (precision " ")? range | precision) ")"
+precision  ::= whole ":" whole, the first at least 1 and the second no larger than the first
+whole      ::= "0" | digit+ not starting with "0"
 range      ::= number? ".." number?
+regex      ::= "/" pattern "/"
 number     ::= "-"? digit+ ("." digit+)? (("e" | "E") ("-" | "+")? digit+)?
 sequence   ::= "[]" | "[" expression ("," " "* expression)* ("," " "* "...")? "]"
 literal    ::= one or more characters, not starting with "!", "[", "{", '"' or "'", holding no " | "
@@ -1120,8 +1292,16 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   proposal, not yet decided.
 - **Quoted scalars as literals.** Section 5 removes two warts, and hasn't been tried on a real
   schema. It means a type expression can't be quoted.
-- **A minimum precision on `!float`.** A schema can't yet say that a value needs a certain number of
-  digits, so that an application holding fewer refuses it even where the value keeps its digits.
+- **A minimum precision on `!float`: width names or a digit count.** `!float32`, `!float64` and
+  `!float128` tie a schema to IEEE 754 and come in three sizes, and a store of the same size can have
+  another layout: binary16 and bfloat16 are both 16 bits and hold 11 and 8 bits of mantissa. A digit
+  count, as Ada and Fortran have and as `!decimal(38:10)` has for exact numbers (section 4.6), would name
+  no layout. But a binary store has no round number of digits: `16777216` fits binary32 and `16777217`
+  doesn't, with 8 digits each. A number on `!float` could also read two ways, since SQL's `FLOAT(24)`
+  counts bits. Other widths, such as binary16, can be added as section 8 says.
+- **`!float` and `!float64`.** `!float` holds what the parser holds, binary64 at least, so whether
+  `3.14159265358979323846` is refused depends on the parser (section 4.4). `!float` could mean binary64
+  on every parser instead, which would make `!float64` the same type and leave `!float32` and `!float128`.
 - **The standard types.** The list is short so far, and it should be thorough: times and durations,
   and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
   later, as section 8 says.
@@ -1129,13 +1309,12 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
 - **Ways past a stamp.** Section 3 lets a library ignore a file's schema. Whether one must is open,
   since an application checking files it didn't write depends on it.
 - **`!null` and an empty value.** `!null` takes the plain `null` only, and `key?:` takes an
-  empty value. Whether `!null` should take both is open.
-- **More than one limit on a type.** A range and a pattern can't be combined today, so `!signed`
-  (section 4.5) can't also say `0..100`.
-- **Patterns on other types.** `!float`, `!decimal` and `!null` could take a pattern as `!int` does,
-  so that `.5` or `~` could be read. `!bool` can't, because a pattern doesn't say which text is true.
+  empty value. Whether `!null` should take both is open. A pattern can already say both:
+  `!null(/(null)?/)` (section 4.5).
+- **Patterns on `!bool` and dates.** These take none, because a pattern can't say which text is true,
+  or which digits are the month, as in `11/07/2026`. Two patterns on `!bool`, one for each value, could.
 - **Bases.** Section 4.5 reads base 10 only. Hex and octal would need a way to say which base a
-  pattern means, and with those, `.inf`, `True` and `~`, a schema could state 1.2's Core Schema.
+  pattern means, and with those, `.inf` and `True`, a schema could state 1.2's Core Schema.
 - **Patterns.** I-Regexp is proposed. An alternative worth weighing makes every character literal
   except what sits in brackets, so `v{0-9}.{0-9}` needs no escapes, and `{{` is a literal brace.
   With brackets outside ASCII, such as `⦃0-9⦄`, a pattern could also sit in a flow collection,
@@ -1144,7 +1323,8 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   a mapping there, and a typo in a key passes. `!**` could stop at a named type, at the cost of
   naming a mapping changing what it accepts.
 - **Rules a schema can't state.** Rules across keys, such as "not both" or "if this then that".
-  Limits on a sequence's or a mapping's size, beyond one or more. Two alternatives of one shape,
+  Limits on a sequence's or a mapping's size, beyond one or more. A multiple of a number, or a bound
+  that excludes its own value, as `0 < x` does (section 4.7). Two alternatives of one shape,
   told apart by content. These go to application code today.
 - **Published schemas.** Section 3.1's 40 digits are 160 bits of SHA-256. The last entry as the root
   is the agent's proposal, not yet decided.
