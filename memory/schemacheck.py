@@ -5,8 +5,8 @@
 Reads every example with the grammar in draftcheck.py, types each document whose local name
 is in the table, and compares the result with the example's JSON. Then runs edge cases.
 """
-import base64, binascii, datetime, hashlib, json, math, os, re, re._parser, sys
-from decimal import Context, Decimal, InvalidOperation, MAX_EMAX, MIN_EMIN
+import base64, binascii, datetime, hashlib, json, os, re, re._parser, sys
+from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 here = os.path.dirname(os.path.abspath(__file__))
 src = open(here + '/draftcheck.py', encoding='utf-8').read().split("\nspec = open(sys.argv[1]")[0]
@@ -29,14 +29,6 @@ class Bad(Exception):
     def __init__(s, path, msg): super().__init__(f'{path or "/"}: {msg}')
 class Cant(Exception):
     """A number that can't be held. It refuses the document, and isn't a failed match."""
-def lost(t, f):
-    """Is what is stored more than half a unit of the last written digit from what is written?"""
-    d = Decimal(t)
-    if d == 0: return False
-    if math.isinf(f): return True
-    c = Context(prec=len(t) + 1100, Emax=MAX_EMAX, Emin=MIN_EMIN)
-    return c.multiply(abs(c.subtract(Decimal(f), d)), Decimal(2)) > c.scaleb(Decimal(1), d.as_tuple().exponent)
-
 def stored(d, name):
     """d in the IEEE 754 binary store a width names, exactly: the nearest, the even one on a tie.
     None if it is too large to hold."""
@@ -53,6 +45,13 @@ def stored(d, name):
     v = k * unit
     if v >= Fraction(2) ** top: return None
     return v if d > 0 else -v
+def dec(t, path):
+    """t as a Decimal. One whose exponent Decimal can't hold is 0 if its digits are, and otherwise can't be held."""
+    try: return Decimal(t)
+    except InvalidOperation:
+        m = re.match(r'([-+]?)([0-9.]*)[eE]', t)
+        if m and not m.group(2).strip('0.'): return Decimal(m.group(1) + '0')
+        raise Cant(f'{path or "/"}: {t[:40]} is too large or too small to hold')
 def keeps(d, name):
     """Is d, stored in that width, no more than half a unit of its last written digit away?"""
     v = stored(d, name)
@@ -360,6 +359,7 @@ class Schema:
         return out
     def scalar(s, name, lim, v, path):
         if name == 'any': return strip(v)
+        if name == 'float': name = 'float64'  # Section 4.4: !float is short for !float64.
         if not isinstance(v, str): raise Bad(path, f'expected {name}')
         if name in ('int', 'decimal', 'bool', 'null', *FLOATS) and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
         t = str(v); out = None; pat = lim[1] if lim else None
@@ -369,26 +369,22 @@ class Schema:
             if name == 'null': return None
             if not re.fullmatch(READINT if name == 'int' else READDEC, t):
                 raise Cant(f'{path or "/"}: {t[:40]!r} matched, and is not ' + ('an integer' if name == 'int' else 'a number'))
-            t = str(int(t)) if name == 'int' else str(Decimal(t)).replace('E', 'e')
+            t = str(int(t)) if name == 'int' else str(dec(t, path)).replace('E', 'e')
         try:
             if name == 'str': out = t
             elif name == 'bool' and t in ('true', 'false'): out = t == 'true'
             elif name == 'null' and t == 'null': out = None
             elif name == 'int' and re.fullmatch(INT, t): out = int(t)
-            elif name == 'float' and re.fullmatch(FLOAT, t):
-                out = float(t)
-                if math.isinf(out): raise Cant(f'{path or "/"}: {t[:40]} is too large to hold')
-                if lost(t, out) and not s.accept: raise Cant(f'{path or "/"}: {t[:40]} would lose digits')
             elif name in WIDTHS and re.fullmatch(FLOAT, t):
                 if name not in HELD: raise Cant(f'{path or "/"}: this parser can not work in {name}')
-                try: d = Decimal(t)
-                except InvalidOperation: raise Bad(path, f'{t[:40]} does not fit {name}')
+                d = dec(t, path)
                 v = stored(d, name)
-                if v is None: raise Bad(path, f'{t[:40]} is too large for {name}')
-                if not s.accept and not keeps(d, name): raise Bad(path, f'{t[:40]} would lose digits in {name}')
+                # Section 4.4: a store too small for the value refuses the document, before any limit.
+                if v is None: raise Cant(f'{path or "/"}: {t[:40]} is too large for {name}')
+                if not s.accept and not keeps(d, name): raise Cant(f'{path or "/"}: {t[:40]} would lose digits in {name}')
                 if name == 'float128': out = v if s.accept else d
                 else: out = float(v) if s.accept and d != 0 else float(t)
-            elif name == 'decimal' and re.fullmatch(FLOAT, t): out = Decimal(t)
+            elif name == 'decimal' and re.fullmatch(FLOAT, t): out = dec(t, path)
             elif name == 'date' and re.fullmatch(DATE, t): datetime.date.fromisoformat(t); out = t
             elif name == 'datetime' and re.fullmatch(DATETIME, t): datetime.datetime.fromisoformat(t.upper().replace('Z', '+00:00')); out = t
             elif name == 'binary': t = t.replace('\n', ''); base64.b64decode(t.encode('ascii'), validate=True); out = t
@@ -397,7 +393,7 @@ class Schema:
         if pat and name == 'str' and not pat.fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
         if lim and lim[3] and not fits(out, *lim[3]): raise Bad(path, f'{t[:40]!r} has too many digits for {lim[3][0]}:{lim[3][1]}')
         if lim and lim[2]:
-            lo, hi = lim[2]; n = len(t) if name == 'str' else Decimal(t) if name in FLOATS else out
+            lo, hi = lim[2]; n = len(t) if name == 'str' else dec(t, path) if name in FLOATS else out
             if (lo is not None and n < lo) or (hi is not None and n > hi): raise Bad(path, f'{t[:40]!r} is out of range')
         return out
 
@@ -612,22 +608,33 @@ if __name__ == '__main__':
         for v in row:
             got = tuple(int(keeps(Decimal(v), n)) for n in WIDTHS)
             if got != want: f += 1; print('WIDTH TABLE', v, got, want)
-    widths = [('!float32', '0.1', False, 0.1), ('!float32', '16777216', False, 16777216.0), ('!float32', '3.1415927', False, 3.1415927), ('!float32', '1234567.8', False, 1234567.8), ('!float32', '1.0000076293945313', False, 1.0000076293945313), ('!float64', '16777217', False, 16777217.0), ('!float64', '0.30000000000000004', False, 0.30000000000000004), ('!float64', '1e39', False, 1e39), ('!float32(0..1)', '0.5', False, 0.5), ('!float32 | !str', '16777217', False, '16777217'), ('!float32 | !float64', '16777217', False, 16777217.0), ('!float64 | !str', '3.14159265358979323846', False, '3.14159265358979323846'), ('!float32 | !str', '1e39', False, '1e39'), ('!float32', '16777217', True, 16777216.0), ('!float32', '16777219', True, 16777220.0), ('!float32', '3.141592653589793', True, 3.1415927410125732), ('!float64', '9007199254740993', True, 9007199254740992.0), ('!float64', '3.14159265358979323846', True, 3.141592653589793), ('!float32', '0', False, 0.0), ('!float32', '-1.5', False, -1.5), ('!float32', '1.4e-45', False, 1.4e-45), ('!float32', '340282346638528859811704183484516925440', False, 340282346638528859811704183484516925440.0), ('!float64', '9007199254740991', False, 9007199254740991.0), ('!float64', '4.9e-324', False, 4.9e-324), ('!float64', '1.7e308', False, 1.7e308), ('!float128 | !str', 'abc', False, 'abc'), ('!float128 | !str', '"0.1"', False, '0.1'), ('!float32(/[0-9]+/)', '5', False, 5.0), (r'!float32(/[0-9]*\.[0-9]+/)', '.1', False, 0.1), ('float32: !int\nn: !float32', '16777217', False, 16777217)]
+    # Section 4.4: !float is !float64, alone and in a union, with rounding or without.
+    alias = 0
+    for v in both + table64 + table128 + noneholds + ['1e-330', '4.9e-324', '1.8e308', '-0', '9007199254740993', '"0.1"', 'abc']:
+        for acc in (False, True):
+            r = []
+            for tp in ('!float', '!float64', '!float | !str', '!float64 | !str', '!float(0..1)', '!float64(0..1)'):
+                try: r.append(('ok', typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc)[0]))
+                except REFUSED: r.append(('refused',))
+            alias += 1
+            if r[0::2] != r[1::2]: f += 1; print('FLOAT IS NOT FLOAT64', v, acc, r)
+    widths = [('!float32', '0.1', False, 0.1), ('!float32', '16777216', False, 16777216.0), ('!float32', '3.1415927', False, 3.1415927), ('!float32', '1234567.8', False, 1234567.8), ('!float32', '1.0000076293945313', False, 1.0000076293945313), ('!float64', '16777217', False, 16777217.0), ('!float64', '0.30000000000000004', False, 0.30000000000000004), ('!float64', '1e39', False, 1e39), ('!float32(0..1)', '0.5', False, 0.5), ('!float32 | !str', 'n/a', False, 'n/a'), ('!float', '0e99999999999999999999', False, 0.0), ('!float | !str', '-0.0e-99999999999999999999', False, 0.0), ('!float(0..1) | !str', '1.5', False, '1.5'), ('!float32(0..1) | !str', '2', False, '2'), ('!float32', '16777217', True, 16777216.0), ('!float32', '16777219', True, 16777220.0), ('!float32', '3.141592653589793', True, 3.1415927410125732), ('!float64', '9007199254740993', True, 9007199254740992.0), ('!float64', '3.14159265358979323846', True, 3.141592653589793), ('!float32', '0', False, 0.0), ('!float32', '-1.5', False, -1.5), ('!float32', '1.4e-45', False, 1.4e-45), ('!float32', '340282346638528859811704183484516925440', False, 340282346638528859811704183484516925440.0), ('!float64', '9007199254740991', False, 9007199254740991.0), ('!float64', '4.9e-324', False, 4.9e-324), ('!float64', '1.7e308', False, 1.7e308), ('!float128 | !str', 'abc', False, 'abc'), ('!float128 | !str', '"0.1"', False, '0.1'), ('!float32(/[0-9]+/)', '5', False, 5.0), (r'!float32(/[0-9]*\.[0-9]+/)', '.1', False, 0.1), ('float32: !int\nn: !float32', '16777217', False, 16777217)]
     for tp, v, acc, w in widths:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'.replace('n: float32: !int\nn: ', 'float32: !int\nn: '), accept=acc)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    narrows = [('!float32', '16777217', False), ('!float32', '8.589973e9', False), ('!float32', '1e39', False), ('!float32', '1e39', True), ('!float32', '1e-60', False), ('!float32', '3.5e38', False), ('!float32', '3.5e38', True), ('!float32', '1e-46', False), ('!float64', '1.8e308', True), ('!float64', '1e-330', False), ('!float32', '1e-999999999', False), ('!float64', '9007199254740993', False), ('!float64', '3.14159265358979323846', False), ('!float64', '1e400', False), ('!float64', '1e400', True), ('!float32(0..1)', '1.5', False), ('!float32', '"0.1"', False), ('!float32', 'abc', False), ('!float32(/[0-9]+/)', '16777217', False), ('!float128', '0.1', False), ('!float128', '0.1', True), ('!float128 | !str', '0.1', False), ('!float128(0..1)', '5', False), ('!float32', '1e99999999999999999999', False), ('!float32', '1e-99999999999999999999', False)]
+    narrows = [('!float32 | !str', '16777217', False), ('!float32 | !float64', '16777217', False), ('!float64 | !str', '3.14159265358979323846', False), ('!float32 | !str', '1e39', False), ('!float32 | !str', '1e39', True),
+               ('!float(0..1) | !str', '1e999', False), ('!float | !str', '1e99999999999999999999', False), ('!float | !str', '0.4e0066999999999999999999999999999999', False), ('!float | !str', '1e-99999999999999999999', False), ('!float(/[0-9e]+/) | !str', '1e99999999999999999999', False), ('!float(..1) | !str', '3.14159265358979323846', False), ('!float32(0..1) | !str', '16777217', False), ('!float32', '16777217', False), ('!float32', '8.589973e9', False), ('!float32', '1e39', False), ('!float32', '1e39', True), ('!float32', '1e-60', False), ('!float32', '3.5e38', False), ('!float32', '3.5e38', True), ('!float32', '1e-46', False), ('!float64', '1.8e308', True), ('!float64', '1e-330', False), ('!float32', '1e-999999999', False), ('!float64', '9007199254740993', False), ('!float64', '3.14159265358979323846', False), ('!float64', '1e400', False), ('!float64', '1e400', True), ('!float32(0..1)', '1.5', False), ('!float32', '"0.1"', False), ('!float32', 'abc', False), ('!float32(/[0-9]+/)', '16777217', False), ('!float128', '0.1', False), ('!float128', '0.1', True), ('!float128 | !str', '0.1', False), ('!float128(0..1)', '5', False), ('!float32', '1e99999999999999999999', False), ('!float32', '1e-99999999999999999999', False)]
     for tp, v, acc in narrows:
         try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
     HELD.add('float128')
-    wider = [('!float128', '0.1', False, Decimal('0.1')), ('!float128', '3.14159265358979323846', False, Decimal('3.14159265358979323846')), ('!float128', '1e400', False, Decimal('1e400')), ('!float128(0..4)', '3.14159265358979323846', False, Decimal('3.14159265358979323846')), ('!float128 | !str', '1e5000', False, '1e5000'), ('!float128', '10384593717069655257060992658440191', False, Decimal('10384593717069655257060992658440191')), ('!float128', '6.5e-4966', False, Decimal('6.5e-4966')), ('!float128', '1.1e4932', False, Decimal('1.1e4932'))]
+    wider = [('!float128', '0.1', False, Decimal('0.1')), ('!float128', '3.14159265358979323846', False, Decimal('3.14159265358979323846')), ('!float128', '1e400', False, Decimal('1e400')), ('!float128(0..4)', '3.14159265358979323846', False, Decimal('3.14159265358979323846')), ('!float128', '10384593717069655257060992658440191', False, Decimal('10384593717069655257060992658440191')), ('!float128', '6.5e-4966', False, Decimal('6.5e-4966')), ('!float128', '1.1e4932', False, Decimal('1.1e4932'))]
     for tp, v, acc, w in wider:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc)[0]; f += 0 if got == w else 1; got == w or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
     rounded = typed('--- &\nn: !float128\n--- !n\n3.14159265358979323846264338327950288419\n', accept=True)[0]
     if abs(rounded - Fraction('3.14159265358979323846264338327950288419')) > Fraction(1, 10 ** 33): f += 1; print('NOT ROUNDED', rounded)
-    widenot = [('!float128', '3.14159265358979323846264338327950288419', False), ('!float128', '1e5000', False), ('!float128', '1e5000', True), ('!float128', '1.2e4932', True), ('!float128', '1e-4970', False), ('!float64', '3.14159265358979323846', False), ('!float32', '16777217', False)]
+    widenot = [('!float128 | !str', '1e5000', False), ('!float', '3.14159265358979323846', False), ('!float', '1e400', False), ('!float128', '3.14159265358979323846264338327950288419', False), ('!float128', '1e5000', False), ('!float128', '1e5000', True), ('!float128', '1.2e4932', True), ('!float128', '1e-4970', False), ('!float64', '3.14159265358979323846', False), ('!float32', '16777217', False)]
     for tp, v, acc in widenot:
         try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
@@ -654,12 +661,12 @@ if __name__ == '__main__':
             ('!int(0..100 /[-+][0-9]+/)', '+5', 5), ('!int(0..100 /[-+][0-9]+/)', '-0', 0), ('!int(..10 /0[0-9]+/)', '007', 7), ('!str(1..8 /[a-z]+/)', 'web', 'web'),
             ('!decimal(38:10 0..)', '19.99', Decimal('19.99')), (r'!decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)', '19.99', Decimal('19.99')), (r'!decimal(5:2 /[0-9]+\.[0-9]{2}/)', '19.99', Decimal('19.99')),
             (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.5', 0.5), (r'!float32(0..1 /[0-9]*\.[0-9]+/)', '.1', 0.1), ('!int(1..10) | !int(20..30)', '25', 25), ('!int(1..10) | !int(20..30) | !str', '15', '15'),
-            ('!decimal(5:2 0..) | !str', '-1', '-1')]
+            ('!decimal(5:2 0..) | !str', '-1', '-1'), ('!decimal', '0e99999999999999999999', Decimal(0)), ('!decimal(0..1)', '-0e-99999999999999999999', Decimal(0))]
     for tp, v, w in more:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'.replace('n: a:\n', 'a:\n'))[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    morenot = [('!float(/[a-z]+/)', 'abc'), ('!float(/[a-z]+/) | !str', 'abc'), ('!float(/[0-9]+/)', '1.5'), ('!float(/[-+0-9.]+/) | !str', '1.2.3'), ('!float(/[0-9]+/) | !str', '9' * 400),
-               ('!float(/[0-9.]+/) | !str', '3.14159265358979323846'), (f'!float({F})', '"5"'), ('!float128(/[0-9.]+/) | !str', '0.1'),
+    morenot = [('!float(/[a-z]+/)', 'abc'), ('!float(/[a-z]+/) | !str', 'abc'), ('!float(/[0-9]+/)', '1.5'), ('!float(/[-+0-9.]+/) | !str', '1.2.3'), ('!decimal | !str', '1e99999999999999999999'), ('!decimal(/[a-z]+/) | !str', 'inf'), ('!decimal(/[0-9_]+/) | !str', '1_000'), ('!decimal(/[٠-٩]+/) | !str', '١٢٣'), ('!decimal(5:2) | !str', '1e99999999999999999999'), ('!decimal(/[0-9e]+/) | !str', '1e99999999999999999999'), ('!float(/[0-9]+/) | !str', '9' * 400), ('!float(/[0-9.]+/) | !str', '3.14159265358979323846'),
+               (f'!float({F})', '"5"'), ('!float128(/[0-9.]+/) | !str', '0.1'),
                ('!null(/~/)', 'null'), ('!null(/~/)', '"~"'), ('!null(/(~|null)?/)', 'x'), ('!null(/~/)', '[~]'), ('!null(/~/)', "'~'"),
                ('!decimal(5:2)', '1000'), ('!decimal(5:2)', '1.005'), ('!decimal(5:2)', '-1000'), ('!decimal(5:2)', '1e3'), ('!decimal(5:2)', '1e-3'), ('!decimal(5:2)', '1e999999999'),
                ('!decimal(5:2)', '1e-999999999'), ('!decimal(5:5)', '1'), ('!decimal(5:2)', '"1.5"'), ('!decimal(38:10)', '12345678901234567890123456789'), ('!decimal(38:10)', '0.12345678901'),
@@ -692,5 +699,5 @@ if __name__ == '__main__':
     for v in emptyseq:
         try: typed(f'%YAML 2.0\n--- &\nu: !int | []\n--- !u\n{v}\n'); f += 1; print('NOT REFUSED', v)
         except REFUSED: pass
-    print(f'edge cases: {len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
+    print(f'edge cases: {alias + len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
     sys.exit(1 if bad or f else 0)

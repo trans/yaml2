@@ -774,7 +774,11 @@ to ignore this rule, so it needs a case in the test suite.
   YAML's own, in every version (1.2.2, section 7.3.3), and PyYAML 6.0.3 and Psych 5.2.2 both read
   `[f(38,10), x]` as three items. 2.0 keeps it because JSON writes `[1,2]` with no space. The user also
   raised a picture of the number, `10.38` (2026-11-08); for `NUMERIC(38,10)` that would be `28.10`. The
-  agent's view: it reads as a number and isn't one, since `28.10` and `28.1` would differ. Open.
+  agent's view: it reads as a number and isn't one, since `28.10` and `28.1` would differ. The user then
+  noted COBOL's `PIC 9(28).9(10)`: the same values as `S9(28)V9(10)`, except that COBOL drops a sign
+  without `S`, `.` makes an edited text field where `V` is the value's point, and a `MOVE` cuts extra
+  digits off silently. **Left open (the user, 2026-11-08),** because the choice seems subjective: part 2
+  keeps `38:10` and section 15 explains both spellings.
 - **A precision, a limit and a pattern together (the user agreed, 2026-11-07).** The user asked how a type
   carries a range and a pattern, and whether it would ever need two ranges, which "can get pretty hairy if
   we let it". The agent's proposal, which the user took: one pair of parentheses, at most one of each, one
@@ -787,11 +791,29 @@ to ignore this rule, so it needs a case in the test suite.
   noted it would affect every type. In a schema a sequence already stands for a sequence in the data, and a
   quoted scalar for that literal text, so that line is already a schema for a three-item sequence. The
   arguments stay inside the type's scalar.
-- **Merging `!float` and `!float64`:** the user isn't sure yet (2026-11-07). Open in part 2, section 15.
+- **`!float` is short for `!float64` (the user, 2026-11-08),** binary64 on every parser, and floats keep
+  accepted names. The user first asked whether `!float(11.52)`, binary64's exponent and fraction bits, could
+  be `!float`; the agent offered `!float(64:52)` to match `38:10`. The user asked whether two sizes cover
+  every float, and they don't: they describe a format only under IEEE 754's rules. E4M3 reaches 448, not
+  240; some hardware has no subnormals; IBM's floats are base 16; double-double has no fixed precision. So
+  the user chose names. Whether to add `!float16` and `!bfloat16`, as C++23 names them, is open (part 2,
+  section 15). **In `bafa4ce`.**
 - **What the agent chose in writing them, which the user hasn't ruled on.** A width is a test and delivers
-  what `!float` delivers, because a binary32 value widened to binary64 would read `0.10000000149011612`, not
-  `0.1`. A value that doesn't keep its digits in a width is no match, as with a limit, since every parser
-  gets the same answer, so `16777217` under `!float32 | !str` is text. Accepted rounding goes to the nearest
-  value in the named store. A parser without binary128 refuses any `!float128` value spelled as a number,
+  a number, not one rounded to its store, because a binary32 value widened to binary64 would read
+  `0.10000000149011612`, not `0.1`. Accepted rounding goes to the nearest value in the named store. A parser without binary128 refuses any `!float128` value spelled as a number,
   even `0.1`. `!decimal(/pattern/)` also reads `.5` and `5.`, and a match that isn't a number refuses the
   document, as on `!int`.
+- **A store too small for a value refuses the document (the user chose, 2026-11-08),** for every float
+  type, and isn't no match. The agent had made a width failure no match, and once `!float` was `!float64`
+  that made `1e999` under `!float | !str` the text `"1e999"`, and 7 of JSONTestSuite's `i_` files, such as
+  `[1.5e+9999]`, text under part 1's JSON schema. The agent's case, which the user took: a limit is a rule
+  about the data and a store isn't, so a number shouldn't become text because of how many digits it has.
+  `16777217` under `!float32 | !str` and `!float32 | !float64` are refused too. The store is tested before
+  any limit, so `!float(0..1) | !str` refuses `1e999`: the agent's choice. A decimal's precision stays no
+  match, since it's a rule the schema states. **In `bafa4ce`.**
+- **Store sizes stay (the user, 2026-11-08).** The user asked whether to drop the widths and a decimal's
+  precision, leaving a number the program can't hold to fail on its own, since no schema is complete. The
+  agent called it safe, because a store failure now refuses and so can't change the data, and said what it
+  loses: the same check in every program, and a minimum that fails on the first value, not on the first
+  long one, perhaps in production. The user chose to keep them: validation before use is what a schema is
+  for. Part 2, section 4.4, now says so. **In `bafa4ce`.**
