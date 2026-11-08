@@ -54,7 +54,7 @@ sizes, since validation before use is what a schema is for. All in `bafa4ce`. Th
 
 **Test suite, part 1 (2026-11-08).** The user asked for it and plans to hand it to the reference
 parser's builders when it's ready (see Working with @oyl). It is `suite/` in the code checkout, first in
-`b44793d`: 351 tests in yaml-test-suite's `src` format, with a README and `bin/suite-to-data`. They are
+`b44793d`: 351 tests in yaml-test-suite's `src` format (356 now), with a README and `bin/suite-to-data`. They are
 the draft's 59 examples, the 250 edge cases that were in `draftcheck.py` (its 253, less 4 repeats, plus 1
 it skipped for want of an answer, `a: [x]` then `- -<< *a` in a table, which it refuses), and 42 new ones:
 each size boundary and one under it, 256 levels, CR LF, the stop offset, and key order. `draftcheck.py`
@@ -69,6 +69,18 @@ now reports that offset (`P.offset()`) and the suite's `rest` is checked against
 offset in characters, or one that drops the CRs, fails a test. yaml-test-suite's `⇔` mark unescapes to
 the text `x{FEFF}`, not U+FEFF (a missing backslash in `bin/YAMLTestSuite.pm`), and none of its tests
 uses it.
+
+**The checker against the reference parser (2026-11-08).** The reference parser's builders ran 100,319
+generated and mutated streams through the parser and `draftcheck.py`, and reported the two where they
+differed. In both the parser followed the draft's text and the checker was wrong. (1) A reference to a
+merged mapping whose merged key a later line replaced: the checker counted the replaced pair where the
+mapping was written, but not at a reference to it, so `m: {<<: *s, a: y}` then `k: *m` needed a limit of
+26, not 30. Section 10 says full is "worked out by addition" and "nothing is deduplicated". (2) A tab
+after the `>` of `*<a:b>` was refused, though the grammar's `eol` allows it and a tab after a bare step
+was accepted. Both are fixed in the checker; the old one fails 4 of the 5 new tests (`M6Q8`, `T38H`,
+`6AHS`, `AKB8`, `X3AR`). Sections 8.2 and 10 each gained a few words to say so (a reference ends at "a
+space, a tab or the end of the line"; a replaced key counts "in its mapping and in every reference to
+it"). **Not committed on main yet:** the spec and suite changes wait for the user.
 
 **YAML Easy Schema (YES), part 2.** Draft 1 is `spec/yaml-easy-schema.md`, first in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see

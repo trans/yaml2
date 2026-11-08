@@ -22,7 +22,7 @@ class L(list):
     more = 0; deep = 0
 class P:
     def __init__(s, t, limit=None, together=False, keep=False, maxlevels=None):
-        s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.extra = 0; s.sizes = []; s.keep = keep; s.theld = 0; s.saved = 0; s.helds = []
+        s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.sizes = []; s.keep = keep; s.theld = 0; s.saved = 0; s.helds = []
         s.dheld = s.dfull = 0; s.maxlevels = maxlevels; s.lmemo = {}
         s.raw = t; s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None; s.intable = False
     def nsize(s, v):
@@ -50,7 +50,7 @@ class P:
     def check(s, n):
         if s.limit is not None and n > s.limit: s.bad('past the size limit')
     def entry(s, k, v):
-        s.tsize[k] = s.nsize(k) + s.nsize(v) + s.extra; s.extra = 0
+        s.tsize[k] = s.nsize(k) + s.nsize(v)
         s.theld += s.tsize[k] - s.saved; s.saved = 0
         s.tally(0, 0)
         if not s.keep: s.deep(v)
@@ -67,7 +67,7 @@ class P:
         else:
             s.check(s.nsize(src)); out += src
     def deliver(s, name, v):
-        n = s.nsize(v) + s.extra + (s.nsize(name) if name else 0); s.extra = 0
+        n = s.nsize(v) + (s.nsize(name) if name else 0)
         h = n - s.saved; s.saved = 0
         s.sizes.append((sum(s.tsize.values()), n)); s.helds.append((s.theld, h))
         s.dheld += h; s.dfull += n
@@ -245,8 +245,11 @@ class P:
         return s.col() == m
     def enter(s): pass
     def leave(s): pass
+    def counted(s, v, x):
+        """A mapping's size counts the merged pairs later lines replaced (x), wherever it is named."""
+        s.memo.pop(id(v), None); s.memo[id(v)] = (v, s.nsize(v) + x); return v
     def map(s, m):
-        s.enter(); out = {}; written = set(); started = False
+        s.enter(); out = {}; written = set(); started = False; x = 0
         while True:
             j = s.i
             if not s.at(m): s.i = j; break
@@ -258,17 +261,17 @@ class P:
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
                 s.saved += s.nsize(src) - 2
                 for k, v in src.items():
-                    if k in out: s.extra += s.nsize(k) + s.nsize(out[k])
+                    if k in out: x += s.nsize(k) + s.nsize(out[k])
                     out[k] = v
             else:
                 if not s.is_map(): s.bad('expected a key')
                 k = s.key(); s.colon()
                 if k in written: s.bad('duplicate key')
                 written.add(k); started = True
-                if k in out: s.extra += s.nsize(k) + s.nsize(out[k])
+                if k in out: x += s.nsize(k) + s.nsize(out[k])
                 out[k] = s.value(m, True)
             s.gap()
-        s.leave(); return out
+        s.leave(); return s.counted(out, x)
     def key(s):
         c = s.ch()
         if c == '"': return s.double()
@@ -434,7 +437,7 @@ class P:
             elif s.ch() != ']': s.bad('expected , or ]')
         s.i += 1; return o
     def fmap(s):
-        s.i += 1; o = {}; w = set(); started = False; s.fs()
+        s.i += 1; o = {}; w = set(); started = False; x = 0; s.fs()
         while s.ch() != '}':
             if s.t.startswith('<<:', s.i) and s.ch(3) in (' ', '\t', '\n'):
                 if started: s.bad('merge after a key')
@@ -442,7 +445,7 @@ class P:
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
                 s.saved += s.nsize(src) - 2
                 for k, v in src.items():
-                    if k in o: s.extra += s.nsize(k) + s.nsize(o[k])
+                    if k in o: x += s.nsize(k) + s.nsize(o[k])
                     o[k] = v
             else:
                 q = s.ch() in ('"', "'")
@@ -453,12 +456,12 @@ class P:
                 if k in w: s.bad('duplicate key')
                 if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
                 w.add(k); started = True; s.fs()
-                if k in o: s.extra += s.nsize(k) + s.nsize(o[k])
+                if k in o: x += s.nsize(k) + s.nsize(o[k])
                 o[k] = '' if s.ch() in (',', '}') else s.fnode()
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
             elif s.ch() != '}': s.bad('expected , or }')
-        s.i += 1; return o
+        s.i += 1; return s.counted(o, x)
     def ref(s, flow):
         if s.ch() != '*': s.bad('expected a reference')
         s.i += 1; steps = [s.step(flow)]
@@ -470,7 +473,7 @@ class P:
             e = s.t.find('>', s.i); nl = s.t.find('\n', s.i)
             if e < 0 or (0 <= nl < e) or e == s.i + 1: s.bad('bad <...>')
             k = s.t[s.i + 1:e]; s.i = e + 1
-            if s.ch() not in ('', ' ', '\n', ':') and not (flow and s.ch() in ',]}'): s.bad('text after >')
+            if s.ch() not in ('', ' ', '\t', '\n', ':') and not (flow and s.ch() in ',]}'): s.bad('text after >')
             if s.ch() == ':' and s.ch(1) == ':': s.bad('colons after >')
             return k
         b = s.i
