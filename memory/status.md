@@ -53,14 +53,17 @@ too precise for a float type's store refuses the document rather than being no m
 sizes, since validation before use is what a schema is for. All in `bafa4ce`. The covering note now mentions JSYNC under tags. See the end of [rules.md](rules.md). Only a comment after a repeated `%YAML 2.0` is skipped now, not one before it.
 
 **Test suite, part 1 (2026-11-08).** The user asked for it and plans to hand it to the reference
-parser's builders when it's ready (see Working with @oyl). It is `suite/` in the code checkout, first in
+parser, Oyl NG, when it's ready (see Working with @oyl); Oyl NG already reads it from `../yaml2`. It is `suite/` in the code checkout, first in
 `b44793d`: 351 tests in yaml-test-suite's `src` format (356 now), with a README and `bin/suite-to-data`. They are
 the draft's 59 examples, the 250 edge cases that were in `draftcheck.py` (its 253, less 4 repeats, plus 1
 it skipped for want of an answer, `a: [x]` then `- -<< *a` in a table, which it refuses), and 42 new ones:
 each size boundary and one under it, 256 levels, CR LF, the stop offset, and key order. `draftcheck.py`
 now reads `suite/src` in place of its own lists (with PyYAML), checks that every example in the draft is
 a test tagged `spec` with the same result, and exits 1 on any failure. Before, a failing edge case only
-printed. `suitenew.py` adds a test. The changes from yaml-test-suite's format are the agent's, and the
+printed. `suitenew.py` adds a test. Breaking the checker on purpose can make it build toward 2^64
+nodes (with the default limit removed, it reached 5 to 6 GB on 2026-11-08 and slowed another project's
+job: `mail/received/20261109-021824Z-@oyl--memory-on-this-machine-1b3d249d.md`), so run such checks under
+a memory cap, one heavy job at a time. The changes from yaml-test-suite's format are the agent's, and the
 user hasn't ruled on them: `=VAL :` for every string, `+DOC !name`, `rest` for a stop, `limit`, `keep`
 and `together`, a fixed list of escaped characters, and IDs from a hash of each test. The user left two
 questions to the agent on 2026-11-08, and it chose: the suite is under MIT, as yaml-test-suite is, so a
@@ -70,7 +73,7 @@ offset in characters, or one that drops the CRs, fails a test. yaml-test-suite's
 the text `x{FEFF}`, not U+FEFF (a missing backslash in `bin/YAMLTestSuite.pm`), and none of its tests
 uses it.
 
-**The checker against the reference parser (2026-11-08).** The reference parser's builders ran 100,319
+**The checker against the reference parser (2026-11-08).** Oyl NG's agent ran 100,319
 generated and mutated streams through the parser and `draftcheck.py`, and reported the two where they
 differed. In both the parser followed the draft's text and the checker was wrong. (1) A reference to a
 merged mapping whose merged key a later line replaced: the checker counted the replaced pair where the
@@ -127,11 +130,16 @@ v2 dialects, an in-place 1.1 to 1.2 upgrade (`oyl_upgrade`), bindings, and
 measurements on real files. It is the obvious place to test ideas here.
 
 **The reference parser** (the user, 2026-11-04): a standalone 2.0 parser, not a dialect
-inside Oyl, and the Oyl project builds it, applying what it learned. The user will set
-that up. The user expects it to beat 1.x parsers on speed, given the simplifications:
-measure speed and size for the proposal. It needs the spec draft, or at least
-[rules.md](rules.md), to build from, and on 2026-11-08 the user said the test suite goes to it when ready. The agent suggested the 1.2-to-2.0 converter sit
-in Oyl beside `oyl_upgrade`; not decided.
+inside Oyl, applying what Oyl learned. It is **Oyl NG** (the user gave its name for use here on
+2026-11-09), a C11 library at https://github.com/trans/oylng (public, MIT), address `@oylng`.
+By its README it has the streaming event parser for part 1; a tree, an emitter and part 2 are to come.
+On 2026-11-09 the user called it "a working fast parser", and then "even faster now". Its own
+measurements at `1758ec9` (not yet pushed then): 3.8 to 8.1 times libyaml 0.2.5 on generated 8 MB
+inputs, and 0.94 to 1.22 times Oyl; nothing measurable beyond the input in memory. It passes the
+suite's 347 tests an event interface can run (the 9 others need `keep` or `together`). The user had
+expected it to beat 1.x parsers on speed, given the simplifications; size and speed on real files for
+the proposal are still to measure. The agent suggested the 1.2-to-2.0 converter sit in Oyl beside
+`oyl_upgrade`; not decided.
 
 Oyl's notes are private. Read them in place, and bring only what the user has
 cleared into this repository, which is public.
