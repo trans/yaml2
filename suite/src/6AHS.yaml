@@ -1,0 +1,21 @@
+---
+- name: 'A tab after the > of a reference'
+  from: part 1, section 8.2
+  tags: reference whitespace
+  yaml: |
+    %YAML 2.0
+    --- &
+    "a:b": x
+    ---
+    k: *<a:b>——»
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :k
+       =VAL :x
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": "x"}

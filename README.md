@@ -72,7 +72,7 @@ from 1.2, and section 13.1 what they cost.
   what is still open.
 - **YAML Easy Schema (YES), part 2:** Draft 1 is in [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Section 15
   lists what is open.
-- **Test suite:** part 1's is in [`suite/`](suite/), 351 tests in yaml-test-suite's format, the draft's
+- **Test suite:** part 1's is in [`suite/`](suite/), 356 tests in yaml-test-suite's format, the draft's
   examples among them. Part 2's isn't written yet.
 - **Reference parser and converter:** not written yet.
 

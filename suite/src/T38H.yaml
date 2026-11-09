@@ -1,0 +1,15 @@
+---
+- name: 'A reference to a merged mapping counts the key a later line replaced: a limit of 29 refuses it'
+  from: part 1, section 10
+  tags: size merge reference error
+  fail: true
+  limit: 29
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: {a: x}
+    m:
+      <<: *s
+      a: y
+    ---
+    k: *m

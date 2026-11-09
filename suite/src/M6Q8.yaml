@@ -1,0 +1,28 @@
+---
+- name: 'A reference to a merged mapping counts the key a later line replaced: a limit of 30 allows it'
+  from: part 1, section 10
+  tags: size merge reference
+  limit: 30
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: {a: x}
+    m:
+      <<: *s
+      a: y
+    ---
+    k: *m
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :k
+       +MAP
+        =VAL :a
+        =VAL :y
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": {"a": "y"}}

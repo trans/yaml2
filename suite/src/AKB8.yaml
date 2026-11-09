@@ -1,0 +1,21 @@
+---
+- name: 'A tab between the > of a reference and a comment'
+  from: part 1, section 8.2
+  tags: reference whitespace comment
+  yaml: |
+    %YAML 2.0
+    --- &
+    ab: x
+    ---
+    k: *<ab>———»# c
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :k
+       =VAL :x
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": "x"}

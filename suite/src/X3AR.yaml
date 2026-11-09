@@ -1,0 +1,23 @@
+---
+- name: 'A tab after the > of a reference in a flow sequence'
+  from: part 1, section 8.2
+  tags: reference whitespace flow
+  yaml: |
+    %YAML 2.0
+    --- &
+    "a:b": x
+    ---
+    k: [*<a:b>—»]
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :k
+       +SEQ
+        =VAL :x
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": ["x"]}

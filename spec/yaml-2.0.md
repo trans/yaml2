@@ -686,8 +686,8 @@ A key starting with `<` also needs this form. A key holding `>` can't be written
 path, so `*a>b` is refused, and neither can the empty key, though copying the mapping
 holding them still brings them along.
 
-A reference ends at a space or the end of the line, and in a flow collection also at
-any of `, ] }`.
+A reference ends at a space, a tab or the end of the line, and in a flow collection also
+at any of `, ] }`.
 
 ```yaml
 --- &
@@ -951,9 +951,9 @@ A reference, a `<<:` and a `-<<` each count 1. A tree that keeps comments adds t
 **Full** is what the data would take with no references left. A reference adds the size of
 the node it names, and nothing for itself. `<<:` adds the size of the pairs it names, and
 `-<<` of the items, without the collection's own 1. Nothing is deduplicated, so a merged
-key that a later line replaces still counts. Full is worked out by addition, so finding
-it builds nothing. A short chain of references can pass 2^64, so a fixed-width sum must stop
-at its largest value and never wrap.
+key that a later line replaces still counts, in its mapping and in every reference to it.
+Full is worked out by addition, so finding it builds nothing. A short chain of references
+can pass 2^64, so a fixed-width sum must stop at its largest value and never wrap.
 
 Both cover the table in scope and the document being read. An entry adds its key and value
 to both. A replacement takes the old entry's size off full when the new entry's key is read,
