@@ -74,8 +74,11 @@ from 1.2, and section 13.1 what they cost.
   lists what is open.
 - **Test suite:** part 1's is in [`suite/`](suite/), 356 tests in yaml-test-suite's format, the draft's
   examples among them. Part 2's isn't written yet.
-- **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser
-  for part 1 and passes the suite's tests for it. A tree, an emitter and part 2 are to come.
+- **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser,
+  the tree and the emitter for part 1, and passes the suite's tests for events. Part 2 is to come. On
+  generated 8 MB inputs, by its own benchmark, it reads events 3.7 to 8.3 times as fast as libyaml
+  0.2.5, and about as fast as Oyl, a 1.2 parser built the same way: most of the gap is engineering,
+  not the language. Real files aren't measured yet.
 - **Converter:** not written yet.
 
 ## Checking it
