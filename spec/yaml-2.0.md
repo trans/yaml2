@@ -9,7 +9,15 @@ lists what is still open.
 ## 1. Overview
 
 YAML's central problem is that the same bytes can give different data, depending on
-which parser reads them. YAML 2.0 is a clean break that removes the causes:
+which parser reads them. `country: no` is `false` to PyYAML and Psych, and `"no"` to go-yaml v3.
+Merge isn't in YAML 1.2, but 55 of 369 public GitLab files use it, and with `<<` after a local key,
+PyYAML and go-yaml v3 keep the local value while Psych keeps the merged one. PyYAML and Psych keep
+the last of a repeated key, and go-yaml refuses it: 64 of 4,163 public files repeat one, 51 with
+different values. libyaml accepts 15 of yaml-test-suite's 94 invalid cases. None of these
+differences is reported, so when one program checks a file and another acts on it, each is a way
+past the check.
+
+YAML 2.0 is a clean break that removes the causes:
 
 - **Everything is a string.** A stream holds strings, sequences and mappings, and
   nothing else. Types come from the application or from a YES schema, never from a
@@ -1198,24 +1206,28 @@ is rough.
 
 ## 13. Changes from YAML 1.2
 
-Removed:
+Removed, with why and what it costs. Counts are from public files, and the totals differ because
+the samples grew over time. "Stop here" counts the files whose first refusal is that rule.
 
-- Implicit typing, so `no`, `0755` and `2001-12-14` are text.
-- Tags on nodes, `%TAG`, `!!`, and the schemas of 1.2.
-- Anchors. Only the table can be referenced.
-- `?`, and collections or references as keys.
-- Multi-line plain and quoted scalars, and `\`-newline.
-- `|+`, `>+`, `|1` to `|9`, and more-indented lines inside `>`.
-- UTF-16, UTF-32, and the byte order mark outside double quotes.
-- A lone CR as a line break.
-- U+0085, U+2028 and U+2029, outside double quotes.
-- Tabs as whitespace, except in a flow collection and after the last content on a line.
-- One-pair `[a: b]`, and `{a}` with no `:`.
-- Escapes JSON doesn't have.
-- The bans on starting a plain scalar with `%`, `@` or `` ` ``, and with `!` in a table.
-- Bare documents after `...`, and any YAML after a final `...`.
-- Tolerated duplicate keys, which are always refused.
-- The 1024-character limit on keys, which only bounded lookahead for flow keys.
+| Removed | Why | What it costs |
+|---|---|---|
+| Implicit typing, so `no`, `0755` and `2001-12-14` are text, and the schemas of 1.2 | It is the main cause of different data: in 5,742 files, 104 held a plain scalar that PyYAML and 1.2's Core Schema typed differently | `3` is a string without a schema. Tools that decode through JSON, such as `sigs.k8s.io/yaml`, need one (section 13.1) |
+| Tags on nodes, `%TAG`, `!!` | 2.0 delivers strings, sequences and mappings, and a nested value has nowhere to keep a name. None of the 721 tag uses in 4,026 files states a standard type. Without tags, a stream can't ask a parser to build anything | Formats built on tags need a new spelling, and a tag left in a file is refused. Nested objects lose their class names (section 13.1) |
+| Anchors | Every node already has an address, so `&name` is a second naming system. The table also replaces Compose's `x-` keys and GitLab's hidden jobs | Converting moves text into the table, and a base that is also real data moves out |
+| `?`, and collections or references as keys | Keys then fit every language's map. In 2,995 files, the only keys that weren't scalars were 16 Helm templates where `{{ x }}` parsed by accident | A hash with complex keys becomes a sequence of pairs and a schema |
+| Multi-line plain and quoted scalars, and `\`-newline | A dropped `- ` or `:` is swallowed with no error, and an unclosed quote fails at the next quote. Now each fails on its own line | 40 of 369 GitLab files and 4 of 311 Compose files use them, mostly for long shell commands |
+| `\|+` and `>+` | A blank line between keys changes the value | Under 0.5% of 4,026 files |
+| `\|1` to `\|9` | The first line sets the indent in all but 3 of 4,213 real blocks | Text starting with spaces is written double-quoted |
+| More-indented lines inside `>` | The folding rule for them is hard to implement and to predict | 42 of 4,651 files stop here |
+| UTF-16, UTF-32, and the byte order mark outside double quotes | Under 0.5% of 4,026 files, and a loud error with an easy fix | 3 of 4,651 files start with a byte order mark. Section 14 leaves it open |
+| A lone CR as a line break, and U+0085, U+2028 and U+2029 outside double quotes | A line break that tools can't see lets a viewer and a parser disagree (section 3) | Double quotes still hold them, which keeps JSON |
+| Tabs as whitespace | Under 0.5% of 4,026 files, and a loud error with an easy fix | Still allowed in a flow collection and after the last content on a line |
+| One-pair `[a: b]`, and `{a}` with no `:` | Under 0.5% of 4,026 files. Refusing `{a}` leaves room for sets | Allowing `{a}` later breaks no file |
+| Escapes JSON doesn't have | Under 0.5% of 4,026 files, and it keeps one set of escapes | 15 of 4,651 files stop here |
+| Tolerated duplicate keys, which are always refused | Parsers disagree on them | 58 of 4,651 files stop here |
+| Bare documents after `...`, and any YAML after a final `...` | `...` now ends the YAML unless a marker follows, so Markdown can follow front matter (section 4.4) | libyaml already refuses a bare document there |
+| The 1024-character limit on keys | It only bounded lookahead for flow keys, and a 2.0 key is one line | None |
+| The bans on starting a plain scalar with `%`, `@` or `` ` ``, and with `!` in a table | Inherited, and they forced quotes on 1,530 values starting with `%` alone | `%` at column 0 stays reserved for directives. `!` stays refused outside the table, so a leftover tag fails loudly |
 
 Added:
 
@@ -1247,7 +1259,10 @@ A tool that turns YAML into JSON and decodes the result into typed structures, a
 a schema.
 
 Tags on nodes are out because 2.0 delivers strings, sequences and mappings, which fit every
-language and JSON, and a nested value has nowhere to keep a name. Of 4,026 public files, 177 hold a
+language and JSON, and a nested value has nowhere to keep a name. Carrying the name in the data
+has been tried: JSYNC (2010) carries YAML's types in plain JSON, with a `"!"` key on a mapping, a
+tag as the first item of a sequence, and a prefix on a string. It works, at the price that a reader
+that doesn't know JSYNC reads other data, as with `["!Groceries", "Bread"]`. Of 4,026 public files, 177 hold a
 tag: 144 MkDocs, 17 Rails, 13 GitLab, 2 Kubernetes and 1 Jekyll. None of their 721 uses states a
 standard type, so a schema replaces very little of this. Most mark a value for the application, and
 those need a 2.0 spelling. A tag left in a file is refused (section 6.1).
