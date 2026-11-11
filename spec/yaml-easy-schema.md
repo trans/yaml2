@@ -174,9 +174,9 @@ retries: 3
 
 ### 3.1 Publishing a schema
 
-A schema can be published as a file anyone can use. The file is a table: `%YAML 2.0` and `--- &`,
-with no other document, and its last entry is the root. It is named for its own bytes: the first 40
-hex digits of its SHA-256, in lowercase, then `.yes`.
+A schema can be published as a file anyone can use. The file is a table: `%YAML 2.0` and one
+`--- &`, with nothing after it, not even `...`, and its last entry is the root. It is named for its
+own bytes: the first 40 hex digits of its SHA-256, in lowercase, then `.yes`.
 
 ```yaml
 %YAML 2.0
@@ -222,14 +222,14 @@ fixes uses an application's schema instead.
 |---|---|---|
 | `!str` | any scalar | its text |
 | `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)` | an integer |
-| `!float`, `!float64` | a plain scalar: an integer, which may have `.digits`, an exponent or both, and one that binary64 can't keep refuses the document (section 4.4) | a number |
+| `!float`, `!float64` | a plain scalar: `-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, JSON's number, and one that binary64 can't keep refuses the document (section 4.4) | a number |
 | `!float32`, `!float128` | the same, in binary32 or binary128 | a number |
 | `!decimal` | a plain scalar, spelled as `!float` is | that exact number |
 | `!bool` | a plain `true` or `false` | a boolean |
 | `!null` | a plain `null` | null |
 | `!date` | any scalar: an RFC 3339 full-date | a date |
 | `!datetime` | any scalar: an RFC 3339 date-time | a date and time |
-| `!binary` | any scalar: base64, RFC 4648 section 4, with line breaks skipped | bytes |
+| `!binary` | any scalar: base64, RFC 4648 section 4, padded, with its pad bits zero, and with line feeds skipped | bytes |
 | `!any` | any node | that node, untyped |
 
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans. A
@@ -268,8 +268,11 @@ yes
 JSON has no date, so a date in JSON is quoted, and `!date` has to read it. That's why the last
 three take a scalar however it's written.
 
-`!binary` skips line breaks, because a `|` block of wrapped base64 is how a long value is usually
-laid out. RFC 4648 leaves that choice to the format using it.
+`!binary` skips line feeds, because a `|` block of wrapped base64 is how a long value is usually
+laid out, and RFC 4648 leaves that choice to the format using it. Anything else outside the
+alphabet is no match, a CR or a space among them. RFC 4648 also lets a decoder refuse a value with
+its padding left out or with pad bits that aren't zero, and here every decoder does, so `aGk` and
+`aGl=` are not binary, and `aGk=` is.
 
 ```yaml
 --- &
@@ -287,9 +290,10 @@ blob: !binary
 ### 4.2 Limits
 
 `!int`, the float types, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
-Both ends are inclusive, and either can be left out. A limit may have an exponent, as
-`!float(..3.4e38)` does. A limit tests the number as written, not what a parser stores, so
-`!float(..0.1)` takes `0.1` on every parser, and refuses `0.10000000000000001`.
+Both ends are inclusive, and either can be left out but not both, so `!int(..)` is refused, and so is
+`!int(5..1)`. A limit may have an exponent, as `!float(..3.4e38)` does. A limit tests the number as
+written, not what a parser stores, so `!float(..0.1)` takes `0.1` on every parser, and refuses
+`0.10000000000000001`.
 
 ```yaml
 --- &
@@ -327,8 +331,9 @@ It has no lookaround, no backreferences, no captures and no `\d`, `\w` or `\s`, 
 it means the same in every language.
 
 `\p{..}` uses Unicode 16 or later, since RFC 9485 names no version. Unicode never removes a
-character, and a later version mostly adds letters, so two parsers can differ only on a character
-one of them doesn't know yet.
+character, and a later version mostly adds them, so two parsers differ only on a character one of
+them doesn't know yet, or on one whose category a later version changed, as Unicode 6.3 did for
+U+180E.
 
 `^` and `$` are refused outside a class. RFC 9485 reads them as ordinary characters, so a
 writer who means an anchor would get a pattern that never matches. A pattern ends at the first
@@ -394,9 +399,11 @@ its last written digit away from what is written, and otherwise it loses them. T
 rounding rule, so `1.0000076293945313`, stored as exactly 1.00000762939453125, keeps its digits on
 every parser. Binary64 can't hold `0.1` exactly, but `0.1` keeps its digits.
 `3.14159265358979323846` doesn't. A value of up to 15 significant digits always does if its
-magnitude is at least 2.2250738585072014e-308, but closer to 0 it may not: `1.234567890123e-320` is
-stored as about 1.23467e-320. A value too large to hold, or so small it would become 0, loses its
-digits too.
+magnitude is from 2.2250738585072014e-308 to 1.7976931348623157e308, but closer to 0 it may not:
+`1.234567890123e-320` is stored as about 1.23467e-320. A value too large to hold, or so small it
+would become 0, loses its digits too. Too large means it would round to infinity, as C's `strtod`
+reads it, so `1.79769313486231570815e308`, within half a unit of binary64's largest value, is that
+value and keeps its digits, and `1.8e308` is too large.
 
 An application can ask to accept rounding on the float types, because the digits may not matter to
 it. A value then takes the nearest one in the store its type names, the even one on a tie as IEEE 754
@@ -430,17 +437,25 @@ pi: !float
 
 Every parser holds integers from -2^63 to 2^64-1 at least, and past that it may refuse. An integer it
 can't hold refuses the document: it doesn't count as no match, so `!int | !float` can't round on one
-parser only, and `!int | !str` can't give text on one parser only.
+parser only, and `!int | !str` can't give text on one parser only. A limit on `!int` is tested first,
+on the number as written, so `!int(0..10) | !str` gives `1` followed by 29 zeros as text on every
+parser, whatever it holds. A float's store is tested before its limit instead (below), because the
+schema names the store, so it is the same on every parser.
 
 `!float32`, `!float64` and `!float128` name IEEE 754 binary32, binary64 and binary128, and `!float` is
 `!float64`. A value that wouldn't keep its digits in that store, by the rule above, refuses the
 document, and so does one too large for it. It doesn't count as no match. A limit is a rule about the
 data, and a store too small for a value isn't, so a number never becomes text because of how many digits
 it has. The store is tested before any limit, so `!float(0..1) | !str` refuses `1e999` too. Every parser
-gets the same answer, whatever it holds itself. A float type is a test: it delivers a number, and an
-application with that store can keep it without losing digits. So a file can be checked before it is
-used: the program that checks it refuses what the program that uses it would, and the second doesn't
-fail later, on the first long value.
+gets the same answer, whatever it holds itself. A float type is a test: it delivers the number written,
+and an application with that store can keep it without losing digits. So a file can be checked before
+it is used: the program that checks it refuses what the program that uses it would, and the second
+doesn't fail later, on the first long value.
+
+Unless rounding is accepted, a float type doesn't deliver what its store would hold, so `0.1` under
+`!float32` is 0.1, and not binary32's 0.100000001490116119384765625. A float keeps the sign of zero, as
+IEEE 754 does: `-0` is negative zero, and so is a negative value that becomes 0 when rounding is
+accepted.
 
 ```yaml refused
 --- &
@@ -558,11 +573,13 @@ Section 10 shows how to apply a pattern like this to every value in a document.
 
 ### 4.6 Precision and scale on `!decimal`
 
-`!decimal(38:10)` says what SQL's `NUMERIC(38,10)` says. The precision, 38, is how many digits a value
-may have in all, and the scale, 10, is how many of them may come after the point, so at most 28 come
-before it. The test is on the exact value, so `1.50` fits `!decimal(3:1)`, and `1e3` has 4 digits before
-the point. A value with more digits is no match, as one outside a limit is, and it is never rounded. The
-precision is at least 1, and the scale is no larger than it. A colon stands where SQL has a comma,
+`!decimal(38:10)` uses SQL's two figures, as `NUMERIC(38,10)` does. The precision, 38, is how many
+digits a value may have in all, and the scale, 10, is how many of them may come after the point, so at
+most 28 come before it. Unlike SQL, which stores a value at its scale, a value is delivered as written,
+neither padded nor rounded, so `1.5` under `!decimal(5:2)` is 1.5, not 1.50. The test is on the exact
+value, so `1.50` fits `!decimal(3:1)`, and `1e3` has 4 digits before the point. A value with more
+digits is no match, as one outside a limit is, and it is never rounded. The precision is at least 1,
+and the scale is no larger than it. A colon stands where SQL has a comma,
 because a comma would end the type in a flow collection (section 4.2). Section 15 gives another
 spelling.
 
@@ -730,8 +747,9 @@ document's order.
 
 A key ending in `?` is optional. It may be absent, or written with no value, which delivers
 null. A quoted key is always a literal key, so a key that ends in `?` or starts with `!` can
-be written. If a type names a key both ways, the later one wins, because a merge can't tell them
-apart.
+be written. A type can name one key two ways: `a` and `a?` in one mapping, or `why?` and `"why?"`
+through a merge, which takes them as one key (part 1, section 9.1). The later one wins, with its
+spelling and its value, though a merged key keeps its place.
 
 ```yaml
 --- &
@@ -768,6 +786,8 @@ job:
 
 A key that is a type takes every key it fits that isn't named, tried in the order written. A
 key stays a string, and how it was written doesn't count, so `!int` as a key takes `1` and `"1"`.
+A key that a type key can't hold refuses the document, as a value does (section 4.4), so under
+`!float` as a key, `3.14159265358979323846` is refused, not passed to the next key.
 
 ```yaml
 --- &
@@ -874,9 +894,9 @@ true
 
 `|` joins alternatives. The node's shape chooses first: a mapping looks among the mappings,
 and a sequence among the sequences. There is at most one sequence. Exactly one mapping must
-fit. A mapping fits by its own keys: it has the required keys and literal values, and no key it
-doesn't take. A choice never looks below those keys, and no alternative is tried by typing what is
-inside it, so typing never backtracks.
+fit. A mapping fits by its own keys: it has the required keys, the value of each key whose type is
+only literals, and no key it doesn't take. A choice never looks below those keys, and no alternative
+is tried by typing what is inside it, so typing never backtracks.
 
 ```yaml
 --- &
@@ -942,7 +962,8 @@ Inside `|`, a mapping must be named, since `: ` can't sit in a plain scalar, and
 must come last, since a plain scalar can't start with `[`.
 
 Each name counts once in a union, at its first place, so `!m | !m` is `!m`, and so is a union that
-reaches `m` by two paths. `!any` in a union takes a node no other alternative fits.
+reaches `m` by two paths. `!any` in a union is tried last, wherever it is written, so it takes a node
+no other alternative fits: `!any | !int` reads `3` as 3.
 
 ```yaml
 --- &
@@ -963,12 +984,16 @@ list: [!u, ...]
 ```
 
 A union holds at most 1,024 positions once its names are expanded. A type counts 1, a literal
-counts nothing, since a hash table finds it, and a pattern counts its characters and classes after
-nested counts multiply, so `(a{1000}){1000}` counts a million. A mapping's type keys count as one
-union, and a type on its own as a union of one. A schema past that is refused when it is loaded, by
-every parser, so all of them agree on what loads. Of 1,247 real patterns one goes past it, a
-case-insensitive list of names at 9,131 positions, and would have to be loosened. The next has 772,
-and no real union of patterns has more than 782.
+counts nothing, since a hash table finds it, and a type with a pattern counts its pattern instead. A
+pattern is counted as written. Each character, class, `.` and `\p{..}` counts 1, alternatives and
+groups add what they hold, and a count multiplies what it repeats: `{n}` and `{n,}` by n, `{n,m}` by
+m, and `*`, `+`, `?` and `{0,}` by 1. So `(a{1000}){1000}` counts a million, and
+`abc|abd` counts 6. A mapping's type keys count as one union, and so do the type keys of all the
+mapping alternatives in a union, since fitting tests a key against each of them. A type on its own
+is a union of one. A schema past that is refused when it is loaded, by every parser, so all of them
+agree on what loads. Of SchemaStore's 1,287 patterns, counted this way,
+one goes past it, a case-insensitive list of names at 11,831 positions, and would have to be loosened.
+The next has 772, and no real union of patterns has more than 782.
 
 A schema has a full size too, and it can't pass the size limit (part 1, section 10). Like a stream's,
 it is worked out by addition before anything is built. Each entry a schema reaches, and each place
@@ -1273,11 +1298,12 @@ type       ::= "!" name args?
 args       ::= "(" ((precision " ")? (range " ")? regex | (precision " ")? range | precision) ")"
 precision  ::= whole ":" whole, the first at least 1 and the second no larger than the first
 whole      ::= "0" | digit+ not starting with "0"
-range      ::= number? ".." number?
+range      ::= number ".." number? | ".." number, the first no larger than the second
 regex      ::= "/" pattern "/"
 number     ::= "-"? digit+ ("." digit+)? (("e" | "E") ("-" | "+")? digit+)?
 sequence   ::= "[]" | "[" expression ("," " "* expression)* ("," " "* "...")? "]"
-literal    ::= one or more characters, not starting with "!", "[", "{", '"' or "'", holding no " | "
+literal    ::= one or more characters, not starting with "!", "[", "{", '"', "'" or a space, not
+               ending with a space, holding no " | "
 name       ::= a table key, or a standard type, with no space, tab, "/", "(", ")", "[", "]", "," or "|"
 pattern    ::= I-Regexp, RFC 9485, holding no "/)"
 ```
@@ -1363,8 +1389,8 @@ depth does. Part 1, section 15, covers the data.
 - **Mapping alternatives.** A choice reads only a mapping's own keys, so a parser that holds events
   links each collection's start to its end and steps over what is inside. Scanning instead costs
   depth times size, which section 2 rules out.
-- **Patterns.** Matching takes time linear in the string, whichever engine does it, and section 9's
-  ceiling limits a pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
+- **Patterns.** Matching must take time linear in the string, and section 9's ceiling limits a
+  pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
   engine can't be used on a schema someone else wrote.
 - **`!**`.** A key is looked up in the mapping type at its place and in the nearest `!**`, and nowhere
   else, so nesting them adds nothing per key.
