@@ -158,6 +158,8 @@ scalar and the digits check on `!float`, with the three cost questions from `c42
 @oyl hasn't been told the Unicode minimum, the join rules or the required `---`, and needn't be yet.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
-user says otherwise, in `Outtake/covering-note.md`, which git ignores. Its list of what is essential is
+user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
+shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
+with the cut table and other details left to the long one. Its list of what is essential is
 the agent's draft: the user hasn't ruled on it. The talk is confirmed, and the org's schema language
 and plugin work bear on the ask and on part 2's name: see landscape.md, What the YAML org is doing now.
