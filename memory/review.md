@@ -1,6 +1,6 @@
 # Review of Draft 1
 
-*Updated 2026-11-08*
+*Updated 2026-11-11*
 
 @oyl reviewed Draft 1 at the user's request (2026-11-04, against `f9727d5`). Its view:
 strong, nothing changes the core design. The agent reran the probes marked **Checked**
@@ -516,3 +516,121 @@ whether one must as open.
 
 Checks after the fixes: part 1, 59 examples and 251 edge cases, 6 of 6 deliberate breaks caught; part 2,
 54 and 347, 95 of 95; real files still 3,418 of 4,651; JSON still 1,015 of 1,015 and 93 of 95.
+
+## Third independent review, of part 2 at `b0df6ea` (2026-11-11)
+
+A fresh agent read part 2 cold, read-only, without the notes, with extra attention on sections 4.2 to
+4.7, and ran both checkers. It found 14 issues, 6 of them silent, and no example with a wrong output. It
+recomputed every digit claim in section 4.4 and found them right. The agent reran every finding with
+neighbouring cases against `schemacheck.py`, and all 14 hold. Three needed correcting: 3, 4 and 8 below.
+**Open: the user's rulings.** "Recommend" is the agent's proposal.
+
+Silent: two careful readers deliver different data, and neither refuses.
+
+1. **What a float type delivers** (4.4). The text says "it delivers a number", not which. `!float32` on
+   `0.1` gives 0.1 in the checker, and 0.10000000149011612 with rounding accepted. `!float128` gives the
+   exact decimal. A reader who stores binary32 delivers 0.10000000149011612 without rounding. The review
+   proposed delivering the stored value. That reverses the agent's earlier choice, which the user hasn't
+   ruled on (rules.md, "What the agent chose in writing them"). Recommend: say it delivers the number as
+   written, and that the store promises only that an application with it can keep that number.
+2. **`!any` in a scalar union** (9). In the checker, `!any | !int` on `3` gives `"3"`, while `!int | !any`
+   gives 3. Against a mapping, `!any | !m` types by `m`, and so does a sequence. So `!any` comes last for
+   collections and in order for scalars. "Takes a node no other alternative fits" says last. Recommend:
+   last everywhere, and fix the checker.
+3. **A key spelt both ways through a merge** (7; part 1, 7.3). `base: {why?: !int}`, with `t` holding
+   `<<: *base`, `"why?": !str` and `!*: !int`:
+   - The checker keeps the merged plain spelling, which is optional `why`. So `why?: 5` goes to `!*` and
+     gives 5, and `{}` is accepted.
+   - "The later one wins" gives a required `why?` of `!str`, so `"5"`, and `{}` is refused.
+   - The reverse case, merged quoted and local plain, splits too: the checker gives `"5"` where the text
+     gives 5.
+
+   Correction: this isn't only a checker bug. Part 1's "replaces the value in place" supports the
+   checker. `a` and `a?` in one mapping already go to the later one (decided after @oyl's review above),
+   and the checker does that. Recommend: the later key's spelling and value win, part 1 keeps its
+   position, and the sentence names both pairs.
+4. **A published file's last entry** (3.1). Take a file with `--- &` holding `a: !int` and `b: !str`,
+   then a second `--- &` holding `a: !bool`. Read by table order, the root is `b`, and the checker does
+   that. Read by the last key written, it is `a`. Correction: a `...` after the table is also accepted,
+   with the entries before it, though part 1 says `...` empties the table. Recommend: exactly one
+   `--- &` and nothing after it. This doesn't touch the open point on the last entry as the root.
+5. **`!date` and `!datetime`** (4.1). The checker refuses second `60`, year `0000` and a space for `T`
+   (Python's `fromisoformat`). RFC 3339's ABNF allows the first two, and its section 5.6 allows the
+   third as an option. So `!datetime | !str` gives text on one reader and a date on another. The text
+   doesn't say whether a value keeps its offset and every fraction digit. The checker delivers the text,
+   so it keeps them. Recommend: the ABNF of RFC 3339 section 5.6 with 5.7's day limits, `T` or `t` only,
+   and a value keeps its offset and fraction digits. An application that can't hold one refuses it, as
+   with integers.
+6. **`!binary`** (4.1). The checker accepts `aGl=`, whose pad bits aren't zero, which RFC 4648 section
+   3.5 lets a decoder refuse. It refuses `aGk` (no padding) and a CR from `"\r\n"`, and other decoders
+   accept them. Recommend: canonical base64 only (padding required, pad bits zero), with only LF
+   skipped.
+7. **`!float`'s spelling** (4.1). It is given in words, and `1E5`, `1e+5` and `1e05` are left open. The
+   checker accepts all three. Recommend: give JSON's number grammar,
+   `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, which the checker already uses.
+
+Cost, and wording:
+
+8. **A decimal's scale** (4.6). Correction: the text already answers what is delivered. Section 4.4
+   says the digits are kept as written, and the example delivers `1.50`. The checker gives `1.500` for
+   `1.500` under `5:2`. What is wrong is "says what SQL's `NUMERIC(38,10)` says", because SQL stores at
+   the scale and rounds. Recommend: "uses SQL's two figures", and say that a value isn't padded or
+   rounded to the scale.
+9. **A pattern's count** (9). There is no count for `*`, `+`, `?` or `{n,}`, and it isn't said whether
+   the type adds 1. The checker counts Python's optimized parse, not the written pattern:
+   - 1,100 one-character alternatives count 1 and load, where the text counts 1,100 and refuses them;
+   - `abc|abd` counts 3, not 6, and `a|b|c` counts 1.
+
+   Recommend: count the written pattern, with each quantifier's count stated (the checker's
+   `max(n, 1)` for `{n,}`, 1 for `*`, `+` and `?`), and a type with a pattern counts only its pattern.
+10. **A key under a union of mappings** (9, 16). Each alternative counts 1, and each one's type keys
+    count separately. Yet fitting tests every data key against every alternative's type keys. 40
+    alternatives, each with a type key of 1,000 positions, load, so a key costs 40,000 per character,
+    and up to about a million. Section 16 says the ceiling fixes the cost per character. Recommend:
+    count all the type keys of a union's mapping alternatives as one union.
+11. **Big integers in linear time** (4.4, 2). CPython's `int()` took 0.036, 0.107 and 0.335 s on 200k,
+    400k and 800k digits, about n^1.6. A 64 MiB `!int` would take minutes. A parser may already refuse
+    past 2^64-1, so this binds only a parser that holds more. Recommend: such a parser may keep the
+    digits unconverted, or refuse past a digit count of its own. Either way the refusal is loud.
+12. **The checker isn't I-Regexp** (4.3, 16). Its `.` matches CR: `!str(/a.b/): !int` with `!*: !str`
+    gives 1 for key `"a\rb"`, and the text gives `"1"`, since RFC 9485 section 5.3 maps `.` to `[^\n\r]`.
+    It accepts `a{,3}`, `a{`, `\x41` and `A`, crashes on `\p{L}`, and backtracks: `(x+){1024}`
+    loads. These are checker bugs. Section 16's "linear ... whichever engine does it" contradicts its
+    next sentence. Recommend: "must take time linear in the string".
+13. **Unicode versions** (4.3). "Differ only on a character one of them doesn't know yet" claims too
+    much: an assigned character's General_Category can change. U+180E went from Zs to Cf in Unicode 6.3
+    (from the release notes, not rerun here). Recommend: "or one whose category a later version
+    changed".
+
+Loud only: one reader refuses.
+
+14. - **An integer limit against holding** (4.4). `!int(0..10) | !str` on 10^29: the checker gives the
+      text, and a 64-bit reader that tests holding first refuses. Recommend: for `!int`, test the limit,
+      on the written number, before holding.
+    - **"Too large" for a float** (4.4). `1.79769313486231570815e308` is above binary64's largest value
+      and within half a unit of it. The checker delivers the largest value, and "larger than the
+      largest" refuses it. The 15-digit sentence needs an upper bound too, since `2e308` doesn't keep
+      its digits. Recommend: too large means it rounds to infinity, as `strtod` reads it.
+    - **The sign of zero** (4.4). It isn't stated. The checker gives -0.0 for `-0`, and +0.0 for `-1e-400`
+      with rounding, where IEEE 754 gives -0.0 (a checker bug). Recommend: a float keeps the sign of
+      zero.
+    - **A type key that can't hold its key** (7, 4.4). `{!float: !int, !*: !str}` on key
+      `3.14159265358979323846` is refused by the checker. "A key stays a string" suggests no match.
+      Recommend: refuse, as a value does.
+    - **The grammar** (14). It allows `!int(..)` and `!int(5..1)`, which the checker refuses. A second
+      space, as in `a |  !int | !str`, gives a literal `" !int"` by the grammar. The checker trims it, so
+      `5` gives 5 there, and `"5"` by the grammar, which makes this one silent. Recommend: a range has at
+      least one end and its low end is no higher than its high end; a part can't start or end with a
+      space.
+    - **Checker bugs.** `!str(1..5 /[)]+/) | !int` is refused, because the checker counts parentheses
+      before a pattern. It treats `(/` in a literal as a pattern, so `a(/b | !int` is refused.
+    - **"Literal values" in a fit** (9). The checker tests a key's value only when every alternative is a
+      literal. So with `kind: circle | !int` in `circle`, `{kind: square, r: 1}` fits both and is
+      refused, while a reader that tests the literal picks `square`. Recommend: say "a value whose type
+      is only literals".
+    - **Which count a kept reference adds to** (11). "The node's own size counts against the limit" names
+      no count. Recommend: held.
+    - **Full size of `!**`** (9). The checker counts the `!**` key in `!**: !int` (3) but not in the rules
+      form (8, where the text gives 9). This is a checker bug.
+
+The probes are machine-local. Nothing has changed in the spec or the checkers yet.
