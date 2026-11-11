@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-08*
+*Updated 2026-11-11*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -142,11 +142,30 @@ libyaml 0.2.5, events 3.7 to 8.3 times as fast at `077a031`, read and written ag
 against `yaml_parser_load` 4.1 to 7 at `207d43b`; against Oyl, events, 0.94 to 1.22 at `1758ec9`. Its own
 caveat: the figures don't isolate the language. Most of the gap over libyaml is engineering Oyl has too
 (SSE2 scans, fast paths), and against Oyl it is about even, while also refusing repeated keys and
-applying section 10's limit. The event parser holds nothing measurable beyond the input (`b1a354a`);
-trees' memory isn't measured. The user had expected it to beat 1.x parsers on speed, given the
-simplifications; speed and size on real files, which would first need converting to 2.0, are still to
-measure. The agent suggested the 1.2-to-2.0 converter sit in Oyl beside
-`oyl_upgrade`; not decided.
+applying section 10's limit. The event parser holds nothing measurable beyond the input (`b1a354a`).
+The user had expected it to beat 1.x parsers on speed, given the simplifications. The agent suggested
+the 1.2-to-2.0 converter sit in Oyl beside `oyl_upgrade`; not decided.
+
+**Real files (2026-11-11).** The user asked Oyl NG to follow up with real files, and its agent's figures,
+at `1591e05`, are in `mail/received/20261111-200634Z-@oylng--speed-and-size-on-real-files-2ea21726.md`.
+The sample was the 4,651 public files, with `%YAML 2.0` added, `---` where needed and any BOM dropped,
+which added 0.37% to their size. libyaml refuses 487 of them. Of the other 4,164, the engine reads 3,409
+as written (3,388 of them give exactly libyaml's events) and refuses 755 for what 2.0 cut. The speed
+figures cover only the 3,409:
+- against libyaml, events are 4.1 times as fast (3.3 to 5.4 by kind) and trees 4.5 (3.9 to 6);
+- against Oyl at `e6e38b5`, events are 0.92 (0.77 to 1.17 by kind) and trees 0.95. Before
+  `1591e05` they were 0.77 and 0.83; that commit scans plain values 16 bytes at a time with SSE2, as Oyl
+  does.
+
+Peak heap: events take a fixed 15 KB (Oyl 28 KB, libyaml 69 KB). Trees take 1.6 bytes per input byte
+from 16 KB up (Oyl 2.05, libyaml 9.2). The same caveat holds: the figures don't isolate the language, and
+no file is over 200 KB. **Cross-check, the same day:** `draftcheck.py` also reads 3,409 of the 4,164
+(3,418 of 4,651). Where its messages name the same rule, its first-refusal counts match: tags 160,
+repeated keys 57, `>` 42. It also reads 9 of libyaml's 487, all with a `%` or `@` placeholder starting a
+value (`tag: %%VERSION%%`), which section 13 allows. These are counts only. We asked @oylng for its list of
+files, to compare them file by file, and whether it reads the 9 (**Open**). The README's "Real files
+aren't measured yet", and the same line in both covering notes, are now out of date (**Open**: new
+wording is with the user).
 
 Oyl's notes are private. Read them in place, and bring only what the user has
 cleared into this repository, which is public.
