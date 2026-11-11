@@ -17,6 +17,11 @@ FLOWI = ',[]{}'
 sys.setrecursionlimit(20000)
 IND = ",[]{}#&*|>'\""
 NAME = re.compile('[A-Za-z0-9._/\\-\u00b7\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u037d\u037f-\u1fff\u200c-\u200d\u203f-\u2040\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufefe\uff00-\ufffd\U00010000-\U000effff]')
+def put(d, k, v):
+    """A key replaced by a later one keeps its place, and takes the later one's spelling (part 2, section 7)."""
+    if k in d:
+        items = [(k if j == k else j, w) for j, w in d.items()]; d.clear(); d.update(items)
+    d[k] = v
 class L(list):
     """A sequence that keeps references: `-<<` adds to more and deep, and no items."""
     more = 0; deep = 0
@@ -262,14 +267,14 @@ class P:
                 s.saved += s.nsize(src) - 2
                 for k, v in src.items():
                     if k in out: x += s.nsize(k) + s.nsize(out[k])
-                    out[k] = v
+                    put(out, k, v)
             else:
                 if not s.is_map(): s.bad('expected a key')
                 k = s.key(); s.colon()
                 if k in written: s.bad('duplicate key')
                 written.add(k); started = True
                 if k in out: x += s.nsize(k) + s.nsize(out[k])
-                out[k] = s.value(m, True)
+                put(out, k, s.value(m, True))
             s.gap()
         s.leave(); return s.counted(out, x)
     def key(s):
@@ -446,7 +451,7 @@ class P:
                 s.saved += s.nsize(src) - 2
                 for k, v in src.items():
                     if k in o: x += s.nsize(k) + s.nsize(o[k])
-                    o[k] = v
+                    put(o, k, v)
             else:
                 q = s.ch() in ('"', "'")
                 k = s.double() if s.ch() == '"' else s.single() if q else s.plain(True)
@@ -457,7 +462,7 @@ class P:
                 if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
                 w.add(k); started = True; s.fs()
                 if k in o: x += s.nsize(k) + s.nsize(o[k])
-                o[k] = '' if s.ch() in (',', '}') else s.fnode()
+                put(o, k, '' if s.ch() in (',', '}') else s.fnode())
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
             elif s.ch() != '}': s.bad('expected , or }')

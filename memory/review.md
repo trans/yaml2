@@ -523,7 +523,37 @@ A fresh agent read part 2 cold, read-only, without the notes, with extra attenti
 4.7, and ran both checkers. It found 14 issues, 6 of them silent, and no example with a wrong output. It
 recomputed every digit claim in section 4.4 and found them right. The agent reran every finding with
 neighbouring cases against `schemacheck.py`, and all 14 hold. Three needed correcting: 3, 4 and 8 below.
-**Open: the user's rulings.** "Recommend" is the agent's proposal.
+"Recommend" is the agent's proposal.
+
+**Ruled by the user (2026-11-11):** "go with you recommendations, but if there any you are not quite as sure
+about we can review those." **Applied in `bc5491f`**, with the checkers: 1 to 4, 6 to 10, 12, 13, and every
+point in 14 but the count for kept references. **Held for review with the user (Open):**
+- **5, dates.** RFC 3339 allows second 60, year 0000 and any number of fraction digits, and common libraries
+  can't hold them. Python's `datetime` keeps microseconds, so under "keeps every fraction digit" a .NET
+  timestamp, `2001-02-03T04:05:06.1234567Z`, refuses in a Python program. The choice: follow the RFC, and
+  some programs refuse; or a narrower grammar that every library holds, which then refuses some valid RFC
+  3339 values.
+- **11, big integers.** The options: the parser delivers the digits unconverted and the application converts;
+  each parser refuses past a count it states, which is loud but differs between parsers; or a fixed maximum in
+  the spec, the same everywhere.
+- **14, the count a kept reference adds to.** It is section 15's open point, "Typing under kept references",
+  which hasn't been built. The agent doesn't know which count the sentence meant.
+
+Also done while applying them:
+- the checker now reads `\p{..}` from Python's Unicode 16, through RFC 9485's grammar;
+- section 9's figures were recounted the new way on SchemaStore at `1e82d8a` (2026-11-11). Of 1,287 patterns,
+  one is still past 1,024, now at 11,831 rather than 9,131. The next is still 772, and the largest union of
+  patterns is still 782.
+- On the two real schemas, no union of mappings has a type key, so finding 10's rule costs them nothing.
+
+Checks after the fixes:
+- part 1: 59 examples and 356 tests, after the merge change in `draftcheck.py`;
+- part 2: 64 examples and 698 edge cases, 77 of them new;
+- the workflow schema against its JSON Schema: 396 of 398 public files, as before;
+- Compose: 308 of 311, as before.
+
+Not rerun: the deliberate breaks, whose patches name lines that changed, and the JSON checks, since nothing
+they use changed.
 
 Silent: two careful readers deliver different data, and neither refuses.
 
@@ -633,4 +663,4 @@ Loud only: one reader refuses.
     - **Full size of `!**`** (9). The checker counts the `!**` key in `!**: !int` (3) but not in the rules
       form (8, where the text gives 9). This is a checker bug.
 
-The probes are machine-local. Nothing has changed in the spec or the checkers yet.
+The probes are machine-local.

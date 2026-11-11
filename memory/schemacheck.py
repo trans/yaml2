@@ -5,7 +5,7 @@
 Reads every example with the grammar in draftcheck.py, types each document whose local name
 is in the table, and compares the result with the example's JSON. Then runs edge cases.
 """
-import base64, binascii, datetime, hashlib, json, os, re, re._parser, sys
+import base64, binascii, datetime, hashlib, json, os, re, sys, unicodedata
 from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 here = os.path.dirname(os.path.abspath(__file__))
@@ -71,32 +71,142 @@ READDEC = r'[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][-+]?[0-9]+)?'
 DATE = r'[0-9]{4}-[0-9]{2}-[0-9]{2}'
 DATETIME = DATE + r'[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([Zz]|[-+][0-9]{2}:[0-9]{2})'
 
+TYPENAME = re.compile(r'(?:^|[ \[,])![^ \t()\[\],|/]+$')
+def args_end(text, i):
+    """Where a type's parentheses, opened at i, end: at the first `/)` once a pattern starts, else at `)`."""
+    k = i + 1
+    while k < len(text) and text[k] not in '/)': k += 1
+    if k >= len(text): raise SchemaError(f'unclosed parentheses: {text}')
+    if text[k] == ')': return k + 1
+    e = text.find('/)', k + 1)
+    if e < 0: raise SchemaError(f'unclosed pattern: {text}')
+    return e + 2
 def split(text, sep):
+    """Split at sep outside brackets and outside a type's parentheses. A `(` elsewhere is literal text."""
     parts, depth, i, b = [], 0, 0, 0
     while i < len(text):
-        if text.startswith('(/', i):
-            e = text.find('/)', i + 2)
-            if e < 0: raise SchemaError(f'unclosed pattern: {text}')
-            i = e + 2; continue
         c = text[i]
-        depth += c in '[('; depth -= c in '])'
+        if c == '(' and TYPENAME.search(text, 0, i): i = args_end(text, i); continue
+        depth += c == '['; depth -= c == ']'
         if depth == 0 and text.startswith(sep, i):
             parts.append(text[b:i]); i += len(sep); b = i; continue
         i += 1
     return parts + [text[b:]]
+CATS = re.compile(r'L[lmotu]?|M[cen]?|N[dlo]?|P[cdefios]?|Z[lps]?|S[ckmo]?|C[cfno]?')
+RUNS = {}
+def runs(name):
+    """The code point ranges of a general category, from this Python's Unicode (16 on 3.14)."""
+    if not RUNS:
+        cur = None
+        for c in range(0x110000):
+            g = unicodedata.category(chr(c))
+            if cur and cur[0] == g and cur[2] == c - 1: cur[2] = c
+            else:
+                cur = [g, c, c]; RUNS.setdefault(g, []).append(cur)
+    rs = sorted(r[1:] for g, v in RUNS.items() if g == name or (len(name) == 1 and g[0] == name) for r in v)
+    out = []
+    for lo, hi in rs:
+        if out and out[-1][1] == lo - 1: out[-1][1] = hi
+        else: out.append([lo, hi])
+    return out
+def catclass(name, neg=False):
+    rs = runs(name)
+    if neg:
+        comp, at = [], 0
+        for lo, hi in rs:
+            if lo > at: comp.append([at, lo - 1])
+            at = hi + 1
+        if at <= 0x10FFFF: comp.append([at, 0x10FFFF])
+        rs = comp
+    return ''.join(f'\\U{lo:08x}' + (f'-\\U{hi:08x}' if hi > lo else '') for lo, hi in rs)
+class Pat:
+    """A compiled pattern, with its count as written (section 9)."""
+    def __init__(s, rx, count, written): s.rx, s.count, s.written = rx, count, written
+    def fullmatch(s, t): return s.rx.fullmatch(t)
+SINGLE = '()*+-.?[\\]^nrt{|}'
+def iregexp(p, whole):
+    """RFC 9485, section 3. Returns the same pattern for Python, and its count."""
+    i, n = 0, len(p)
+    def bad(why='not I-Regexp'): raise SchemaError(f'{why}: {whole}')
+    def esc():
+        nonlocal i
+        c = p[i + 1:i + 2]
+        if c in ('p', 'P'):
+            m = re.match(r'\\[pP]\{([A-Za-z]*)\}', p[i:])
+            if not m or not CATS.fullmatch(m[1]): bad()
+            i += len(m[0]); return ('cat', m[1], c == 'P')
+        if c and c in SINGLE: i += 2; return ('ch', '\\' + c)
+        bad()
+    def regexp():
+        nonlocal i
+        src, cnt = branch()
+        while i < n and p[i] == '|':
+            i += 1; s2, c2 = branch(); src += '|' + s2; cnt += c2
+        return src, cnt
+    def branch():
+        nonlocal i
+        src, cnt = '', 0
+        while i < n and p[i] not in '|)':
+            s, c = atom(); q, k = quant(); src += s + q; cnt += c * k
+        return src, cnt
+    def atom():
+        nonlocal i
+        ch = p[i]
+        if ch == '(':
+            i += 1; s, c = regexp()
+            if i >= n or p[i] != ')': bad()
+            i += 1; return '(?:' + s + ')', c
+        if ch == '.': i += 1; return '[^\\n\\r]', 1
+        if ch == '[': return cls(), 1
+        if ch == '\\':
+            e = esc()
+            return (('[^' if e[2] else '[') + catclass(e[1]) + ']', 1) if e[0] == 'cat' else (e[1], 1)
+        if ch in '^$': bad(f'{ch} outside a class')
+        if ch in '*+?{}]': bad()
+        i += 1; return re.escape(ch), 1
+    def quant():
+        nonlocal i
+        if i < n and p[i] in '*+?': i += 1; return p[i - 1], 1
+        if i < n and p[i] == '{':
+            m = re.match(r'\{([0-9]+)(,([0-9]*))?\}', p[i:])
+            if not m: bad()
+            i += len(m[0]); lo = int(m[1]); hi = lo if m[2] is None else int(m[3]) if m[3] else None
+            if hi is not None and hi < lo: bad()
+            return m[0], max(lo, 1) if hi is None else hi
+        return '', 1
+    def one():
+        nonlocal i
+        ch = p[i]
+        if ch == '\\':
+            e = esc()
+            return e if e[0] == 'cat' else ('ch', e[1])
+        if ch in '[]-': bad()
+        i += 1; return ('ch', re.escape(ch))
+    def cls():
+        nonlocal i
+        i += 1; neg = p[i:i + 1] == '^'; i += neg; parts = []
+        if p[i:i + 1] == '-': parts.append('\\-'); i += 1
+        while True:
+            if i >= n: bad()
+            if p[i] == ']':
+                if not parts: bad()
+                i += 1; return ('[^' if neg else '[') + ''.join(parts) + ']'
+            if p[i] == '-' and p[i + 1:i + 2] == ']': parts.append('\\-'); i += 1; continue
+            a = one()
+            if a[0] == 'cat': parts.append(catclass(a[1], a[2])); continue
+            if p[i:i + 1] == '-' and p[i + 1:i + 2] not in (']', ''):
+                i += 1; b = one()
+                if b[0] == 'cat': bad()
+                parts.append(a[1] + '-' + b[1])
+            else: parts.append(a[1])
+    src, cnt = regexp()
+    if i != n: bad()
+    return src, cnt
 def pattern(p, whole):
-    cls = False; i = 0
-    while i < len(p):
-        c = p[i]
-        if c == '\\':
-            if p[i + 1:i + 2] in tuple('dDwWsSbBAZ123456789'): raise SchemaError(f'not I-Regexp: {whole}')
-            i += 2; continue
-        if c == '[': cls = True
-        elif c == ']': cls = False
-        elif not cls and c in '^$': raise SchemaError(f'{c} outside a class: {whole}')
-        elif not cls and p.startswith('(?', i): raise SchemaError(f'not I-Regexp: {whole}')
-        i += 1
-    return ('re', re.compile(p))
+    src, n = iregexp(p, whole)
+    try: rx = re.compile(src)
+    except re.error: raise SchemaError(f'not I-Regexp: {whole}')
+    return ('re', Pat(rx, n, p))
 RANGE = r'(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?\.\.(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?'
 PATTERNED = ('str', 'int', 'decimal', 'null', *FLOATS)
 def limit(text, name, whole):
@@ -151,7 +261,10 @@ def atom(p):
     if p.startswith('{'): raise SchemaError(f'a mapping in a union must be named: {p}')
     return ('lit', p)
 def parse(text):
-    alts = [atom(p.strip()) for p in split(text, ' | ')]
+    ps = split(text, ' | ')
+    for p in ps:
+        if p != p.strip(' '): raise SchemaError(f'a part starts or ends with a space: {text!r}')
+    alts = [atom(p.strip()) for p in ps]
     return alts[0] if len(alts) == 1 else ('alt', alts)
 def to_type(v):
     if isinstance(v, dict):
@@ -173,13 +286,15 @@ def to_type(v):
         return ('seq', [to_type(i) for i in items], rest)
     if isinstance(v, Quoted): return ('lit', str(v))
     return parse(v) if v else ('lit', '')
+class Rules(tuple):
+    """What a `!**` holds. A mapping of rules counts its keys in the full size."""
 def rule(x):
     """What `!**` holds: named keys, type keys, and in `!*` a type for every other scalar."""
     if isinstance(x, dict):
         t = to_type(x)
         if t[3] is not None: raise SchemaError('a `!**` holds no `!**`')
-        return (t[1], t[2], t[4])
-    return ({}, [], to_type(x))
+        r = Rules((t[1], t[2], t[4])); r.keys = True; return r
+    r = Rules(({}, [], to_type(x))); r.keys = False; return r
 def strip(v):
     if isinstance(v, dict): return {str(k): strip(x) for k, x in v.items()}
     if isinstance(v, list): return [strip(x) for x in v]
@@ -187,18 +302,6 @@ def strip(v):
 
 CEILING = 1024
 LIMIT = 64 * 2 ** 20
-def size(tree):
-    """Positions in a parsed pattern, after nested counts multiply."""
-    t = 0
-    for op, av in tree:
-        n = str(op)
-        if n in ('MAX_REPEAT', 'MIN_REPEAT'):
-            lo, hi, sub = av
-            t += max(lo if str(hi) == 'MAXREPEAT' else hi, 1) * size(sub)
-        elif n == 'SUBPATTERN': t += size(av[3])
-        elif n == 'BRANCH': t += sum(size(x) for x in av[1])
-        elif n != 'AT': t += 1
-    return t
 
 class Schema:
     def __init__(s, table, root, accept=False, limit=LIMIT):
@@ -216,11 +319,14 @@ class Schema:
         if t[0] == 'name' and t[1] in s.table:
             if t[1] not in s.fulls: s.fulls[t[1]] = s.full(s.get(t[1]))
             return 1 + s.fulls[t[1]]
-        if t[0] == 'name' and t[2] and t[2][:1] == '/': return size(re._parser.parse(t[2][1:-1]))
+        if t[0] == 'name' and t[2] is not None:
+            a = t[2] if isinstance(t[2], tuple) else limit(t[2], t[1], t[3])
+            return a[1].count if a[1] else 1
         if t[0] == 'lit': return 1
         if t[0] == 'map':
             n = 1 + len(t[1]) + len(t[2]) + (t[4] is not None)
-            return n + (len(t[3][0]) + len(t[3][1]) + (t[3][2] is not None) if t[3] else 0)
+            if t[3]: n += 1 + (len(t[3][0]) + len(t[3][1]) + (t[3][2] is not None) if t[3].keys else 0)
+            return n
         return 1
     def get(s, name):
         if name not in s.defs: s.defs[name] = to_type(s.table[name])
@@ -252,13 +358,15 @@ class Schema:
         n = 0
         for x in a:
             if x[0] == 'lit': continue
-            if x[0] == 'name' and x[2] and x[2][1]: n += size(re._parser.parse(x[2][1].pattern))
+            if x[0] == 'name' and x[2] and x[2][1]: n += x[2][1].count
             else: n += 1
         if n > CEILING: raise SchemaError(f'a union of {n} positions')
     def walk(s, t):
         if id(t) in s.seen: return
         s.seen.add(id(t)); s.place(t); a = s.alts(t)
         if sum(1 for x in a if x[0] == 'seq') > 1: raise SchemaError('more than one sequence alternative')
+        maps = [x for x in a if x[0] == 'map']
+        if len(maps) > 1: s.ceiling([y for x in maps for kt, _ in x[2] for y in s.alts(kt)])
         for x in a:
             if x[0] == 'seq':
                 for y in x[1] + ([x[2]] if x[2] else []): s.walk(y)
@@ -304,7 +412,7 @@ class Schema:
             if q: return s.one(q[0], v, path, scope)
             if anys: return strip(v)
             raise Bad(path, 'a sequence is not allowed here')
-        for x in a:
+        for x in [x for x in a if x not in anys] + anys:
             if x[0] not in ('lit', 'name'): continue
             try: return s.one(x, v, path, scope)
             except Bad: pass
@@ -382,12 +490,16 @@ class Schema:
                 # Section 4.4: a store too small for the value refuses the document, before any limit.
                 if v is None: raise Cant(f'{path or "/"}: {t[:40]} is too large for {name}')
                 if not s.accept and not keeps(d, name): raise Cant(f'{path or "/"}: {t[:40]} would lose digits in {name}')
-                if name == 'float128': out = v if s.accept else d
-                else: out = float(v) if s.accept and d != 0 else float(t)
+                if name == 'float128': out = (v if v or not d.is_signed() else Decimal('-0')) if s.accept else d
+                elif s.accept and d != 0: out = -0.0 if v == 0 and d.is_signed() else float(v)
+                else: out = float(t)
             elif name == 'decimal' and re.fullmatch(FLOAT, t): out = dec(t, path)
             elif name == 'date' and re.fullmatch(DATE, t): datetime.date.fromisoformat(t); out = t
             elif name == 'datetime' and re.fullmatch(DATETIME, t): datetime.datetime.fromisoformat(t.upper().replace('Z', '+00:00')); out = t
-            elif name == 'binary': t = t.replace('\n', ''); base64.b64decode(t.encode('ascii'), validate=True); out = t
+            elif name == 'binary':
+                t = t.replace('\n', '')
+                if base64.b64encode(base64.b64decode(t.encode('ascii'), validate=True)).decode() != t: raise ValueError
+                out = t
             else: raise ValueError
         except (ValueError, binascii.Error, UnicodeEncodeError): raise Bad(path, f'expected {name}, got {t[:40]!r}')
         if pat and name == 'str' and not pat.fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
@@ -403,8 +515,10 @@ def published(name, store, accept, limit=LIMIT):
     h = PUB.fullmatch(name)[1]; b = store.get(h)
     if b is None: raise Cant(f'{name}: the file is not to be had')
     if hashlib.sha256(b).hexdigest()[:40] != h: raise Cant(f'{name}: the file does not hash to its name')
-    r = read(b.decode('utf-8'))
-    if r.docs or not r.table: raise SchemaError(f'{name}: a published schema is a table and nothing else')
+    text = b.decode('utf-8'); r = read(text)
+    marks = re.findall(r'^(?:---|\.\.\.)(?=[ \t\n]|$).*', text, re.M)
+    if r.docs or not r.table or len(marks) != 1 or not marks[0].startswith('--- &'):
+        raise SchemaError(f'{name}: a published schema is one table and nothing else')
     return Schema(r.table, list(r.table)[-1], accept, limit)
 def typed(stream, app=None, accept=False, store=None, limit=LIMIT):
     """Type each stamped document by the file's table, others by the application's schema.
@@ -676,7 +790,7 @@ if __name__ == '__main__':
     for tp, v in morenot:
         try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
-    fulls = [('a: !str\n', 'a', 1), ('a: !int | x\n', 'a', 2), ('big: !int | !str\na: !big | x\n', 'a', 6), ('m:\n  x: !int\n  y?: !str\nu: !m | !int\n', 'u', 10), ('a: !str(/ab{3}/)\n', 'a', 4), ('a: !b | !b\nb: !int\n', 'a', 5), ('a: [!int, ...]\n', 'a', 2), ('a:\n  !**:\n    n: !int\n    !str(/x/): !int\n    !*: !str\n', 'a', 8), ('a:\n  n: !int\n  !*: !str\n', 'a', 5), ('a:\n  !**: !int\n', 'a', 3), ('a: !b\nb: !c\nc: !str\n', 'a', 6)]
+    fulls = [('a: !str\n', 'a', 1), ('a: !int | x\n', 'a', 2), ('big: !int | !str\na: !big | x\n', 'a', 6), ('m:\n  x: !int\n  y?: !str\nu: !m | !int\n', 'u', 10), ('a: !str(/ab{3}/)\n', 'a', 4), ('a: !b | !b\nb: !int\n', 'a', 5), ('a: [!int, ...]\n', 'a', 2), ('a:\n  !**:\n    n: !int\n    !str(/x/): !int\n    !*: !str\n', 'a', 9), ('a:\n  n: !int\n  !*: !str\n', 'a', 5), ('a:\n  !**: !int\n', 'a', 3), ('a: !b\nb: !c\nc: !str\n', 'a', 6)]
     for t, root, n in fulls:
         tb = read('%YAML 2.0\n--- &\n' + t).table
         try:
@@ -699,5 +813,56 @@ if __name__ == '__main__':
     for v in emptyseq:
         try: typed(f'%YAML 2.0\n--- &\nu: !int | []\n--- !u\n{v}\n'); f += 1; print('NOT REFUSED', v)
         except REFUSED: pass
-    print(f'edge cases: {alias + len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope)} run, {f} fail')
+    # The third review (2026-11-11): each point as the text now says it.
+    third = 0
+    T3 = '--- &\nbase: {why?: !int}\nt:\n  <<: *base\n  "why?": !str\n  !*: !int\n'
+    T3b = '--- &\nbase: {"why?": !int}\nt:\n  <<: *base\n  why?: !str\n  !*: !int\n'
+    C3 = '--- &\ncircle:\n  kind: circle | !int\n  r: !int\nsquare:\n  kind: square\n  r: !int\nshape: !circle | !square\n'
+    alts = '|'.join(chr(0x4E00 + i) for i in range(1100))
+    def maps3(w): return f'm1:\n  !str(/a{{{w}}}/): !str\nm2:\n  !str(/b{{{w}}}/): !str\nu: !m1 | !m2\n'
+    goods3 = [('--- &\nn: !any | !int\n--- !n\n3\n', 3), ('--- &\nn: !any | !int\n--- !n\nabc\n', 'abc'), ('--- &\nn: !any | x\n--- !n\nx\n', 'x'),
+              (T3 + '--- !t\nwhy?: 5\n', {'why?': '5'}), (T3b + '--- !t\nwhy?: 5\n', {'why?': 5}), (T3b + '--- !t\n{}\n', {}),
+              ('--- &\nt:\n  a: !int\n  a?: !str\n--- !t\n{}\n', {}), ('--- &\nn: !binary\n--- !n\naGk=\n', 'aGk='), ('--- &\nn: !binary\n--- !n\n""\n', ''),
+              ('--- &\nn: !float | !str\n--- !n\n1E5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1e+5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1.79769313486231570815e308\n', 1.7976931348623157e308),
+              ('--- &\nn: !decimal(5:2)\n--- !n\n1.500\n', Decimal('1.500')), ('--- &\nn: !int(0..10) | !str\n--- !n\n1' + '0' * 29 + '\n', '1' + '0' * 29),
+              ('--- &\nm:\n  !str(/a.b/): !int\n  !*: !str\n--- !m\n"a\\rb": 1\n', {'a\rb': '1'}), ('--- &\nm:\n  !str(/a.b/): !int\n  !*: !str\n--- !m\naxb: 1\n', {'axb': 1}),
+              ('--- &\nn: !str(/\\p{Lu}[a-z]*/) | !int\n--- !n\nAbc\n', 'Abc'), ('--- &\nn: !str(/[\\p{L}\\p{Nd}]+/)\n--- !n\nÀ1\n', 'À1'), ('--- &\nn: !str(/\\P{L}+/) | !str\n--- !n\n12\n', '12'),
+              ('--- &\nn: !str(/[-a]+/)\n--- !n\na-a\n', 'a-a'), ('--- &\nn: !str(/[a-]+/)\n--- !n\n-a\n', '-a'), ('--- &\nn: !str(/\\.\\{\\}/)\n--- !n\n".{}"\n', '.{}'),
+              ('--- &\nn: !str(1..5 /[)]+/) | !int\n--- !n\n")))"\n', ')))'), ('--- &\nn: a(/b | !int\n--- !n\na(/b\n', 'a(/b'), ('--- &\nn: f(x) | !int\n--- !n\nf(x)\n', 'f(x)'),
+              (C3.replace('circle | !int', 'circle') + '--- !shape\n{kind: square, r: 1}\n', {'kind': 'square', 'r': 1})]
+    for s3, w in goods3:
+        try: got = typed(s3)[0]; third += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(s3), got)
+        except REFUSED as e: third += 1; print('REFUSED', repr(s3), e)
+    bads3 = [T3 + '--- !t\n{}\n', '--- &\nn: !binary | !int\n--- !n\naGl=\n', '--- &\nn: !binary\n--- !n\naGk\n', '--- &\nn: !binary\n--- !n\n"aGVs\\r\\nbG8="\n',
+             '--- &\nn: !float | !str\n--- !n\n1.8e308\n', '--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n3.14159265358979323846: 5\n', C3 + '--- !shape\n{kind: square, r: 1}\n',
+             '--- &\nn: !str(/\\p{Lu}/)\n--- !n\na\n']
+    for s3 in bads3:
+        try: typed(s3); third += 1; print('NOT REFUSED', repr(s3))
+        except REFUSED: pass
+    schemas3 = ['a: !int(..)', 'a: !int |  x', 'a: x  | !int', 'a: !str(/a{,3}/)', 'a: !str(/a{/)', 'a: !str(/a}/)', 'a: !str(/\\x41/)', 'a: !str(/\\u0041/)', 'a: !str(/a**/)',
+                'a: !str(/a{2}{3}/)', 'a: !str(/[a[b]/)', 'a: !str(/[]/)', 'a: !str(/[a-b-c]/)', 'a: !str(/a{3,2}/)', 'a: !str(/\\p{Xx}/)', 'a: !str(/\\p{Cs}/)', 'a: !str(/(?:a)/)',
+                'a: !str(/a)/)', 'a: !str(/(a/)', f'a: !str(/{alts}/)', 'a: !str(/x{1025,}/)', 'a: !str(/(a|b){513}/)', maps3(600)]
+    for s3 in schemas3:
+        try: typed('--- &\n' + s3 + '\n'); third += 1; print('SCHEMA NOT REFUSED', s3)
+        except REFUSED: pass
+    loads3 = ['a: !str(/x{1024,}/)', 'a: !str(/(a|b){512}/)', 'a: !str(/a{0}b/)', 'a: !str(/(|a)/)', maps3(500)]
+    for s3 in loads3:
+        try: typed('--- &\n' + s3 + '\n')
+        except REFUSED as e: third += 1; print('SCHEMA REFUSED', s3, e)
+    for pt, n3 in [('abc|abd', 6), ('a|b|c', 3), ('(a{1000}){1000}', 10 ** 6), ('[a-z]+x?', 2), ('\\p{L}.', 2), ('x{3,}', 3), ('x{0,}y*', 2)]:
+        if pattern(pt, pt)[1].count != n3: third += 1; print('COUNT', pt, pattern(pt, pt)[1].count, n3)
+    for s3, kw in [('--- &\nn: !float\n--- !n\n-0\n', {}), ('--- &\nn: !float\n--- !n\n-1e-400\n', {'accept': True}), ('--- &\nn: !float32\n--- !n\n-1e-60\n', {'accept': True})]:
+        z = typed(s3, **kw)[0]
+        if not (z == 0 and str(z) == '-0.0'): third += 1; print('SIGN OF ZERO', repr(s3), z)
+    if typed('--- &\nn: !float32\n--- !n\n0.1\n')[0] != 0.1: third += 1; print('FLOAT32 DELIVERS THE STORE')
+    def pub3(body):
+        b = ('%YAML 2.0\n' + body).encode(); h = hashlib.sha256(b).hexdigest()[:40]
+        return typed(f'--- !x.org/{h}.yes\ntrue\n', store={h: b})[0]
+    if pub3('--- &\na: !int\nb: !bool\n') is not True: third += 1; print('PUBLISHED ROOT')
+    for body3 in ('--- &\na: !int\nb: !str\n--- &\na: !bool\n', '--- &\na: !int\nb: !bool\n...\n', '--- &\na: !int\nb: !bool\n---\nx\n'):
+        try: pub3(body3); third += 1; print('PUBLISHED NOT REFUSED', repr(body3))
+        except REFUSED: pass
+    third_n = len(goods3) + len(bads3) + len(schemas3) + len(loads3) + 7 + 3 + 1 + 1 + 3
+    f += third
+    print(f'edge cases: {alias + len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

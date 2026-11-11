@@ -29,6 +29,10 @@ relaxed if 2.0 becomes the standard. It's in `9f6292f`. Files that read as writt
 both in `0ba3c31`. A schema's full size, which limits load, is in `558ba6f`, and the tags changes to part
 1, section 13.1, are in `a679bd6`. See [review.md](review.md).
 
+**Third independent review, of part 2 (2026-11-11).** A fresh agent found 14 issues, 6 of them silent. The
+user took the agent's recommendations, and they are applied in `bc5491f`. Three are held for review with the
+user: dates, big integers, and the count a kept reference adds to. See [review.md](review.md).
+
 **Independent review (2026-11-06).** Codex's seven findings are fixed in `ffe895c`, @oyl's three text
 changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `211757b`. See
 [review.md](review.md) and [rules.md](rules.md). Part 2 is now YAML Easy Schema (YES), in
@@ -162,9 +166,19 @@ from 16 KB up (Oyl 2.05, libyaml 9.2). The same caveat holds: the figures don't 
 no file is over 200 KB. **Cross-check, the same day:** `draftcheck.py` also reads 3,409 of the 4,164
 (3,418 of 4,651). Where its messages name the same rule, its first-refusal counts match: tags 160,
 repeated keys 57, `>` 42. It also reads 9 of libyaml's 487, all with a `%` or `@` placeholder starting a
-value (`tag: %%VERSION%%`), which section 13 allows. These are counts only. We asked @oylng for its list of
-files, to compare them file by file, and whether it reads the 9 (**Open**). The README now gives the
-real-file figures, at the user's go-ahead (**Done in `c1a436c`**), and so do both covering notes.
+value (`tag: %%VERSION%%`), which section 13 allows. **File by file** (@oylng's lists, in its notes'
+`real-files/`, `mail/received/20261111-233800Z-@oylng--real-files-the-lists-and-a-final-newline-ddb9104c.md`):
+the engine and the checker read the same 3,418 files and refuse the same 755, and the engine reads the 9 too.
+The README now gives the real-file figures, at the user's go-ahead (**Done in `c1a436c`**), and so do both
+covering notes.
+
+Of the 3,418, 21 don't give libyaml's events:
+- **17 end in a `|` scalar with no line break after its last line.** 2.0 gives `|` exactly one final newline
+  (the user's rule, 2026-11-04, in rules.md), and 1.2's clip gives none at the end of input, so the value is
+  one character longer in 2.0. That is intended. But section 13 lists only what was removed and added, not
+  this change, and a converter would have to write `|-` there (**Open**: a line for section 13 is with the user).
+- **4 hold only comments.** libyaml gives no document, and with `---` put in front, 2.0 gives one empty
+  document. That comes from the conversion, not the language.
 
 Oyl's notes are private. Read them in place, and bring only what the user has
 cleared into this repository, which is public.

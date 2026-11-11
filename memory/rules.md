@@ -1,6 +1,6 @@
 # The rules of YAML 2.0
 
-*Updated 2026-11-08*
+*Updated 2026-11-11*
 
 The design, rule by rule, as the user sets them. Keep the user's wording for
 each rule, and keep what the agent derived from it marked as such until the
@@ -824,3 +824,25 @@ to ignore this rule, so it needs a case in the test suite.
   outside ASCII. A CR LF counts as two, because the offset is into the stream as written. **In part 1,
   section 4.4, in `b44793d`;** the suite's `N7ZD` and `9JN7` fail an offset in characters or without the
   CRs.
+
+## From the third review (the user, 2026-11-11)
+
+The user took the agent's recommendations ("go with you recommendations"), keeping for review those the
+agent was less sure of. The findings and cases are in [review.md](review.md). **In part 2, in `bc5491f`:**
+- A float type delivers the number written. Without accepted rounding it doesn't deliver what its store
+  would hold, so `0.1` under `!float32` is 0.1. A float keeps the sign of zero. Too large means it would
+  round to infinity, as `strtod` reads it.
+- A limit on `!int` is tested before holding, on the number as written. A float's store is tested first
+  instead, since the schema names it and every parser tests the same store.
+- `!any` is tried last in a union, wherever it is written.
+- A key a type names two ways (`a` and `a?`, or `why?` and `"why?"` through a merge) takes the later spelling
+  and value, and a merged key keeps its place. A key that a type key can't hold refuses the document.
+- A published file is one `--- &` and nothing after it.
+- `!binary` is canonical base64: padded, with zero pad bits, and only LF skipped. `!float`'s spelling is
+  JSON's number.
+- A pattern is counted as written: `{n}` and `{n,}` by n, `{n,m}` by m, and `*`, `+`, `?` by 1. A type with
+  a pattern counts its pattern only. The type keys of all a union's mapping alternatives count as one union.
+- A fit tests the value of a key whose type is only literals. A limit keeps at least one end, low first. A
+  part of a union doesn't start or end with a space.
+- **Held for review (Open):** dates (RFC 3339's leap second, year 0000 and fraction digits), big integers in
+  linear time, and the count a kept reference adds to. See review.md.
