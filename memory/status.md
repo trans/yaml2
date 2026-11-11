@@ -132,13 +132,20 @@ measurements on real files. It is the obvious place to test ideas here.
 **The reference parser** (the user, 2026-11-04): a standalone 2.0 parser, not a dialect
 inside Oyl, applying what Oyl learned. It is **Oyl NG** (the user gave its name for use here on
 2026-11-09), a C11 library at https://github.com/trans/oylng (public, MIT), address `@oylng`.
-By its README it has the streaming event parser for part 1; a tree, an emitter and part 2 are to come.
-On 2026-11-09 the user called it "a working fast parser", and then "even faster now". Its own
-measurements at `1758ec9` (not yet pushed then): 3.8 to 8.1 times libyaml 0.2.5 on generated 8 MB
-inputs, and 0.94 to 1.22 times Oyl; nothing measurable beyond the input in memory. It passes the
-suite's 347 tests an event interface can run (the 9 others need `keep` or `together`). The user had
-expected it to beat 1.x parsers on speed, given the simplifications; size and speed on real files for
-the proposal are still to measure. The agent suggested the 1.2-to-2.0 converter sit in Oyl beside
+By its README (v0.1.0, `077a031`, 2026-11-09) it has the streaming event parser, the tree and the
+emitter for part 1; part 2 is to come. Its CI runs this suite pinned at `213471d`, and it passes the 347
+tests an event interface can run (the 9 others need `keep` or `together`). On 2026-11-09 the user called
+it "a working fast parser", and then "even faster now". Its speed figures, sent at the user's request
+(`mail/received/20261111-070212Z-@oylng--speed-figures-4a9a93ac.md`), are from its `make bench` on
+generated 8 MB inputs, as ratios, since absolute MB/s moved by up to 2x on the shared machine: against
+libyaml 0.2.5, events 3.7 to 8.3 times as fast at `077a031`, read and written again 2.9 to 4.6, trees
+against `yaml_parser_load` 4.1 to 7 at `207d43b`; against Oyl, events, 0.94 to 1.22 at `1758ec9`. Its own
+caveat: the figures don't isolate the language. Most of the gap over libyaml is engineering Oyl has too
+(SSE2 scans, fast paths), and against Oyl it is about even, while also refusing repeated keys and
+applying section 10's limit. The event parser holds nothing measurable beyond the input (`b1a354a`);
+trees' memory isn't measured. The user had expected it to beat 1.x parsers on speed, given the
+simplifications; speed and size on real files, which would first need converting to 2.0, are still to
+measure. The agent suggested the 1.2-to-2.0 converter sit in Oyl beside
 `oyl_upgrade`; not decided.
 
 Oyl's notes are private. Read them in place, and bring only what the user has
