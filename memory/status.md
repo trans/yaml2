@@ -163,9 +163,8 @@ no file is over 200 KB. **Cross-check, the same day:** `draftcheck.py` also read
 (3,418 of 4,651). Where its messages name the same rule, its first-refusal counts match: tags 160,
 repeated keys 57, `>` 42. It also reads 9 of libyaml's 487, all with a `%` or `@` placeholder starting a
 value (`tag: %%VERSION%%`), which section 13 allows. These are counts only. We asked @oylng for its list of
-files, to compare them file by file, and whether it reads the 9 (**Open**). The README's "Real files
-aren't measured yet", and the same line in both covering notes, are now out of date (**Open**: new
-wording is with the user).
+files, to compare them file by file, and whether it reads the 9 (**Open**). The README now gives the
+real-file figures, at the user's go-ahead (**Done in `c1a436c`**), and so do both covering notes.
 
 Oyl's notes are private. Read them in place, and bring only what the user has
 cleared into this repository, which is public.
