@@ -74,7 +74,9 @@ from 1.2, and section 13.1 what they cost.
   lists what is open.
 - **Test suite:** part 1's is in [`suite/`](suite/), 356 tests in yaml-test-suite's format, the draft's
   examples among them. Part 2's isn't written yet.
-- **Reference parser and converter:** not written yet.
+- **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser
+  for part 1 and passes the suite's tests for it. A tree, an emitter and part 2 are to come.
+- **Converter:** not written yet.
 
 ## Checking it
 
