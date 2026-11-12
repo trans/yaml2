@@ -1343,9 +1343,34 @@ b:
 {"a": {"child": {"x": 1}}, "b": {"child": {"x": "1"}}}
 ```
 
-Each time, the node's own size counts against the limit, and not what is below it. Without that
-memory, a chain of 28 references in 632 bytes takes 1.6 billion visits. A type changes no count in
-held or full (part 1, section 10).
+Without that memory, a chain of 28 references in 632 bytes takes 1.6 billion visits. With it, a node
+is still typed once for each type that reaches it, so the work can pass what held counts: a string of
+1 MB named by 1,000 references, each under a different type, is read 1,000 times. So typing keeps a
+third number, typed, beside held and full (part 1, section 10). Each time a node is typed, its own
+size is added to typed: what held counts for the node alone, which is 1 with a scalar's bytes or a
+mapping's keys, and not the values or items below it, which add their own when they are typed. Each
+type written in the schema is one type, and a name is its entry's, so `!job` in two places is one type
+and `!str` in two places is two. Typed counts the document being typed. An interface that keeps
+references applies the limit to typed as well as held. A type changes nothing in held or full.
+
+```yaml
+--- &
+s: abcdefgh
+one: [!str, ...]
+three: [!str(/a.*/), !str(/.*h/), !str(1..)]
+--- !one
+[*s, *s, *s]
+--- !three
+[*s, *s, *s]
+```
+
+```json
+["abcdefgh", "abcdefgh", "abcdefgh"]
+["abcdefgh", "abcdefgh", "abcdefgh"]
+```
+
+Under `one`, `s` is typed once, since `...` repeats one type, so typed is 10: 1 for the sequence and 9
+for `s`. Under `three` it is typed three times, so typed is 28. Each document's held is 4.
 
 A merge is the way to give a default. An author's default is a `<<` from a table entry: local keys
 win and missing ones fill in, visibly in the file, so the same bytes give the same data with or
@@ -1478,7 +1503,8 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
 - **The standard types.** The list is short so far, and it should be thorough: times and durations,
   and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
   later, as section 8 says.
-- **Typing under kept references.** Section 11's count hasn't been built or tried.
+- **Typing under kept references.** Section 11's typed count is built in a checker, but not yet in a
+  parser.
 - **Ways past a stamp.** Section 3 lets a library ignore a file's schema. Whether one must is open,
   since an application checking files it didn't write depends on it.
 - **`!null` and an empty value.** `!null` takes the plain `null` only, and `key?:` takes an
@@ -1522,7 +1548,7 @@ depth does. Part 1, section 15, covers the data.
   each data key against a type's keys, and `!name` in the table. A compiled schema shared between
   parsers needs a hash key of its own.
 - **References.** A walk through a chain of references doubles at each link, so section 11 types
-  each node once for each type and nearest `!**`.
+  each node once for each type and nearest `!**`, and counts each time in typed.
 - **Unions.** Names that repeat double at each level if read literally. Section 9 counts each name
   once, and its ceiling fixes how much a scalar can cost per character. A schema's full size, which
   counts a name every time, limits what loading it can cost.
