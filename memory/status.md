@@ -178,7 +178,10 @@ Of the 3,418, 21 don't give libyaml's events:
 - **17 end in a `|` scalar with no line break after its last line.** 2.0 gives `|` exactly one final newline
   (the user's rule, 2026-11-04, in rules.md), and 1.2's clip gives none at the end of input, so the value is
   one character longer in 2.0. That is intended. But section 13 lists only what was removed and added, not
-  this change, and a converter would have to write `|-` there (**Open**: a line for section 13 is with the user).
+  this change, and a converter would have to write `|-` there. The user told @oylng "ok do it" (2026-11-12,
+  `mail/received/20261112-052203Z-@oylng--a-line-in-section-13-for-the-final-newline-c9555dcf.md`), and the line,
+  covering `>` too, is **Done in main `0e2e6b3`**. Recounted here with PyYAML 6.0.3: of the 3,418, 536 have no final
+  line break, and 17 of those change under 1.2 when one is added, 13 of them workflows.
 - **4 hold only comments.** libyaml gives no document, and with `---` put in front, 2.0 gives one empty
   document. That comes from the conversion, not the language.
 
