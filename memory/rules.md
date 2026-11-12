@@ -850,5 +850,13 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   drops the rest silently; Node's `Date` keeps 3. Both read `-00:00` as UTC. The user asked whether an
   application could accept fewer fraction digits, as it can accept rounding on a float. Not yet in the spec
   or the checker, which still refuses second 60 and year 0000.
+- **Precision** (the user, 2026-11-11, **Open**). By default a valid date a library can't hold refuses the
+  document ("sounds right"). Accepting less precision, on dates and floats, "may need to be more than a
+  boolean flag, more like an acceptable level", and "starts to seem like a schema thing", with "an app
+  override of the schema?". Proposed to the user: the schema gives the level (`!datetime(3)`, as SQL's
+  `TIMESTAMP(3)`) and whether a value past it is fitted (`round`) or refused; an application may override
+  that only by naming a level, never "whatever my library holds".
+- **Further errors** (the user, 2026-11-11). A parser may go on to report further errors, and delivers
+  nothing past the first. Part 1 section 2, main `e6878c7`.
 - **Held for review (Open):** big integers in linear time, and the count a kept reference adds to. See
   review.md.
