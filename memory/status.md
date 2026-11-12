@@ -97,11 +97,10 @@ section 15 lists what is open. The user chose an answer to "wherever this occurs
 [rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
 scalar in a schema is always a literal, a reference is typed where it's used, `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
-every named type reachable from the root is checked. `schemacheck.py` tests the draft: 64
-examples and 621 edge cases pass, and breaking 152 rules on purpose fails it each time, though 6 of those
-only by a crash or a time-out, not a failing test. Not done yet: tests that catch those 6, `\p{..}` in
-patterns (the checker can't read it, though section 4.3 allows it), and the same for any older rules not
-covered. @oyl
+every named type reachable from the root is checked. `schemacheck.py` tests the draft: 71
+examples and 831 edge cases pass (2026-11-12). Breaking 152 rules on purpose failed it each time, though 6 of
+those only by a crash or a time-out, not a failing test. Not done yet: tests that catch those 6, and the same
+for any older rules not covered. `\p{..}` is read since the third review. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
 [review.md](review.md). The list of standard types stays open in section 15: the user
 judged on 2026-11-05 that the draft is far enough along for the core team to work out final details

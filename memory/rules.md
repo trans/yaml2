@@ -354,7 +354,8 @@ tests settled on, all proposals, left open for the core team:
   applies a schema afterwards, to strings, and doesn't show this. Every schema can see
   quotes: the agent proposed only a standard JSON reading, and the user said that "could
   never work". Instead part 2 needs a way to say "wherever this occurs, interpret it this
-  way", so a JSON reading is an ordinary small schema. **Open:** the form of that rule.
+  way", so a JSON reading is an ordinary small schema. The form of that rule: `!**` (part 2, section 10;
+  see "wherever this occurs" in status.md).
   Goal (the user, 2026-11-04): make JSON a subset; "It shouldn't take much." The schema
   covers types, and three language changes went into the draft for the syntax, see
   landscape.md, JSON against the draft. Section 13 now claims a subset once `%YAML 2.0` is
@@ -847,11 +848,10 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
 - A fit tests the value of a key whose type is only literals. A limit keeps at least one end, low first. A
   part of a union doesn't start or end with a space.
 - **Dates** (the user, 2026-11-11): "yes follow an RFC". `!date` and `!datetime` take RFC 3339's grammar.
-  **Open:** what a library does with a valid value it can't hold: second 60, year 0000, more fraction digits
-  than it keeps, or `-00:00` (offset unknown). Python 3.14's `fromisoformat` keeps 6 fraction digits and
+  What a library does with a valid value it can't hold (second 60, year 0000, more fraction digits than it
+  keeps) is answered under Precision below, in `6c74755`: it refuses the document. `-00:00` is still open. Python 3.14's `fromisoformat` keeps 6 fraction digits and
   drops the rest silently; Node's `Date` keeps 3. Both read `-00:00` as UTC. The user asked whether an
-  application could accept fewer fraction digits, as it can accept rounding on a float. Not yet in the spec
-  or the checker, which still refuses second 60 and year 0000.
+  application could accept fewer fraction digits, as it can accept rounding on a float.
 - **Precision** (the user, 2026-11-11). By default a valid date a library can't hold refuses the
   document ("sounds right"). Accepting less precision, on dates and floats, "may need to be more than a
   boolean flag, more like an acceptable level", and "starts to seem like a schema thing", with "an app
