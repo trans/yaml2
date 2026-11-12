@@ -900,6 +900,18 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   and compare a few times. A parser without binary128 refuses `!float128` values inside the limit only.
   **In main `b840c8f`,** with the checker in step (part 2: 71 examples, 831 edge cases; four order mutants
   and the six earlier ones fail).
+- **Floats simplified** (the user, 2026-11-12, through @oylng; **Open**, being worked out with the user).
+  @oylng, weighing part 2 in C, called `!float128` the hard one (C has no portable binary128, so one parser
+  refuses what another reads) and suggested dropping it. The user went further: "Just put !float, and the
+  lanuage reads it with as much precision as it can muster. We will be here for a year and a day trying to
+  wrestle the nuances of every know type imaginable." Also: "we are then trading in what an app might need
+  b/c a particular language can't support it in the parser", and a cutoff that returns the string makes "a
+  union of type the app has to deal with". This would undo the width names (`!float16` was added the same
+  day), `round`, "keeps its digits", and an application's `round` (section 3), and reverses "store sizes
+  stay" (2026-11-08). The agent's question for the user: binary64 everywhere, or each language's widest,
+  since C's `long double` reads `3.14159265358979323846` as 3.1415926535897932385 on x86, where binary64
+  gives 3.141592653589793; and `1e999`, which Python and JavaScript read as infinity
+  (`mail/received/20261112-233744Z-@oylng--floats-just-float-read-as-precisely-as-the-languag-63009b1d.md`).
 - **Published names** (the user, 2026-11-12). The user asked whether a name with no entry needed the
   last-entry rule "to even work" (it did), then asked to "fix our URI to a better standard", naming RFC
   6920's `ni`. The agent read RFC 6920: `ni:` can't be a 2.0 name (part 1 leaves out `:` and `;`), but its
