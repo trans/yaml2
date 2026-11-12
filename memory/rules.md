@@ -798,8 +798,14 @@ to ignore this rule, so it needs a case in the test suite.
   be `!float`; the agent offered `!float(64:52)` to match `38:10`. The user asked whether two sizes cover
   every float, and they don't: they describe a format only under IEEE 754's rules. E4M3 reaches 448, not
   240; some hardware has no subnormals; IBM's floats are base 16; double-double has no fixed precision. So
-  the user chose names. Whether to add `!float16` and `!bfloat16`, as C++23 names them, is open (part 2,
-  section 15). **In `bafa4ce`.**
+  the user chose names. **In `bafa4ce`.** `!float16` and `!bfloat16` (the user, 2026-11-12): "the way they
+  work is not important to us, only what numbers they can represent. if they differ in that way, then
+  yes." They do, and neither holds the other: binary16 holds every integer to 2048 and reaches 65504;
+  bfloat16 every integer only to 256, and reaches about 3.4e38. `257` keeps its digits in binary16 and
+  not bfloat16; `1e5` keeps them in bfloat16 and is too large for binary16; `1e-8` keeps them in bfloat16
+  and becomes 0 in binary16. Every parser works in both, since each value is exactly a binary32 value.
+  **In main `02b6acc`, with the checker in step** (part 2: 71 examples, 851 edge cases; seven mutants of the two
+  formats fail).
 - **What the agent chose in writing them, which the user hasn't ruled on.** A width is a test and delivers
   a number, not one rounded to its store, because a binary32 value widened to binary64 would read
   `0.10000000149011612`, not `0.1`. Accepted rounding goes to the nearest value in the named store. A parser without binary128 refuses any `!float128` value spelled as a number,
