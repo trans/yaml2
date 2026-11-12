@@ -230,7 +230,7 @@ fixes uses an application's schema instead.
 | `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)`, and one outside -2^63 to 2^64-1 refuses the document (section 4.4) | an integer |
 | `!bigint` | a plain scalar, spelled as `!int` is, of any size | that integer, as written (section 4.4) |
 | `!float`, `!float64` | a plain scalar: `-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, JSON's number, and one that binary64 can't keep refuses the document (section 4.4) | a number |
-| `!float32`, `!float128` | the same, in binary32 or binary128 | a number |
+| `!float16`, `!bfloat16`, `!float32`, `!float128` | the same, in binary16, bfloat16, binary32 or binary128 | a number |
 | `!decimal` | a plain scalar, spelled as `!float` is | that exact number |
 | `!bool` | a plain `true` or `false` | a boolean |
 | `!null` | a plain `null` | null |
@@ -501,8 +501,9 @@ id: !int | !str
 18446744073709551616
 ```
 
-`!float32`, `!float64` and `!float128` name IEEE 754 binary32, binary64 and binary128, and `!float` is
-`!float64`. A value that wouldn't keep its digits in that store, by the rule above, refuses the
+`!float16`, `!float32`, `!float64` and `!float128` name IEEE 754 binary16, binary32, binary64 and
+binary128. `!bfloat16` names bfloat16: binary32's exponents with 8 bits of precision, by IEEE 754's rules,
+subnormals included. `!float` is `!float64`. A value that wouldn't keep its digits in that store, by the rule above, refuses the
 document, and so does one too large for it. It doesn't count as no match. A limit is a rule about the
 data, and a store too small for a value isn't, so a number never becomes text because of how many digits
 it has. As with `!int`, a limit is tested first and the store only on a value inside it, so
@@ -534,11 +535,15 @@ n: !float | !str
 1e999
 ```
 
-These are names, not sizes, because formats of one size can hold different values: binary16 and
-bfloat16 are both 16 bits, with 11 and 8 bits of precision. Others shift the exponent's range, have no
-subnormals, or use base 10 or 16 (section 15).
+These are names, not sizes, because formats of one size can hold different values. Binary16 and
+bfloat16 are both 16 bits, and neither holds what the other does. Binary16 has 11 bits of precision, so
+it holds every integer up to 2048, and reaches 65504. Bfloat16 has 8, so it holds every integer only up
+to 256, and reaches about 3.4e38, as binary32 does. So `257` keeps its digits in binary16 and not in
+bfloat16, and `1e5` keeps them in bfloat16 and is too large for binary16. Other formats shift the
+exponent's range, have no subnormals, or use base 10 or 16 (section 15).
 
-Every parser works in binary32 and binary64. A parser that can't work in binary128 refuses any value
+Every parser works in binary16, bfloat16, binary32 and binary64. Each value of the first two is exactly
+a value of binary32, so they need no hardware of their own. A parser that can't work in binary128 refuses any value
 of `!float128` that is spelled as a number and inside its limit, even `0.1`, so that what it refuses
 doesn't depend on which values happen to fit.
 
@@ -1455,8 +1460,8 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   hexadecimal floats are base 16, and double-double, C's `long double` on older PowerPC Linux, has no
   fixed precision. A digit count, as Ada and Fortran have, describes no binary format exactly:
   `16777216` fits binary32 and `16777217` doesn't, with 8 digits each. C++23 names five: binary16,
-  binary32, binary64, binary128 and bfloat16. Whether to add `!float16` and `!bfloat16` is open, and
-  names can be added later, as section 8 says.
+  binary32, binary64, binary128 and bfloat16, and section 4.4 has all five. Which others to add is open,
+  and names can be added later, as section 8 says.
 - **Spelling precision and scale.** `!decimal(38:10)` follows SQL's `NUMERIC(38,10)`: the digits in all,
   then those after the point. SQL's comma can't stay (section 4.6). A picture would give the digits
   before and after the point, `!decimal(28.10)`, as COBOL's `PIC S9(28)V9(10)` does. That reads as a
