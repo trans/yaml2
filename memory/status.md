@@ -34,7 +34,7 @@ user took the agent's recommendations, and they are applied in `bc5491f`. Three 
 user. On dates the user chose RFC 3339's grammar (2026-11-11), and then precision in the schema: `round`, a
 date's level and an application's own, applied in main `6c74755`, with the checker in step. On big integers
 the user chose a fixed `!int` and a new `!bigint` (2026-11-12), in main `300f554`. The count a kept
-reference adds to is still held. See [rules.md](rules.md), "From the third review".
+reference adds to is now typed, a third number (2026-11-12, main `56210d7`). See [rules.md](rules.md), "From the third review".
 
 **Independent review (2026-11-06).** Codex's seven findings are fixed in `ffe895c`, @oyl's three text
 changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `211757b`. See

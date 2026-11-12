@@ -377,8 +377,13 @@ CEILING = 1024
 LIMIT = 64 * 2 ** 20
 
 class Schema:
-    def __init__(s, table, root, over=None, limit=LIMIT):
+    def __init__(s, table, root, over=None, limit=LIMIT, kept=False):
         s.table, s.defs, s.memo, s.seen, s.reached, s.over = table, {}, {}, set(), {root}, over or {}
+        # Section 11: an interface that keeps references types each node once for each type and nearest
+        # `!**`, and adds the node's own size to typed each time. The reader hands back the table's own
+        # object for a reference, so a shared node is one object here. CPython shares strings of one
+        # character, so two plain one-character scalars count as one node; no test relies on that.
+        s.kept, s.limit, s.count, s.done = kept, limit, 0, {}
         s.places, s.fulls = {}, {}
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
@@ -454,7 +459,27 @@ class Schema:
                     s.ceiling([y for kt, _ in x[3][1] for y in s.alts(kt)])
                     if x[3][2]: s.place(x[3][2])
                     if x[3][2] and any(y[0] not in ('lit', 'name') for y in s.alts(x[3][2])): raise SchemaError('a `!**` takes a scalar type, or a mapping of rules')
-    def check(s, v): return s.conv(s.root, v, '')
+    def check(s, v):
+        s.count, s.done = 0, {}  # Section 11: typed counts the document being typed.
+        return s.conv(s.root, v, '')
+    def own(s, v):
+        """A node's own size, as held counts it: 1, a scalar's bytes, or a mapping's keys. Not what is below."""
+        b = lambda x: 1 + len(str(x).encode('utf-8', 'surrogatepass'))
+        if isinstance(v, dict): return 1 + sum(b(k) for k in v)
+        return 1 if isinstance(v, list) else b(v)
+    def kind(s, t):
+        """Section 11: each type written in the schema is one type, and a name is its entry's."""
+        while t[0] == 'name' and t[1] in s.table and t[2] is None: t = s.get(t[1])
+        return id(t)
+    def typing(s, key, v, path, work):
+        """Once for each node, type and nearest `!**`, adding the node's own size to typed each time."""
+        if not s.kept: return work()
+        k = (id(v),) + key
+        if k in s.done: return s.done[k]
+        s.count += s.own(v)
+        if s.count > s.limit: raise No(f'{path or "/"}: typed passes the size limit')
+        out = s.done[k] = work()
+        return out
     def under(s, k, y, path, scope):
         """A key the mapping at this place doesn't name, under the nearest `!**`."""
         fields, rows, _ = scope; p = f'{path}/{k}'
@@ -463,15 +488,20 @@ class Schema:
             if opt and y == '' and not isinstance(y, Quoted): return None
             return s.conv(ft, y, p, scope)
         for kt, vt in rows:
-            try: s.conv(kt, str(k), path)
+            try: s.convert(kt, str(k), path)
             except Bad: continue
             return s.conv(vt, y, p, scope)
         return s.anywhere(y, p, scope)
     def anywhere(s, v, path, scope):
+        if not isinstance(v, (dict, list)) and scope[2]: return s.conv(scope[2], v, path, scope)
+        return s.typing(('**', id(scope)), v, path, lambda: s.below(v, path, scope))
+    def below(s, v, path, scope):
         if isinstance(v, dict): return {str(k): s.under(k, y, path, scope) for k, y in v.items()}
         if isinstance(v, list): return [s.anywhere(y, f'{path}/{i}', scope) for i, y in enumerate(v)]
-        return s.conv(scope[2], v, path, scope) if scope[2] else strip(v)
+        return strip(v)
     def conv(s, t, v, path, scope=None):
+        return s.typing((s.kind(t), id(scope)), v, path, lambda: s.convert(t, v, path, scope))
+    def convert(s, t, v, path, scope=None):
         a = s.alts(t)
         if len(a) == 1: return s.one(a[0], v, path, scope)
         anys = [x for x in a if x[0] == 'name' and x[1] == 'any']
@@ -501,7 +531,7 @@ class Schema:
         for k in v:
             if k in m[1]: continue
             for kt, _ in m[2]:
-                try: s.conv(kt, str(k), '')
+                try: s.convert(kt, str(k), '')
                 except Bad: continue
                 break
             else: return False
@@ -530,7 +560,7 @@ class Schema:
                 else: out[str(k)] = s.conv(ft, y, f'{path}/{k}', scope)
                 continue
             for kt, vt in x[2]:
-                try: s.conv(kt, str(k), path)
+                try: s.convert(kt, str(k), path)
                 except Bad: continue
                 out[str(k)] = s.conv(vt, y, f'{path}/{k}', scope); break
             else:
@@ -595,7 +625,7 @@ class Schema:
         return out
 
 PUB = re.compile(r'[^/]+(?:/[^/]+)*/([0-9a-f]{40})\.yes')
-def published(name, store, over, limit=LIMIT):
+def published(name, store, over, limit=LIMIT, keep=False):
     """Section 3.1. The store is what an application can get, by hash, from anywhere."""
     h = PUB.fullmatch(name)[1]; b = store.get(h)
     if b is None: raise Cant(f'{name}: the file is not to be had')
@@ -604,23 +634,24 @@ def published(name, store, over, limit=LIMIT):
     marks = re.findall(r'^(?:---|\.\.\.)(?=[ \t\n]|$).*', text, re.M)
     if r.docs or not r.table or len(marks) != 1 or not marks[0].startswith('--- &'):
         raise SchemaError(f'{name}: a published schema is one table and nothing else')
-    return Schema(r.table, list(r.table)[-1], over, limit)
-def typed(stream, app=None, accept=False, store=None, limit=LIMIT, override=None):
+    return Schema(r.table, list(r.table)[-1], over, limit, keep)
+def typed(stream, app=None, accept=False, store=None, limit=LIMIT, override=None, keep=False):
     """Type each stamped document by the file's table, others by the application's schema.
     With neither they stay strings. An application's schema is (schema text, root). A store
     means the application looks published names up. An override names levels (section 3), and
-    accept is an application naming round on every float type."""
+    accept is an application naming round on every float type. Keep types as an interface that keeps
+    references does, counting typed (section 11)."""
     r = read(stream); out = []; reached = {}; live = None
     over = overrides({**({n: 'round' for n in WIDTHS} if accept else {}), **(override or {})})
-    own = None if app is None else Schema(read(app[0]).table, app[1], over, limit)
+    own = None if app is None else Schema(read(app[0]).table, app[1], over, limit, keep)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
         if obj is not live: reached, live = {}, obj
         for k, e in reached.items():
             if table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
         if name and '/' not in name and name in table:
-            sc = Schema(table, name, over, limit); out.append(sc.check(v))
+            sc = Schema(table, name, over, limit, keep); out.append(sc.check(v))
             reached.update((k, table[k]) for k in sc.reached)
-        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, over, limit).check(v))
+        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, over, limit, keep).check(v))
         elif own: out.append(own.check(v))
         else: out.append(strip(v))
     if r.docs and r.table is live:
@@ -951,6 +982,44 @@ if __name__ == '__main__':
         except REFUSED: pass
     third_n = len(goods3) + len(bads3) + len(schemas3) + len(loads3) + 7 + 3 + 1 + 1 + 3
     f += third
+    # Section 11's typed count (2026-11-12), as an interface that keeps references counts it. Each stream
+    # passes at its limit and is refused at one less; without keep, typed has no limit.
+    tyd = 0
+    S11 = '--- &\ns: abcdefgh\none: [!str, ...]\nthree: [!str(/a.*/), !str(/.*h/), !str(1..)]\n'
+    X11 = '--- &\nx: {n: abcdefgh}\njob: {n: !str}\n'
+    STAR = '--- &\nv: {x: 1}\nleaf: {}\nroot:\n  a:\n    child: !leaf\n    !**: !int\n  b:\n    child: !leaf\n    !**: !str\n--- !root\na:\n  child: *v\nb:\n  child: *v\n'
+    counts = [(S11 + '--- !one\n[*s, *s, *s]\n', 10), (S11 + '--- !three\n[*s, *s, *s]\n', 28),
+              (X11 + 'pair: {a: !job, b: !job}\n--- !pair\n{a: *x, b: *x}\n', 17),  # a name is its entry's type
+              (X11 + 'pair: {a: {n: !str}, b: {n: !str}}\n--- !pair\n{a: *x, b: *x}\n', 29),  # two places, two types
+              (X11 + 'pair: {a: !job, b: !job}\n--- !pair\n{a: {n: abcdefgh}, b: {n: abcdefgh}}\n', 29),  # no references
+              (STAR, 29),  # the same node under two nearest `!**`
+              # A collection reached only through `!**`: the root 5, `v` once 3, its `1` 2.
+              ('--- &\nv: {x: 1}\nroot:\n  !**: !int\n--- !root\na: *v\nb: *v\n', 10),
+              # Keys tried against a type key count with their mapping, not again: 5, `v` 4, its `1` 2.
+              ('--- &\nv: {k1: 1}\nroot:\n  !**:\n    !str(/k.*/): !int\n--- !root\na: *v\nb: *v\n', 11)]
+    for st, n in counts:
+        try: typed(st, keep=True, limit=n)
+        except REFUSED as e: tyd += 1; print('TYPED REFUSED AT', n, repr(st[-40:]), e)
+        try: typed(st, keep=True, limit=n - 1); tyd += 1; print('TYPED NOT REFUSED AT', n - 1, repr(st[-40:]))
+        except REFUSED: pass
+        try: typed(st, limit=n - 1)
+        except REFUSED as e: tyd += 1; print('REFUSED WITHOUT KEEP AT', n - 1, repr(st[-40:]), e)
+    big = 'a' * 2 ** 20; refs = '[' + ', '.join(['*s'] * 1000) + ']\n'
+    many = '--- &\ns: ' + big + '\nrow: [' + ', '.join(f'!str({k}..)' for k in range(1, 1001)) + ']\n--- !row\n' + refs
+    same1 = '--- &\ns: ' + big + '\nrow: [!str, ...]\n--- !row\n' + refs
+    try: typed(many, keep=True); tyd += 1; print('1,000 TYPES OF 1 MB NOT REFUSED')
+    except REFUSED: pass
+    for st, kw in ((many, {}), (same1, {'keep': True})):
+        try: typed(st, **kw)
+        except REFUSED as e: tyd += 1; print('TYPED REFUSED', kw, e)
+    # An application's schema serves both documents, and typed counts each one on its own.
+    app2 = ('--- &\none: [!str, ...]\n', 'one'); two = '--- &\ns: abcdefgh\n---\n[*s, *s, *s]\n---\n[*s, *s, *s]\n'
+    try: typed(two, app=app2, keep=True, limit=10)
+    except REFUSED as e: tyd += 1; print('TYPED COUNTS ACROSS DOCUMENTS', e)
+    try: typed(two, app=app2, keep=True, limit=9); tyd += 1; print('TYPED NOT REFUSED AT 9, APP')
+    except REFUSED: pass
+    typed_n = 3 * len(counts) + 3 + 2
+    f += tyd
     # Precision (the user, 2026-11-11): RFC 3339's grammar, round and levels in the schema, an
     # application naming its own, and a date a parser can't hold refusing the document.
     prec = 0
@@ -1024,5 +1093,5 @@ if __name__ == '__main__':
     if not (z == 0 and str(z) == '-0.0'): prec += 1; print('SIGN OF ZERO UNDER ROUND', z)
     prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP) + len(oversP) + 1
     f += prec; third_n += prec_n
-    print(f'edge cases: {alias + len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n} run, {f} fail')
+    print(f'edge cases: {alias + len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

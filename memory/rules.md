@@ -899,4 +899,16 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   and compare a few times. A parser without binary128 refuses `!float128` values inside the limit only.
   **In main `b840c8f`,** with the checker in step (part 2: 71 examples, 831 edge cases; four order mutants
   and the six earlier ones fail).
-- **Held for review (Open):** the count a kept reference adds to. See review.md.
+- **Typed** (the user, 2026-11-12: "I guess we have to, what other way is there?"). Section 11's "the
+  node's own size counts against the limit" named no count, and the next sentence ruled out held and full.
+  It is now a third number, typed: each time a node is typed, its own size (what held counts for the node
+  alone: 1 with a scalar's bytes or a mapping's keys) is added, once for each type and nearest `!**`. Each
+  type written in the schema is one type, and a name is its entry's. It counts the document being typed,
+  and an interface that keeps references applies the limit to it. Why: with references kept, the limit
+  is on held only, and a 1 MB string named 1,000 times under 1,000 types is read 1,000 times. The third
+  review had recommended held; the agent told the user the other ways and why each is worse: adding to
+  held makes it depend on the schema; full refuses what a tree exists for (1,000 references under one
+  type cost 1 MB of work and 1 GB of full); one type per node refuses section 11's own `*port` example; a
+  cap on types per node is an arbitrary number. **In main `56210d7`,** with the checker in step: a `keep`
+  mode in `typed()` (part 2: 72 examples, 880 edge cases; nine mutants fail). The checker counts two plain
+  one-character scalars as one node, because CPython shares those strings; no test relies on that.

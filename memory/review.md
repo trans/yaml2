@@ -542,7 +542,9 @@ point in 14 but the count for kept references. **Held for review with the user (
   takes 2.4 times as long (1.6 million digits, 0.16 s). Python refuses past 4,300 digits by default, for
   this reason (CVE-2020-10735), and the checker turns that off.
 - **14, the count a kept reference adds to.** It is section 15's open point, "Typing under kept references",
-  which hasn't been built. The agent doesn't know which count the sentence meant.
+  which hasn't been built. The agent doesn't know which count the sentence meant. **Answered 2026-11-12:**
+  the agent reread section 11 with part 1, section 10, and took it as a third number, typed; the user: "I
+  guess we have to, what other way is there?". In main `56210d7`; see rules.md, "Typed".
 
 Also done while applying them:
 - the checker now reads `\p{..}` from Python's Unicode 16, through RFC 9485's grammar;
