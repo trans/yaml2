@@ -30,8 +30,9 @@ both in `0ba3c31`. A schema's full size, which limits load, is in `558ba6f`, and
 1, section 13.1, are in `a679bd6`. See [review.md](review.md).
 
 **Third independent review, of part 2 (2026-11-11).** A fresh agent found 14 issues, 6 of them silent. The
-user took the agent's recommendations, and they are applied in `bc5491f`. Three are held for review with the
-user: dates, big integers, and the count a kept reference adds to. See [review.md](review.md).
+user took the agent's recommendations, and they are applied in `bc5491f`. Three were held for review with the
+user. On dates the user chose RFC 3339's grammar (2026-11-11); what a library does with a date it can't hold
+is open. Big integers and the count a kept reference adds to are still held. See [review.md](review.md).
 
 **Independent review (2026-11-06).** Codex's seven findings are fixed in `ffe895c`, @oyl's three text
 changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `211757b`. See

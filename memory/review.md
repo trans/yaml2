@@ -532,7 +532,8 @@ point in 14 but the count for kept references. **Held for review with the user (
   can't hold them. Python's `datetime` keeps microseconds, so under "keeps every fraction digit" a .NET
   timestamp, `2001-02-03T04:05:06.1234567Z`, refuses in a Python program. The choice: follow the RFC, and
   some programs refuse; or a narrower grammar that every library holds, which then refuses some valid RFC
-  3339 values.
+  3339 values. **The user chose the RFC (2026-11-11)**: "yes follow an RFC". What a library does with a
+  value it can't hold is still open (rules.md, "From the third review").
 - **11, big integers.** The options: the parser delivers the digits unconverted and the application converts;
   each parser refuses past a count it states, which is loud but differs between parsers; or a fixed maximum in
   the spec, the same everywhere.

@@ -844,5 +844,11 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   a pattern counts its pattern only. The type keys of all a union's mapping alternatives count as one union.
 - A fit tests the value of a key whose type is only literals. A limit keeps at least one end, low first. A
   part of a union doesn't start or end with a space.
-- **Held for review (Open):** dates (RFC 3339's leap second, year 0000 and fraction digits), big integers in
-  linear time, and the count a kept reference adds to. See review.md.
+- **Dates** (the user, 2026-11-11): "yes follow an RFC". `!date` and `!datetime` take RFC 3339's grammar.
+  **Open:** what a library does with a valid value it can't hold: second 60, year 0000, more fraction digits
+  than it keeps, or `-00:00` (offset unknown). Python 3.14's `fromisoformat` keeps 6 fraction digits and
+  drops the rest silently; Node's `Date` keeps 3. Both read `-00:00` as UTC. The user asked whether an
+  application could accept fewer fraction digits, as it can accept rounding on a float. Not yet in the spec
+  or the checker, which still refuses second 60 and year 0000.
+- **Held for review (Open):** big integers in linear time, and the count a kept reference adds to. See
+  review.md.
