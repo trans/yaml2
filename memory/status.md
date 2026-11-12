@@ -89,7 +89,7 @@ after the `>` of `*<a:b>` was refused, though the grammar's `eol` allows it and 
 was accepted. Both are fixed in the checker; the old one fails 4 of the 5 new tests (`M6Q8`, `T38H`,
 `6AHS`, `AKB8`, `X3AR`). Sections 8.2 and 10 each gained a few words to say so (a reference ends at "a
 space, a tab or the end of the line"; a replaced key counts "in its mapping and in every reference to
-it"). **Not committed on main yet:** the spec and suite changes wait for the user.
+it"). **Committed on main** (checked 2026-11-12).
 
 **YAML Easy Schema (YES), part 2.** Draft 1 is `spec/yaml-easy-schema.md`, first in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see

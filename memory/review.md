@@ -536,7 +536,10 @@ point in 14 but the count for kept references. **Held for review with the user (
   value it can't hold is still open (rules.md, "From the third review").
 - **11, big integers.** The options: the parser delivers the digits unconverted and the application converts;
   each parser refuses past a count it states, which is loud but differs between parsers; or a fixed maximum in
-  the spec, the same everywhere.
+  the spec, the same everywhere. **Rerun 2026-11-12:** Python 3.14.9's `int()` takes 3.0 times as long for twice the
+  digits up to 1.6 million (0.74 s), then 2.3 times (12.8 million digits, 6.0 s). Node 26.13's `BigInt()`
+  takes 2.4 times as long (1.6 million digits, 0.16 s). Python refuses past 4,300 digits by default, for
+  this reason (CVE-2020-10735), and the checker turns that off.
 - **14, the count a kept reference adds to.** It is section 15's open point, "Typing under kept references",
   which hasn't been built. The agent doesn't know which count the sentence meant.
 
