@@ -201,6 +201,14 @@ scalar and the digits check on `!float`, with the three cost questions from `c42
 @oyl answered all of it on 2026-11-06 and has been told to stop on part 2 for now, so nothing more goes there on it; see [review.md](review.md).
 @oyl hasn't been told the Unicode minimum, the join rules or the required `---`, and needn't be yet.
 
+**Part 2 is marked a work in progress (2026-11-12).** The user asked, through @oylng, for a bold notice at
+the top of part 2 "so it is clear that is not done yet. and we will mention it in the letter"
+(`mail/received/20261112-221957Z-@oylng--a-work-in-progress-notice-on-part-2-36efb35d.md`). It is in main
+`d78e55b`, and both covering notes now say so where they list part 2. @oylng's view, which isn't a ruling:
+part 1 is close to ready to show, and part 2 isn't, since no parser implements it, the third review found 6
+silent issues, section 15 has about 17 open points, and 6 of 152 broken rules are caught only by a crash or
+a time-out. The user is weighing more work on part 2 before showing it.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
