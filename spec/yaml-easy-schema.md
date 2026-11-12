@@ -227,7 +227,8 @@ fixes uses an application's schema instead.
 | Type | Matches | Delivers |
 |---|---|---|
 | `!str` | any scalar | its text |
-| `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)` | an integer |
+| `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)`, and one outside -2^63 to 2^64-1 refuses the document (section 4.4) | an integer |
+| `!bigint` | a plain scalar, spelled as `!int` is, of any size | that integer, as written (section 4.4) |
 | `!float`, `!float64` | a plain scalar: `-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, JSON's number, and one that binary64 can't keep refuses the document (section 4.4) | a number |
 | `!float32`, `!float128` | the same, in binary32 or binary128 | a number |
 | `!decimal` | a plain scalar, spelled as `!float` is | that exact number |
@@ -241,7 +242,7 @@ fixes uses an application's schema instead.
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans. A
 pattern can change this for a type that takes one (section 4.5), and nothing else can.
 
-`!int`, the float types, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can
+`!int`, `!bigint`, the float types, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can
 be an integer, and `"3"` never is. A block scalar isn't plain. This is what a YAML 1.2 parser with JSON Schema
 does today.
 
@@ -295,7 +296,7 @@ blob: !binary
 
 ### 4.2 Limits
 
-`!int`, the float types, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
+`!int`, `!bigint`, the float types, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
 Both ends are inclusive, and either can be left out but not both, so `!int(..)` is refused, and so is
 `!int(5..1)`. A limit may have an exponent, as `!float(..3.4e38)` does. A limit tests the number as
 written, not what a parser stores, so `!float(..0.1)` takes `0.1` on every parser, and refuses
@@ -394,10 +395,10 @@ tags: [!str(/[a-z]+/), ...]
 
 ### 4.4 Numbers
 
-`!int` has no size. It says what is written, and each application keeps it in whatever it has, so a
-program with big integers needs nothing special. An integer's width is a limit:
-`uint32: !int(0..4294967295)`. A float's is a name, and `!float` is short for the most common,
-`!float64`, as this section goes on to say. YAML writes digits, so byte order doesn't arise.
+`!int` is an integer from -2^63 to 2^64-1, on every parser. That holds every int64 and every uint64
+value. `!bigint` is an integer of any size. A narrower width is a limit: `uint32: !int(0..4294967295)`.
+A float's width is a name, and `!float` is short for the most common, `!float64`, as this section goes
+on to say. YAML writes digits, so byte order doesn't arise.
 
 A parser delivers the number written, or refuses. It never wraps an integer, and never loses
 digits without saying so. A value keeps its digits if what is stored is no more than half a unit of
@@ -464,12 +465,40 @@ pi: !float
 3.14159265358979323846
 ```
 
-Every parser holds integers from -2^63 to 2^64-1 at least, and past that it may refuse. An integer it
-can't hold refuses the document: it doesn't count as no match, so `!int | !float` can't round on one
-parser only, and `!int | !str` can't give text on one parser only. A limit on `!int` is tested first,
-on the number as written, so `!int(0..10) | !str` gives `1` followed by 29 zeros as text on every
-parser, whatever it holds. A float's store is tested before its limit instead (below), because the
-schema names the store, so it is the same on every parser.
+An integer outside `!int`'s range refuses the document, as a float too large for its store does
+(below). It doesn't count as no match, so `!int | !str` refuses `1` followed by 29 zeros, and doesn't
+give text. The range is tested before any limit, so `!int(0..10) | !str` refuses the same value. Every parser
+holds the whole range without losing digits. So a JavaScript parser can't deliver a value past 2^53 as
+a `number`, which is what JavaScript's own `JSON.parse` does: it reads `9007199254740993` as
+9007199254740992, and `18446744073709551615` as 18446744073709552000.
+
+`!bigint` takes an integer of any size, so no parser refuses one for its size. A parser checks its
+spelling and limit on the digits as written, and delivers it as written: it doesn't convert the digits
+while reading, as `!decimal` doesn't expand an exponent. Converting a long value takes longer than reading
+it, and the longer the value, the more so. Python's `int()` takes 6 seconds on 12.8 million digits, and
+refuses past 4,300 by default for this reason. Typing must take time in line with the size (section 2),
+so converting is left to the application, when it uses the value.
+
+```yaml
+--- &
+row:
+  id: !int
+  serial: !bigint
+--- !row
+id: 18446744073709551615
+serial: 123456789012345678901234567890
+```
+
+```json
+{"id": 18446744073709551615, "serial": 123456789012345678901234567890}
+```
+
+```yaml refused
+--- &
+id: !int | !str
+--- !id
+18446744073709551616
+```
 
 `!float32`, `!float64` and `!float128` name IEEE 754 binary32, binary64 and binary128, and `!float` is
 `!float64`. A value that wouldn't keep its digits in that store, by the rule above, refuses the
@@ -526,10 +555,10 @@ gain: !float32 | !str
 
 ### 4.5 A pattern on another type
 
-`!int`, the float types, `!decimal` and `!null` take a pattern too, and it replaces the type's
+`!int`, `!bigint`, the float types, `!decimal` and `!null` take a pattern too, and it replaces the type's
 standard spelling. The type matches a plain scalar that the pattern matches, and reads the value from it:
 
-- `!int` reads an optional sign and base-10 digits, so `+5` is 5 and `007` is 7.
+- `!int` and `!bigint` read an optional sign and base-10 digits, so `+5` is 5 and `007` is 7.
 - The float types and `!decimal` read an optional sign, digits with at most one `.`, and an optional
   exponent, so `+19.99` is 19.99, `.5` is 0.5 and `1.` is 1.
 - `!null` is null whatever the pattern matched, so `!null(/~|null/)` reads both.
@@ -710,11 +739,12 @@ were made, so a parser uses none: it allows `60` at 23:59 UTC on the last day of
 offset is taken off. So `1990-12-31T23:59:60Z` and `1990-12-31T18:59:60-05:00` are dates, and
 `1990-12-30T23:59:60Z` is no match.
 
-A parser delivers the value written, or refuses. One it can't hold refuses the document, as an
-integer does (section 4.4). It doesn't count as no match, so `!datetime | !str` can't give text on one
-parser only. Python's `datetime` holds no second `60`, no year `0000` and 6 fraction digits, and
-JavaScript's `Date` no second `60` and 3 fraction digits. Python's `fromisoformat` and JavaScript's
-`Date` drop the digits past those without saying so, which a parser mustn't do.
+A parser delivers the value written, or refuses. One it can't hold refuses the document, as a value
+of `!float128` does on a parser that can't work in binary128 (section 4.4). It doesn't count as no
+match, so `!datetime | !str` can't give text on one parser only. Python's `datetime` holds no second
+`60`, no year `0000` and 6 fraction digits, and JavaScript's `Date` no second `60` and 3 fraction
+digits. Python's `fromisoformat` and JavaScript's `Date` drop the digits past those without saying so,
+which a parser mustn't do.
 
 `!datetime(3)` says how many fraction digits a value keeps, as SQL's `TIMESTAMP(3)` does. A value with
 more refuses the document, as a float that wouldn't keep its digits does, so a time never becomes text
@@ -1112,6 +1142,10 @@ Read by a parser built from part 1's grammar, this schema matched a JSON parser 
 real JSON files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept.
 The other 2 are repeated keys, which part 1 refuses.
 
+An integer outside `!int`'s range refuses the document here. None of those 1,015 files holds one, and
+3 of JSONTestSuite's `i_` files do, which RFC 8259 lets a parser read or refuse. With `!bigint` in place
+of `!int`, they are read.
+
 `!**` covers the node it sits on as well, so a type with `!**` and no required keys also takes a
 scalar or a sequence: `5` and `[1, 2]` are JSON here too. In a union the node's shape chooses first
 (section 9), so there it takes mappings only.
@@ -1418,7 +1452,7 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   number, and isn't one: `28.10` and `28.1` would be different types, and `!decimal(28.10)` is two
   characters from `!decimal(..28.10)`, a limit. `38:10` can't be read as a number, but a reader has to
   know that the first figure is the total.
-- **What every parser holds of a date.** Section 4.4 gives integers a range every parser holds. Dates
+- **What every parser holds of a date.** Section 4.4 gives `!int` a range every parser holds. Dates
   have none yet: Python holds 6 fraction digits, JavaScript 3, .NET 7, and Java and Go 9. Without one,
   a parser could refuse every fraction.
 - **A date's offset.** Whether a value keeps its offset, so that `2001-02-03T04:05:06+05:00` and
@@ -1484,6 +1518,8 @@ depth does. Part 1, section 15, covers the data.
 - **Patterns.** Matching must take time linear in the string, and section 9's ceiling limits a
   pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
   engine can't be used on a schema someone else wrote.
+- **Big integers.** Converting decimal digits to binary takes more than linear time, so `!int`'s range is
+  fixed, and a parser doesn't convert a `!bigint` while reading (section 4.4).
 - **`!**`.** A key is looked up in the mapping type at its place and in the nearest `!**`, and nowhere
   else, so nesting them adds nothing per key.
 - **Published names.** Any stream can name any host, and a name can spell an IP address, so a library
