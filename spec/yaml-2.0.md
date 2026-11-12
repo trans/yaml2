@@ -188,6 +188,11 @@ are the ones XML 1.0 allows in a name (section 12): a short list of ranges, whic
 no Unicode tables and leaves out spaces and bidirectional controls. It keeps U+200C and
 U+200D, which can't be seen, because Persian and some Indic words need them.
 
+A name may end in a fragment: `#`, then one or more ASCII letters, digits and `=`. YAML Easy
+Schema uses one for a hash (its section 3.1), and to a parser it is part of the name. A comment
+needs a space or a tab before its `#`, so `--- !a#b` is the name `a#b`, and `--- !a #b` is the name
+`a` and a comment.
+
 A parser compares names by code point, with no normalization, as it does keys. A name
 has no `:`, which keeps URI schemes out, so `github.com/a/b` and `https://github.com/a/b`
 can't both name one thing. It has no `%` escapes: any character a name may hold can be
@@ -1104,7 +1109,8 @@ later      ::= ("..." eol blank* (directive gap)?)? (document | table) gap
 finish     ::= "..." eol
 document   ::= "---" (ws "!" name)? (ws line-node(0) | eol gap node(-1)?)
 table      ::= "---" ws "&" (ws flow-map eol | eol gap (map(0) | space* flow-map eol)?)
-name       ::= name-char+
+name       ::= name-char+ ("#" frag-char+)?
+frag-char  ::= [A-Za-z0-9=]
 name-char  ::= [A-Za-z0-9._/-] | #xB7 | [#xC0-#xD6] | [#xD8-#xF6] | [#xF8-#x37D]
              | [#x37F-#x1FFF] | [#x200C-#x200D] | [#x203F-#x2040] | [#x2070-#x218F]
              | [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFEFE]
@@ -1331,8 +1337,8 @@ A whole object graph, cycles included, is a job for a language's own format, suc
   breaks no file.
 - The characters of a name. YAML 1.2 tags take URI characters. This draft takes fewer
   ASCII marks and more of Unicode. `:` and `%` escapes are the two that matter, for the
-  reasons in section 4.3. The other marks, `# ; ? @ & = + $ ~ * ' ( )`, could be allowed
-  without harm, and allowing them later breaks no file. Beyond ASCII this draft uses
+  reasons in section 4.3. `#` and `=` are allowed in a final fragment. The other marks,
+  `; ? @ & + $ ~ * ' ( )`, could be allowed without harm, and allowing them later breaks no file. Beyond ASCII this draft uses
   XML 1.0's ranges, and Unicode's own letter classes would be the alternative, at the
   cost of tables in every parser. A domain in Unicode and its `xn--` form are two
   different names.

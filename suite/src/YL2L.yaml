@@ -1,0 +1,25 @@
+---
+- name: 'A name may end in a fragment of letters, digits and =, and a comment needs a space before its #'
+  from: part 1, section 4.3
+  tags: name
+  yaml: |
+    %YAML 2.0
+    --- !tabcomputing.com/address/v1/address.yes#sha256=8789ccca7793386ebef9bb35f88d8b424239a44cae2bab4cbcd6222d8d2cda13
+    street: 1 Main St
+    --- !a#b # a comment
+    x
+  tree: |
+    +STR
+     +DOC !tabcomputing.com/address/v1/address.yes#sha256=8789ccca7793386ebef9bb35f88d8b424239a44cae2bab4cbcd6222d8d2cda13
+      +MAP
+       =VAL :street
+       =VAL :1 Main St
+      -MAP
+     -DOC
+     +DOC !a#b
+      =VAL :x
+     -DOC
+    -STR
+  json: |
+    {"street": "1 Main St"}
+    "x"

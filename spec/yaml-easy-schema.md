@@ -184,23 +184,26 @@ retries: 3
 ### 3.1 Publishing a schema
 
 A schema can be published as a file anyone can use. The file is a table: `%YAML 2.0` and one
-`--- &`, with nothing after it, not even `...`, and its last entry is the root. It is named for its
-own bytes: the first 40 hex digits of its SHA-256, in lowercase, then `.yes`.
+`--- &`, with nothing after it, not even `...`. Its name ends in `.yes`, and the entry named like the
+file, without `.yes`, is the root, so `address.yes` has an entry `address`, which types the document as
+a local stamp's entry does.
 
 ```yaml
 %YAML 2.0
 --- &
+line: !str(1..80)
 address:
-  street: !str
+  street: !line
   floor?: !int
 ```
 
-A global name that ends in such a file name is a published name, and `https://` before it is its
-address. No other name has one. The path before the file name is the publisher's, so a version goes
-there, and only the hash is checked.
+A published name is a global name that ends in such a file name, then `#sha256=` and the SHA-256 of
+the file's bytes in 64 lowercase hex digits, as PEP 503 writes a hash in a URL. Its address is
+`https://` and the name before the `#`, and a fragment never goes to the server, so that is an ordinary
+URL. No other name has one. The path is the publisher's, so a version goes there.
 
 ```yaml
---- !tabcomputing.com/address/v1/a777a3595038ecd7577602ed54ead81ddee43323.yes
+--- !tabcomputing.com/address/v1/address.yes#sha256=8789ccca7793386ebef9bb35f88d8b424239a44cae2bab4cbcd6222d8d2cda13
 street: 1 Main St
 floor: 3
 ```
@@ -214,13 +217,15 @@ choose to look the name up, and then the name stamps the document as a local ent
 reads `{"street": "1 Main St", "floor": 3}`. The file's table stays out of the stream's. A library
 looks nothing up unless the application asks it to.
 
-An application that looks a name up refuses a file that doesn't hash to the name. If it can't get
-the file it refuses the document, because reading it as strings would give different data. The hash
+An application that looks a name up refuses a file that doesn't hash to the name, and one with no
+entry named like the file. If it can't get the file it refuses the document, because reading it as strings would give different data. The hash
 is what identifies the file, so a copy from anywhere will do: a mirror, or a folder of the schemas an
 application accepts, which needs no network.
 
-A change to a schema makes a new name, so a name always means the same bytes. A fix reaches a file
-only when its stamp is edited, and that takes a tool. A format that wants every file to pick up
+A publisher never changes the bytes at an address: a new version goes at a new path, such as `v2`, as
+a package index never replaces a file it has published. A file changed in place no longer hashes to
+the names that stamp it, so every document stamped with it is refused. A change to a schema makes a
+new name, so a name always means the same bytes. A fix reaches a file only when its stamp is edited, and that takes a tool. A format that wants every file to pick up
 fixes uses an application's schema instead.
 
 ## 4. Scalars
@@ -1528,8 +1533,8 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   Limits on a sequence's or a mapping's size, beyond one or more. A multiple of a number, or a bound
   that excludes its own value, as `0 < x` does (section 4.7). Two alternatives of one shape,
   told apart by content. These go to application code today.
-- **Published schemas.** Section 3.1's 40 digits are 160 bits of SHA-256. The last entry as the root
-  is the agent's proposal, not yet decided.
+- **Hashes in published names.** Section 3.1 takes `sha256` only. PEP 503 lets a hash be any that
+  Python's `hashlib` always has, such as `sha512`, and whether to allow others is open.
 - **Links across files.** A schema is one table. Section 3.1 publishes a whole schema, but a schema
   has no `$ref` to part of another file, so an application assembles what it needs.
 

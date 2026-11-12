@@ -1,0 +1,9 @@
+---
+- name: A - in a fragment
+  from: part 1, section 4.3
+  tags: name error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- !a#b-c
+    x

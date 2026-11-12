@@ -1,12 +1,12 @@
 # Test suite for part 1
 
 Tests for [the language](../spec/yaml-2.0.md), Draft 1, in the format of the YAML project's
-[yaml-test-suite](https://github.com/yaml/yaml-test-suite), with the changes below. There are 356:
+[yaml-test-suite](https://github.com/yaml/yaml-test-suite), with the changes below. There are 362:
 
 - the draft's 59 examples, tagged `spec`;
 - 250 edge cases from the draft's checker;
-- 47 new ones: the size limit at each boundary and one under it, 256 levels of nesting, CR LF
-  line breaks, the stop offset, a tab after a reference, and key order.
+- 53 new ones: the size limit at each boundary and one under it, 256 levels of nesting, CR LF
+  line breaks, the stop offset, a tab after a reference, key order, and a fragment in a name.
 
 ## Files
 
