@@ -147,6 +147,12 @@ name the table doesn't have. A document with neither stays strings.
 A library may let an application ignore a file's schema and read the document as it is, or hand it
 the schema, which is YAML too.
 
+An application can also name, for its own reading, the level and `round` of a float or date type, as a
+schema would write them: `round` on `!float32`, or `round 6` on `!datetime` (sections 4.4 and 4.8).
+Because it names them, every program that names the same ones gets the same data. It can't ask for
+whatever its library happens to hold, which would give `.123` in one language and `.123456` in
+another. Nothing else in a schema can be changed this way.
+
 A schema sees how each scalar was written, and that isn't in the delivered data (part 1, section
 11). So it runs over what a parser read, not over what it delivered. A parser can type events as
 they arrive, or a tree once it is built. Under a union of mappings it holds a mapping's events until
@@ -227,8 +233,8 @@ fixes uses an application's schema instead.
 | `!decimal` | a plain scalar, spelled as `!float` is | that exact number |
 | `!bool` | a plain `true` or `false` | a boolean |
 | `!null` | a plain `null` | null |
-| `!date` | any scalar: an RFC 3339 full-date | a date |
-| `!datetime` | any scalar: an RFC 3339 date-time | a date and time |
+| `!date` | any scalar: an RFC 3339 full-date (section 4.8) | a date |
+| `!datetime` | any scalar: an RFC 3339 date-time (section 4.8) | a date and time |
 | `!binary` | any scalar: base64, RFC 4648 section 4, padded, with its pad bits zero, and with line feeds skipped | bytes |
 | `!any` | any node | that node, untyped |
 
@@ -405,11 +411,34 @@ would become 0, loses its digits too. Too large means it would round to infinity
 reads it, so `1.79769313486231570815e308`, within half a unit of binary64's largest value, is that
 value and keeps its digits, and `1.8e308` is too large.
 
-An application can ask to accept rounding on the float types, because the digits may not matter to
-it. A value then takes the nearest one in the store its type names, the even one on a tie as IEEE 754
-does, and one too large for that store is still refused.
+`round` lets a float type round, because the digits may not matter: `!float32(round)`. A value then
+takes the nearest one in the store its type names, the even one on a tie as IEEE 754 does, and one too
+large for that store is still refused. Whoever writes a schema knows whether the digits matter, so the
+schema says so, and every program reading the file gets the same values. An application can say so
+too, for its own reading (section 3).
 
-`!decimal` allows no rounding, and an application can't ask for it. It is for money and anything
+```yaml
+--- &
+point:
+  x: !float32(round)
+  y: !float32
+--- !point
+x: 0.123456789
+y: 0.5
+```
+
+```json
+{"x": 0.12345679104328156, "y": 0.5}
+```
+
+```yaml refused
+--- &
+x: !float32
+--- !x
+0.123456789
+```
+
+`!decimal` takes no `round`, and an application can't ask for one. It is for money and anything
 else where a rounded value is a wrong one. A parser keeps the digits and exponent as written and
 never expands them, so `1e999999999` stays small. An application that can't keep the exact value
 refuses it.
@@ -452,10 +481,9 @@ and an application with that store can keep it without losing digits. So a file 
 it is used: the program that checks it refuses what the program that uses it would, and the second
 doesn't fail later, on the first long value.
 
-Unless rounding is accepted, a float type doesn't deliver what its store would hold, so `0.1` under
+Without `round`, a float type doesn't deliver what its store would hold, so `0.1` under
 `!float32` is 0.1, and not binary32's 0.100000001490116119384765625. A float keeps the sign of zero, as
-IEEE 754 does: `-0` is negative zero, and so is a negative value that becomes 0 when rounding is
-accepted.
+IEEE 754 does: `-0` is negative zero, and so is a negative value that `round` takes to 0.
 
 ```yaml refused
 --- &
@@ -610,11 +638,13 @@ price: !decimal(5:2)
 
 ### 4.7 Precision, limit and pattern together
 
-A type can carry a precision, a limit and a pattern together, in one pair of parentheses, in that
-order, with one space between each. Each says something of its own: the pattern says which text is the
-type, the precision how many digits the value may have, and the limit which values are allowed. A
-precision goes on `!decimal` only, a limit on `!str` and the numbers, and a pattern on those and on
-`!null`.
+A type can carry `round`, a precision, a limit and a pattern together, in one pair of parentheses, in
+that order, with one space between each. Each says something of its own: the pattern says which text is
+the type, the precision how many digits the value may have, the limit which values are allowed, and
+`round` that a value past its type's level is fitted to it. A precision goes on `!decimal` only, a
+limit on `!str` and the numbers, and a pattern on those and on `!null`. `round` goes on the float
+types, and on `!datetime` with its number of fraction digits, which stands where a precision would
+(section 4.8).
 
 A type carries at most one of each, so each type has one spelling:
 `!int(/[-+][0-9]+/ 0..100)` is refused, and so is `!int(0..10 20..30)`. With the pattern last, it still
@@ -666,6 +696,57 @@ n: !int(1..10) | !int(20..30)
 
 Anything more, such as a multiple of 5 or a bound that excludes its own value, as `0 < x` does, is left
 to the application (section 15).
+
+### 4.8 Dates
+
+`!date` and `!datetime` take RFC 3339's grammar, from its section 5.6, with section 5.7's days of the
+month, so `2001-02-29` is no match and `2000-02-29` is a date. `T` and `Z` may be lowercase, as section
+5.6 allows. The space in place of `T`, which section 5.6 lets an application choose, isn't the grammar,
+so `2001-02-03 04:05:06Z` is no match. Year `0000` is a date.
+
+A second of `60` is a leap second. Section 5.7 allows one only at the end of a month in which a leap
+second occurs, and only a table of them can say which months those are. Tables differ by when they
+were made, so a parser uses none: it allows `60` at 23:59 UTC on the last day of any month, once the
+offset is taken off. So `1990-12-31T23:59:60Z` and `1990-12-31T18:59:60-05:00` are dates, and
+`1990-12-30T23:59:60Z` is no match.
+
+A parser delivers the value written, or refuses. One it can't hold refuses the document, as an
+integer does (section 4.4). It doesn't count as no match, so `!datetime | !str` can't give text on one
+parser only. Python's `datetime` holds no second `60`, no year `0000` and 6 fraction digits, and
+JavaScript's `Date` no second `60` and 3 fraction digits. Python's `fromisoformat` and JavaScript's
+`Date` drop the digits past those without saying so, which a parser mustn't do.
+
+`!datetime(3)` says how many fraction digits a value keeps, as SQL's `TIMESTAMP(3)` does. A value with
+more refuses the document, as a float that wouldn't keep its digits does, so a time never becomes text
+because of how many digits it has. One with fewer is delivered as written, so `06.5` stays `06.5`. As
+with a precision on `!decimal`, the number says what an application must hold. One that keeps fewer
+than 3 fraction digits refuses any value of `!datetime(3)`, even one with none.
+
+`round` keeps the digits up to that number and drops the rest, so `2001-02-03T04:05:06.1234567Z` under
+`!datetime(round 3)` is `2001-02-03T04:05:06.123Z`. A time is never rounded up, because that can carry:
+`1999-12-31T23:59:59.9999999Z` would become a time in 2000. `round` on `!datetime` needs a number of
+digits, and `!date` takes neither.
+
+```yaml
+--- &
+reading:
+  at: !datetime(round 3)
+  value: !float32(round)
+--- !reading
+at: 2001-02-03T04:05:06.1234567Z
+value: 0.123456789
+```
+
+```json
+{"at": "2001-02-03T04:05:06.123Z", "value": 0.12345679104328156}
+```
+
+```yaml refused
+--- &
+at: !datetime(3)
+--- !at
+2001-02-03T04:05:06.1234Z
+```
 
 ## 5. Literals
 
@@ -1295,7 +1376,9 @@ of sequences and mappings are part 1's.
 expression ::= part (" | " part)*
 part       ::= type | sequence | "''" | literal
 type       ::= "!" name args?
-args       ::= "(" ((precision " ")? (range " ")? regex | (precision " ")? range | precision) ")"
+args       ::= "(" ("round" | ("round ")? body) ")"
+body       ::= (level " ")? (range " ")? regex | (level " ")? range | level
+level      ::= precision | whole
 precision  ::= whole ":" whole, the first at least 1 and the second no larger than the first
 whole      ::= "0" | digit+ not starting with "0"
 range      ::= number ".." number? | ".." number, the first no larger than the second
@@ -1335,6 +1418,15 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   number, and isn't one: `28.10` and `28.1` would be different types, and `!decimal(28.10)` is two
   characters from `!decimal(..28.10)`, a limit. `38:10` can't be read as a number, but a reader has to
   know that the first figure is the total.
+- **What every parser holds of a date.** Section 4.4 gives integers a range every parser holds. Dates
+  have none yet: Python holds 6 fraction digits, JavaScript 3, .NET 7, and Java and Go 9. Without one,
+  a parser could refuse every fraction.
+- **A date's offset.** Whether a value keeps its offset, so that `2001-02-03T04:05:06+05:00` and
+  `2001-02-02T23:05:06Z`, the same instant, are different values. And whether `-00:00`, which RFC 3339
+  section 4.3 gives as an unknown offset, differs from `Z`. Python reads `-00:00` as UTC, and
+  JavaScript's `Date` keeps no offset at all.
+- **Leap seconds.** Section 4.8 allows a second of `60` at the end of any month, with no table. This is
+  the agent's proposal, not yet decided.
 - **The standard types.** The list is short so far, and it should be thorough: times and durations,
   and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
   later, as section 8 says.
