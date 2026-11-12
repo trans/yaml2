@@ -809,9 +809,10 @@ to ignore this rule, so it needs a case in the test suite.
   that made `1e999` under `!float | !str` the text `"1e999"`, and 7 of JSONTestSuite's `i_` files, such as
   `[1.5e+9999]`, text under part 1's JSON schema. The agent's case, which the user took: a limit is a rule
   about the data and a store isn't, so a number shouldn't become text because of how many digits it has.
-  `16777217` under `!float32 | !str` and `!float32 | !float64` are refused too. The store is tested before
-  any limit, so `!float(0..1) | !str` refuses `1e999`: the agent's choice. A decimal's precision stays no
-  match, since it's a rule the schema states. **In `bafa4ce`.**
+  `16777217` under `!float32 | !str` and `!float32 | !float64` are refused too. The store was tested before
+  any limit, so `!float(0..1) | !str` refused `1e999`: the agent's choice, since reversed by the user (see
+  "Limit first" below). A decimal's precision stays no match, since it's a rule the schema states. **In
+  `bafa4ce`.**
 - **Store sizes stay (the user, 2026-11-08).** The user asked whether to drop the widths and a decimal's
   precision, leaving a number the program can't hold to fail on its own, since no schema is complete. The
   agent called it safe, because a store failure now refuses and so can't change the data, and said what it
@@ -875,12 +876,20 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
 - **Big integers** (the user chose, 2026-11-12: "yes"). `!int` is -2^63 to 2^64-1 on every parser, every
   int64 and uint64 value, and a value outside refuses the document. `!bigint` is any size, delivered as
   written and not converted while reading, so typing stays linear. This replaces "`!int` has no size"
-  (2026-11-05, Numbers above) and the third review's limit-first order for `!int`: the range is now tested
-  before a limit, as a float's store is (the agent's choice, for one rule on both), so `!int(0..10) | !str`
-  refuses 10^29. The user asked "what is an !int? an !int64 or a big int?", and the agent's case was that
+  (2026-11-05, Numbers above). At first the agent put the range before a limit, as a float's store was;
+  "Limit first" below reversed that. The user asked "what is an !int? an !int64 or a big int?", and the agent's case was that
   `!int` was the one type whose capacity depended on the parser. JavaScript's `JSON.parse` reads
   `9007199254740993` as ...992, so a JavaScript parser delivers `!int` past 2^53 exactly. Measured: of
   SchemaStore's 1,015 files, none holds an integer past 64 bits and 32 one past 2^53 (int64's bounds, 289
   times); 3 of JSONTestSuite's `i_` files are past 64 bits. **In main `300f554`,** with the checker in
   step (part 2: 70 examples, 825 edge cases; six mutants fail).
+- **Limit first** (the user, 2026-11-12: "yes, limit first for both"). For `!int` and the float types, a
+  limit is tested first, on the number as written, and the range or store only on a value inside it. So
+  `!int(0..10) | !str` gives 10^29 as text, as it gives 11, and `!float(0..1) | !str` gives `1e999` as text;
+  with no limit, or `0..`, both still refuse. Neither order makes parsers differ, since the range and the
+  stores are fixed; the agent recommended this one because every value outside a limit then does the same
+  thing, whatever its size. The user asked which was more efficient: neither, both read each digit once
+  and compare a few times. A parser without binary128 refuses `!float128` values inside the limit only.
+  **In main `b840c8f`,** with the checker in step (part 2: 71 examples, 831 edge cases; four order mutants
+  and the six earlier ones fail).
 - **Held for review (Open):** the count a kept reference adds to. See review.md.
