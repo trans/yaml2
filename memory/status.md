@@ -139,8 +139,14 @@ measurements on real files. It is the obvious place to test ideas here.
 **The reference parser** (the user, 2026-11-04): a standalone 2.0 parser, not a dialect
 inside Oyl, applying what Oyl learned. It is **Oyl NG** (the user gave its name for use here on
 2026-11-09), a C11 library at https://github.com/trans/oylng (public, MIT), address `@oylng`.
-By its README (v0.1.0, `077a031`, 2026-11-09) it has the streaming event parser, the tree and the
-emitter for part 1; part 2 is to come. Its CI runs this suite pinned at `213471d`, and it passes the 347
+v0.1.0 (`077a031`, 2026-11-09) was the streaming event parser for part 1. **v0.2.0 (2026-11-12)**, tagged
+on `45cc586` with CI passing, adds the emitter and the tree, one document per call with a referenced node
+made once and shared (`207d43b`), and the faster scans with `make bench-files` (`1591e05`). Part 2 is to
+come. Its agent read part 1's changes up to `0e2e6b3` and found none asks anything new of a parser; it
+stops at the first error, which section 2 still allows. Before tagging it ran, under ASan and UBSan with
+clang 18: the tests; the 4,651 real files as 2.0, block and flow, plus two mutants of each, through its
+fuzz harness, which compares events with trees and round-trips through the emitter; and 490,323
+libFuzzer runs. All clean (`mail/received/20261112-180136Z-@oylng--oyl-ng-0.2.0-is-released-26a49c1d.md`). Its CI runs this suite pinned at `213471d`, and it passes the 347
 tests an event interface can run (the 9 others need `keep` or `together`). On 2026-11-09 the user called
 it "a working fast parser", and then "even faster now". Its speed figures, sent at the user's request
 (`mail/received/20261111-070212Z-@oylng--speed-figures-4a9a93ac.md`), are from its `make bench` on
