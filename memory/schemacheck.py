@@ -63,9 +63,11 @@ def keeps(d, name):
 WIDTHS = {'float32': (24, -149, 128), 'float64': (53, -1074, 1024), 'float128': (113, -16494, 16384)}
 HELD = {'float32', 'float64'}  # The stores this parser can work in. A test adds float128.
 FLOATS = {'float', *WIDTHS}
-STD = {'str', 'int', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary', *FLOATS}
+STD = {'str', 'int', 'bigint', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary', *FLOATS}
 FLOAT = r'-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?'
 INT = r'-?(0|[1-9][0-9]*)'
+INTS = ('int', 'bigint')
+INTRANGE = (-2 ** 63, 2 ** 64 - 1)  # Section 4.4: !int on every parser.
 READINT = r'[-+]?[0-9]+'
 READDEC = r'[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][-+]?[0-9]+)?'
 DATE = r'([0-9]{4})-([0-9]{2})-([0-9]{2})'
@@ -256,7 +258,7 @@ def pattern(p, whole):
     except re.error: raise SchemaError(f'not I-Regexp: {whole}')
     return ('re', Pat(rx, n, p))
 RANGE = r'(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?\.\.(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?'
-PATTERNED = ('str', 'int', 'decimal', 'null', *FLOATS)
+PATTERNED = ('str', 'int', 'bigint', 'decimal', 'null', *FLOATS)
 def limit(text, name, whole):
     """Sections 4.2 and 4.4 to 4.8: in one pair of parentheses, in this order and at most one of
     each, round (the float types, and datetime with a number of digits), a precision (decimal only) or
@@ -540,7 +542,7 @@ class Schema:
         if name == 'any': return strip(v)
         if name == 'float': name = 'float64'  # Section 4.4: !float is short for !float64.
         if not isinstance(v, str): raise Bad(path, f'expected {name}')
-        if name in ('int', 'decimal', 'bool', 'null', *FLOATS) and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
+        if name in ('int', 'bigint', 'decimal', 'bool', 'null', *FLOATS) and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
         t = str(v); out = None; pat = lim[1] if lim else None
         # Sections 4.4 and 4.8: the level and round the schema gives, or the ones an application named (section 3).
         digits, rnd = (lim[4], lim[5]) if lim else (None, False)
@@ -549,14 +551,18 @@ class Schema:
             # Section 4.5: the pattern replaces the spelling, and the type reads what it matched.
             if not pat.fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
             if name == 'null': return None
-            if not re.fullmatch(READINT if name == 'int' else READDEC, t):
-                raise Cant(f'{path or "/"}: {t[:40]!r} matched, and is not ' + ('an integer' if name == 'int' else 'a number'))
-            t = str(int(t)) if name == 'int' else str(dec(t, path)).replace('E', 'e')
+            if not re.fullmatch(READINT if name in INTS else READDEC, t):
+                raise Cant(f'{path or "/"}: {t[:40]!r} matched, and is not ' + ('an integer' if name in INTS else 'a number'))
+            t = str(int(t)) if name in INTS else str(dec(t, path)).replace('E', 'e')
         try:
             if name == 'str': out = t
             elif name == 'bool' and t in ('true', 'false'): out = t == 'true'
             elif name == 'null' and t == 'null': out = None
-            elif name == 'int' and re.fullmatch(INT, t): out = int(t)
+            elif name in INTS and re.fullmatch(INT, t):
+                # Section 4.4: outside !int's range refuses the document, before any limit. A parser
+                # delivers !bigint's digits unconverted; this checker converts, to compare with JSON.
+                out = int(t)
+                if name == 'int' and not INTRANGE[0] <= out <= INTRANGE[1]: raise Cant(f'{path or "/"}: {t[:40]} is outside !int')
             elif name in WIDTHS and re.fullmatch(FLOAT, t):
                 if name not in HELD: raise Cant(f'{path or "/"}: this parser can not work in {name}')
                 d = dec(t, path)
@@ -668,7 +674,7 @@ if __name__ == '__main__':
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
     # A pattern on !int: it replaces the spelling, reads base 10, and a claim it can't read refuses.
-    I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: !q | !str\nh: !int(/0x[0-9a-f]+/)\nv: !h | !str\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: !str | !q\nlit: !q | never\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: !int | !str\n'
+    I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: !q | !str\nh: !int(/0x[0-9a-f]+/)\nv: !h | !str\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: !str | !q\nlit: !q | never\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: !bigint | !str\nbyi: !int | !str\n'
     ints = [('q', '+5', 5), ('q', '-3', -3), ('q', '+0', 0), ('q', '-0', 0), ('q', '+007', 7), ('w', '5', 5), ('w', '007', 7), ('w', '+5', 5),
                     ('u', '+5', 5), ('u', '+5x', '+5x'), ('u', 'x+5', 'x+5'), ('u', '5', '5'), ('u', '"+5"', '+5'), ('u', "'+5'", '+5'), ('u', 'x', 'x'), ('u', '|\n  +5', '+5\n'), ('v', 'x', 'x'),
                     ('first', '+5', '+5'), ('lit', 'never', 'never'), ('lit', '+5', 5), ('k', '1000', 1000), ('mk', '+5: a\n"-3": b', {'+5': 'a', '-3': 'b'}),
@@ -677,7 +683,7 @@ if __name__ == '__main__':
         try: got = typed(I + f'--- !{k}\n{v}\n')[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', k, v, got)
         except REFUSED as e: f += 1; print('REFUSED', k, v, e)
     notints = [('q', '5'), ('q', '"+5"'), ('q', "'+5'"), ('q', '|\n  +5'), ('q', '+5x'), ('q', 'x+5'), ('q', '+'), ('q', '[+5]'), ('h', '0x1f'), ('v', '0x1f'),
-                 ('k', '1_000'), ('ar', '٣'), ('o', 'a:'), ('lit', '5'), ('mk', '5: a')]
+                 ('k', '1_000'), ('ar', '٣'), ('byi', '9' * 5000), ('o', 'a:'), ('lit', '5'), ('mk', '5: a')]
     for k, v in notints:
         try: typed(I + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, repr(v))
         except REFUSED: pass
@@ -771,12 +777,12 @@ if __name__ == '__main__':
         try: got = typed(t); f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
     # Numbers: the number written, or a refusal.
-    N = '--- &\nf: !float\nd: !decimal\ni: !int\nu: !float | !str\nw: !int | !float\nc: !decimal(0..100)\nq: !float(..3.4e38)\nv: !int(0..18446744073709551615)\n'
-    nums = [('f', '1.00000000000000011102230246251565404236316680908203125', 1.0, 1), ('f', '1.00000000000000033306690738754696212708950042724609375', 1.0000000000000004, 1), ('f', '0.1', 0.1, 0), ('f', '0.10000000000000001', 0.1, 0), ('f', '0.30000000000000004', 0.30000000000000004, 0), ('f', '1e23', 1e23, 0), ('f', '1.10', 1.1, 0), ('f', '100', 100.0, 0), ('f', '1.7976931348623157e308', 1.7976931348623157e308, 0), ('f', '5e-324', 5e-324, 0), ('f', '0', 0.0, 0), ('f', '0.000', 0.0, 0), ('f', '3.14159265358979323846', 3.141592653589793, 1), ('f', '1.0000076293945313', 1.0000076293945313, 0), ('f', '1.0000076293945312', 1.0000076293945312, 0), ('f', '1.0000076293945314', 1.0000076293945314, 1), ('f', '-1.0000076293945313', -1.0000076293945313, 0), ('f', '1.234567890123e-320', 1.234567890123e-320, 1), ('f', '2.2250738585072014e-308', 2.2250738585072014e-308, 0), ('f', '49954322897937359e-24', 4.995432289793736e-08, 1), ('f', '1e-999', 0.0, 1), ('d', '19.99', 19.99, 0), ('d', '3.14159265358979323846', '3.14159265358979323846', 1), ('d', '1e999999999', '1e999999999', 1), ('i', '340282366920938463463374607431768211456', 2**128, 0), ('u', '"1e999"', '1e999', 0), ('u', '1.5', 1.5, 0), ('w', '3', 3, 0), ('w', '3.5', 3.5, 0), ('c', '100', 100, 0), ('q', '3.4e38', 3.4e38, 0), ('v', '18446744073709551615', 2**64 - 1, 0)]
+    N = '--- &\nf: !float\nd: !decimal\ni: !int\nb: !bigint\nbu: !bigint(0..) | !str\nu: !float | !str\nw: !int | !float\nc: !decimal(0..100)\nq: !float(..3.4e38)\nv: !int(0..18446744073709551615)\n'
+    nums = [('f', '1.00000000000000011102230246251565404236316680908203125', 1.0, 1), ('f', '1.00000000000000033306690738754696212708950042724609375', 1.0000000000000004, 1), ('f', '0.1', 0.1, 0), ('f', '0.10000000000000001', 0.1, 0), ('f', '0.30000000000000004', 0.30000000000000004, 0), ('f', '1e23', 1e23, 0), ('f', '1.10', 1.1, 0), ('f', '100', 100.0, 0), ('f', '1.7976931348623157e308', 1.7976931348623157e308, 0), ('f', '5e-324', 5e-324, 0), ('f', '0', 0.0, 0), ('f', '0.000', 0.0, 0), ('f', '3.14159265358979323846', 3.141592653589793, 1), ('f', '1.0000076293945313', 1.0000076293945313, 0), ('f', '1.0000076293945312', 1.0000076293945312, 0), ('f', '1.0000076293945314', 1.0000076293945314, 1), ('f', '-1.0000076293945313', -1.0000076293945313, 0), ('f', '1.234567890123e-320', 1.234567890123e-320, 1), ('f', '2.2250738585072014e-308', 2.2250738585072014e-308, 0), ('f', '49954322897937359e-24', 4.995432289793736e-08, 1), ('f', '1e-999', 0.0, 1), ('d', '19.99', 19.99, 0), ('d', '3.14159265358979323846', '3.14159265358979323846', 1), ('d', '1e999999999', '1e999999999', 1), ('b', '340282366920938463463374607431768211456', 2**128, 0), ('b', '-340282366920938463463374607431768211456', -2**128, 0), ('i', '18446744073709551615', 2**64 - 1, 0), ('i', '-9223372036854775808', -2**63, 0), ('bu', '-1', '-1', 0), ('u', '"1e999"', '1e999', 0), ('u', '1.5', 1.5, 0), ('w', '3', 3, 0), ('w', '3.5', 3.5, 0), ('c', '100', 100, 0), ('q', '3.4e38', 3.4e38, 0), ('v', '18446744073709551615', 2**64 - 1, 0)]
     for k, v, w, acc in nums:
         try: got = typed(N + f'--- !{k}\n{v}\n', accept=bool(acc))[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', k, v, got)
         except REFUSED as e: f += 1; print('REFUSED', k, v, e)
-    nope = [('f', '3.14159265358979323846', 0), ('f', '1.0000076293945314', 0), ('f', '1.234567890123e-320', 0), ('f', '49954322897937359e-24', 0), ('f', '9007199254740993.0', 0), ('f', '1e999', 0), ('f', '1e999', 1), ('f', '1e-999', 0), ('u', '1e999', 0), ('u', '1e999', 1), ('u', '3.14159265358979323846', 0), ('d', '"19.99"', 0), ('c', '100.01', 0), ('q', '3.5e38', 0), ('v', '18446744073709551616', 0), ('v', '-1', 0)]
+    nope = [('i', '340282366920938463463374607431768211456', 0), ('i', '18446744073709551616', 0), ('i', '-9223372036854775809', 0), ('w', '18446744073709551616', 0), ('b', '"1"', 0), ('b', '1.0', 0), ('f', '3.14159265358979323846', 0), ('f', '1.0000076293945314', 0), ('f', '1.234567890123e-320', 0), ('f', '49954322897937359e-24', 0), ('f', '9007199254740993.0', 0), ('f', '1e999', 0), ('f', '1e999', 1), ('f', '1e-999', 0), ('u', '1e999', 0), ('u', '1e999', 1), ('u', '3.14159265358979323846', 0), ('d', '"19.99"', 0), ('c', '100.01', 0), ('q', '3.5e38', 0), ('v', '18446744073709551616', 0), ('v', '-1', 0)]
     for k, v, acc in nope:
         try: typed(N + f'--- !{k}\n{v}\n', accept=bool(acc)); f += 1; print('NOT REFUSED', k, v)
         except REFUSED: pass
@@ -899,7 +905,7 @@ if __name__ == '__main__':
               (T3 + '--- !t\nwhy?: 5\n', {'why?': '5'}), (T3b + '--- !t\nwhy?: 5\n', {'why?': 5}), (T3b + '--- !t\n{}\n', {}),
               ('--- &\nt:\n  a: !int\n  a?: !str\n--- !t\n{}\n', {}), ('--- &\nn: !binary\n--- !n\naGk=\n', 'aGk='), ('--- &\nn: !binary\n--- !n\n""\n', ''),
               ('--- &\nn: !float | !str\n--- !n\n1E5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1e+5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1.79769313486231570815e308\n', 1.7976931348623157e308),
-              ('--- &\nn: !decimal(5:2)\n--- !n\n1.500\n', Decimal('1.500')), ('--- &\nn: !int(0..10) | !str\n--- !n\n1' + '0' * 29 + '\n', '1' + '0' * 29),
+              ('--- &\nn: !decimal(5:2)\n--- !n\n1.500\n', Decimal('1.500')), ('--- &\nn: !int(0..10) | !str\n--- !n\n11\n', '11'), ('--- &\nn: !bigint(/[-+][0-9]+/)\n--- !n\n+0012\n', 12), ('--- &\nn: !bigint(0..10) | !str\n--- !n\n1' + '0' * 29 + '\n', '1' + '0' * 29),
               ('--- &\nm:\n  !str(/a.b/): !int\n  !*: !str\n--- !m\n"a\\rb": 1\n', {'a\rb': '1'}), ('--- &\nm:\n  !str(/a.b/): !int\n  !*: !str\n--- !m\naxb: 1\n', {'axb': 1}),
               ('--- &\nn: !str(/\\p{Lu}[a-z]*/) | !int\n--- !n\nAbc\n', 'Abc'), ('--- &\nn: !str(/[\\p{L}\\p{Nd}]+/)\n--- !n\nÀ1\n', 'À1'), ('--- &\nn: !str(/\\P{L}+/) | !str\n--- !n\n12\n', '12'),
               ('--- &\nn: !str(/[-a]+/)\n--- !n\na-a\n', 'a-a'), ('--- &\nn: !str(/[a-]+/)\n--- !n\n-a\n', '-a'), ('--- &\nn: !str(/\\.\\{\\}/)\n--- !n\n".{}"\n', '.{}'),
@@ -908,13 +914,13 @@ if __name__ == '__main__':
     for s3, w in goods3:
         try: got = typed(s3)[0]; third += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(s3), got)
         except REFUSED as e: third += 1; print('REFUSED', repr(s3), e)
-    bads3 = [T3 + '--- !t\n{}\n', '--- &\nn: !binary | !int\n--- !n\naGl=\n', '--- &\nn: !binary\n--- !n\naGk\n', '--- &\nn: !binary\n--- !n\n"aGVs\\r\\nbG8="\n',
+    bads3 = ['--- &\nn: !int(0..10) | !str\n--- !n\n1' + '0' * 29 + '\n', '--- &\nn: !int | !str\n--- !n\n1' + '0' * 29 + '\n', T3 + '--- !t\n{}\n', '--- &\nn: !binary | !int\n--- !n\naGl=\n', '--- &\nn: !binary\n--- !n\naGk\n', '--- &\nn: !binary\n--- !n\n"aGVs\\r\\nbG8="\n',
              '--- &\nn: !float | !str\n--- !n\n1.8e308\n', '--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n3.14159265358979323846: 5\n', C3 + '--- !shape\n{kind: square, r: 1}\n',
              '--- &\nn: !str(/\\p{Lu}/)\n--- !n\na\n']
     for s3 in bads3:
         try: typed(s3); third += 1; print('NOT REFUSED', repr(s3))
         except REFUSED: pass
-    schemas3 = ['a: !int(..)', 'a: !int |  x', 'a: x  | !int', 'a: !str(/a{,3}/)', 'a: !str(/a{/)', 'a: !str(/a}/)', 'a: !str(/\\x41/)', 'a: !str(/\\u0041/)', 'a: !str(/a**/)',
+    schemas3 = ['a: !bigint(round)', 'a: !bigint(..)', 'a: !int(1:0)', 'a: !int(..)', 'a: !int |  x', 'a: x  | !int', 'a: !str(/a{,3}/)', 'a: !str(/a{/)', 'a: !str(/a}/)', 'a: !str(/\\x41/)', 'a: !str(/\\u0041/)', 'a: !str(/a**/)',
                 'a: !str(/a{2}{3}/)', 'a: !str(/[a[b]/)', 'a: !str(/[]/)', 'a: !str(/[a-b-c]/)', 'a: !str(/a{3,2}/)', 'a: !str(/\\p{Xx}/)', 'a: !str(/\\p{Cs}/)', 'a: !str(/(?:a)/)',
                 'a: !str(/a)/)', 'a: !str(/(a/)', f'a: !str(/{alts}/)', 'a: !str(/x{1025,}/)', 'a: !str(/(a|b){513}/)', maps3(600)]
     for s3 in schemas3:

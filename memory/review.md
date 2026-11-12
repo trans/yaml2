@@ -1,6 +1,6 @@
 # Review of Draft 1
 
-*Updated 2026-11-11*
+*Updated 2026-11-12*
 
 @oyl reviewed Draft 1 at the user's request (2026-11-04, against `f9727d5`). Its view:
 strong, nothing changes the core design. The agent reran the probes marked **Checked**
@@ -534,7 +534,8 @@ point in 14 but the count for kept references. **Held for review with the user (
   some programs refuse; or a narrower grammar that every library holds, which then refuses some valid RFC
   3339 values. **The user chose the RFC (2026-11-11)**: "yes follow an RFC". What a library does with a
   value it can't hold is still open (rules.md, "From the third review").
-- **11, big integers.** The options: the parser delivers the digits unconverted and the application converts;
+- **11, big integers. The user chose a fixed `!int` and a new `!bigint` (2026-11-12), in main `300f554`;
+  see rules.md, "Big integers".** The options: the parser delivers the digits unconverted and the application converts;
   each parser refuses past a count it states, which is loud but differs between parsers; or a fixed maximum in
   the spec, the same everywhere. **Rerun 2026-11-12:** Python 3.14.9's `int()` takes 3.0 times as long for twice the
   digits up to 1.6 million (0.74 s), then 2.3 times (12.8 million digits, 6.0 s). Node 26.13's `BigInt()`

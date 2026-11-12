@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-11*
+*Updated 2026-11-12*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -32,8 +32,9 @@ both in `0ba3c31`. A schema's full size, which limits load, is in `558ba6f`, and
 **Third independent review, of part 2 (2026-11-11).** A fresh agent found 14 issues, 6 of them silent. The
 user took the agent's recommendations, and they are applied in `bc5491f`. Three were held for review with the
 user. On dates the user chose RFC 3339's grammar (2026-11-11), and then precision in the schema: `round`, a
-date's level and an application's own, applied in main `6c74755`, with the checker in step. Big integers and
-the count a kept reference adds to are still held. See [rules.md](rules.md), "From the third review".
+date's level and an application's own, applied in main `6c74755`, with the checker in step. On big integers
+the user chose a fixed `!int` and a new `!bigint` (2026-11-12), in main `300f554`. The count a kept
+reference adds to is still held. See [rules.md](rules.md), "From the third review".
 
 **Independent review (2026-11-06).** Codex's seven findings are fixed in `ffe895c`, @oyl's three text
 changes on event parsers in `047f547`, and `!*` split into `!**` and `!*` in `211757b`. See

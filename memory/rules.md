@@ -1,6 +1,6 @@
 # The rules of YAML 2.0
 
-*Updated 2026-11-11*
+*Updated 2026-11-12*
 
 The design, rule by rule, as the user sets them. Keep the user's wording for
 each rule, and keep what the agent derived from it marked as such until the
@@ -499,7 +499,8 @@ tests settled on, all proposals, left open for the core team:
 - **Joining files** (the user, 2026-11-05). Only `...` empties the table. Whoever joins files chooses:
   independent files get `...`, and files sharing a table drop `%YAML 2.0` and use `---`. A plain `cat` is
   refused. Every file starts `%YAML 2.0` then `---`, which closes section 14's open point for now.
-- **Numbers** (the user, 2026-11-05). `!int` and `!float` have no size. A parser delivers the number
+- **Numbers** (the user, 2026-11-05). `!int` and `!float` have no size (`!int` changed 2026-11-12: see
+  "Big integers" below). A parser delivers the number
   written, or refuses. Digits lost are an error, not a warning, unless an application accepts rounding
   on `!float`. `!decimal` says the application keeps it exact or errors. A width is a limit, and byte
   order doesn't arise in text. The user first asked whether names like `uint32` were needed at all.
@@ -871,5 +872,15 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   parameter is `pattern`, `minimum`, `maximum`, their exclusive forms, `minLength` or `maxLength`.
 - **Further errors** (the user, 2026-11-11). A parser may go on to report further errors, and delivers
   nothing past the first. Part 1 section 2, main `e6878c7`.
-- **Held for review (Open):** big integers in linear time, and the count a kept reference adds to. See
-  review.md.
+- **Big integers** (the user chose, 2026-11-12: "yes"). `!int` is -2^63 to 2^64-1 on every parser, every
+  int64 and uint64 value, and a value outside refuses the document. `!bigint` is any size, delivered as
+  written and not converted while reading, so typing stays linear. This replaces "`!int` has no size"
+  (2026-11-05, Numbers above) and the third review's limit-first order for `!int`: the range is now tested
+  before a limit, as a float's store is (the agent's choice, for one rule on both), so `!int(0..10) | !str`
+  refuses 10^29. The user asked "what is an !int? an !int64 or a big int?", and the agent's case was that
+  `!int` was the one type whose capacity depended on the parser. JavaScript's `JSON.parse` reads
+  `9007199254740993` as ...992, so a JavaScript parser delivers `!int` past 2^53 exactly. Measured: of
+  SchemaStore's 1,015 files, none holds an integer past 64 bits and 32 one past 2^53 (int64's bounds, 289
+  times); 3 of JSONTestSuite's `i_` files are past 64 bits. **In main `300f554`,** with the checker in
+  step (part 2: 70 examples, 825 edge cases; six mutants fail).
+- **Held for review (Open):** the count a kept reference adds to. See review.md.
