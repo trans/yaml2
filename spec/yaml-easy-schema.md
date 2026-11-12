@@ -467,8 +467,9 @@ pi: !float
 
 An integer outside `!int`'s range refuses the document, as a float too large for its store does
 (below). It doesn't count as no match, so `!int | !str` refuses `1` followed by 29 zeros, and doesn't
-give text. The range is tested before any limit, so `!int(0..10) | !str` refuses the same value. Every parser
-holds the whole range without losing digits. So a JavaScript parser can't deliver a value past 2^53 as
+give text. A limit is tested first, on the number as written, and the range only on a value inside it,
+so `!int(0..10) | !str` gives that value as text, as it gives `11`. Every parser holds the whole range
+without losing digits. So a JavaScript parser can't deliver a value past 2^53 as
 a `number`, which is what JavaScript's own `JSON.parse` does: it reads `9007199254740993` as
 9007199254740992, and `18446744073709551615` as 18446744073709552000.
 
@@ -504,8 +505,9 @@ id: !int | !str
 `!float64`. A value that wouldn't keep its digits in that store, by the rule above, refuses the
 document, and so does one too large for it. It doesn't count as no match. A limit is a rule about the
 data, and a store too small for a value isn't, so a number never becomes text because of how many digits
-it has. The store is tested before any limit, so `!float(0..1) | !str` refuses `1e999` too. Every parser
-gets the same answer, whatever it holds itself. A float type is a test: it delivers the number written,
+it has. As with `!int`, a limit is tested first and the store only on a value inside it, so
+`!float(0..1) | !str` gives `1e999` as text, as it gives `2`, and `!float(0..) | !str` refuses it. Every
+parser gets the same answer, whatever it holds itself. A float type is a test: it delivers the number written,
 and an application with that store can keep it without losing digits. So a file can be checked before
 it is used: the program that checks it refuses what the program that uses it would, and the second
 doesn't fail later, on the first long value.
@@ -513,6 +515,17 @@ doesn't fail later, on the first long value.
 Without `round`, a float type doesn't deliver what its store would hold, so `0.1` under
 `!float32` is 0.1, and not binary32's 0.100000001490116119384765625. A float keeps the sign of zero, as
 IEEE 754 does: `-0` is negative zero, and so is a negative value that `round` takes to 0.
+
+```yaml
+--- &
+n: !float(0..1) | !str
+--- !n
+1e999
+```
+
+```json
+"1e999"
+```
 
 ```yaml refused
 --- &
@@ -526,8 +539,8 @@ bfloat16 are both 16 bits, with 11 and 8 bits of precision. Others shift the exp
 subnormals, or use base 10 or 16 (section 15).
 
 Every parser works in binary32 and binary64. A parser that can't work in binary128 refuses any value
-of `!float128` that is spelled as a number, even `0.1`, so that what it refuses doesn't depend on which
-values happen to fit.
+of `!float128` that is spelled as a number and inside its limit, even `0.1`, so that what it refuses
+doesn't depend on which values happen to fit.
 
 ```yaml
 --- &
