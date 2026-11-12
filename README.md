@@ -70,8 +70,9 @@ from 1.2, and section 13.1 what they cost.
 
 - **The language:** Draft 1 is in [`spec/yaml-2.0.md`](spec/yaml-2.0.md). Section 14 lists
   what is still open.
-- **YAML Easy Schema (YES), part 2:** Draft 1 is in [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Section 15
-  lists what is open.
+- **YAML Easy Schema (YES), part 2:** **Work in progress.** Draft 1 is in
+  [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Its rules are still changing, no parser
+  implements it yet, and section 15 lists what is open.
 - **Test suite:** part 1's is in [`suite/`](suite/), 356 tests in yaml-test-suite's format, the draft's
   examples among them. Part 2's isn't written yet.
 - **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser,
