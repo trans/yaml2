@@ -94,8 +94,9 @@ it"). **Committed on main** (checked 2026-11-12).
 
 **YAML Easy Schema (YES), part 2.** Draft 1 is `spec/yaml-easy-schema.md`, first in `bf225ba` (2026-11-05), and its
 section 15 lists what is open. The user chose an answer to "wherever this occurs" (see
-[rules.md](rules.md)). The agent added these, and the user hasn't ruled on them: a quoted
-scalar in a schema is always a literal, a reference is typed where it's used, `!int`,
+[rules.md](rules.md)). The agent added these. The user took the first two on 2026-11-12 ("all are
+fine"), and section 15 no longer lists the second: a quoted scalar in a schema is always a literal, a
+reference is typed where it's used. The user hasn't ruled on the rest: `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
 every named type reachable from the root is checked. `schemacheck.py` tests the draft: 71
 examples and 831 edge cases pass (2026-11-12). Breaking 152 rules on purpose failed it each time, though 6 of

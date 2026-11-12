@@ -862,12 +862,13 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   2026-11-05 application flag for float rounding. The agent put `round` first, `!datetime(round 3)`, so a
   pattern still ends at the first `/)`. Following existing rules: a level exceeded without `round` refuses
   the document, as a float's store does; a parser holding fewer digits than a level refuses every value,
-  as with `!decimal`; `round` on a date drops digits, never carrying. **Proposal, not decided:** second
-  60 at 23:59 UTC on the last day of any month, with no table. **Open** (section 15): what every parser
+  as with `!decimal`; `round` on a date drops digits, never carrying. Second 60 at 23:59 UTC on the
+  last day of any month, with no table: the agent's proposal, which the user took (2026-11-12, "all are
+  fine"), so section 15 no longer lists it. **Open** (section 15): what every parser
   holds of a date, and whether a value keeps its offset and `-00:00`.
-- **Parameters as YAML** (the user, 2026-11-11, **Open**): "why are we using yaml for the schema type
+- **Parameters as YAML** (the user, 2026-11-11): "why are we using yaml for the schema type
   parameters", `{ !: datetime, round: 3 }`, as JSYNC's `"!"` key. The agent recommended keeping the short
-  form. SchemaStore (1,030 schemas, `1e82d8a`): 155,652 scalar types, 12,423 with a parameter (8,284 one,
+  form. **The user chose to keep it, with no section 15 entry (2026-11-12): "no. I would leave it as is."** SchemaStore (1,030 schemas, `1e82d8a`): 155,652 scalar types, 12,423 with a parameter (8,284 one,
   4,097 two, 42 three or more), 1,144 of those in a union. Of 1,285 patterns, 17 hold `: ` or ` #`, 23
   hold `/)`, and 1,000 hold `,` or a bracket. A scalar type is a subschema whose `type` is scalar, and a
   parameter is `pattern`, `minimum`, `maximum`, their exclusive forms, `minLength` or `maxLength`.
