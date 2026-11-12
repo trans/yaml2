@@ -53,7 +53,8 @@ Examples leave out `%YAML 2.0` and the plain `---` after it, except where they m
 A parser must refuse any stream that the grammar (section 12) doesn't produce or that
 breaks a rule in this document. There is no error recovery and no lenient mode.
 
-A refusal must give the line and column. A parser reading a stream incrementally may
+A refusal must give the line and column. A parser may go on to report further errors, so that
+an editor can list them all, but it delivers nothing past the first. A parser reading a stream incrementally may
 already have delivered earlier documents, but must not deliver the document in error as
 complete: an event interface reports the error before the document's end.
 
