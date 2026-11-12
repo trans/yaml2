@@ -1445,8 +1445,6 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
 
 - **Marking optional or required.** `?` marks optional keys, and 78% of the keys in the GitHub
   workflow schema are optional, so it is noisy there. Marking required keys may read better.
-- **A reference under two types.** Section 11 types it where it is used. This is the agent's
-  proposal, not yet decided.
 - **Quoted scalars as literals.** Section 5 removes two warts, and hasn't been tried on a real
   schema. It means a type expression can't be quoted.
 - **Which float names.** A float is named, not sized, because formats of one size hold different
@@ -1472,8 +1470,6 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   `2001-02-02T23:05:06Z`, the same instant, are different values. And whether `-00:00`, which RFC 3339
   section 4.3 gives as an unknown offset, differs from `Z`. Python reads `-00:00` as UTC, and
   JavaScript's `Date` keeps no offset at all.
-- **Leap seconds.** Section 4.8 allows a second of `60` at the end of any month, with no table. This is
-  the agent's proposal, not yet decided.
 - **The standard types.** The list is short so far, and it should be thorough: times and durations,
   and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
   later, as section 8 says.
