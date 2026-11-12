@@ -68,8 +68,56 @@ FLOAT = r'-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?'
 INT = r'-?(0|[1-9][0-9]*)'
 READINT = r'[-+]?[0-9]+'
 READDEC = r'[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][-+]?[0-9]+)?'
-DATE = r'[0-9]{4}-[0-9]{2}-[0-9]{2}'
-DATETIME = DATE + r'[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([Zz]|[-+][0-9]{2}:[0-9]{2})'
+DATE = r'([0-9]{4})-([0-9]{2})-([0-9]{2})'
+DATETIME = DATE + r'[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?(?:[Zz]|([-+])([0-9]{2}):([0-9]{2}))'
+# Section 4.8: what this parser holds of a date, as (fraction digits, second 60, year 0000). None holds
+# them all, since it delivers the text. A test sets Python's (6, False, False) or JavaScript's (3, False, True).
+DATEHOLD = None
+def leapyear(y): return (y % 4 == 0 and y % 100 != 0) or y % 400 == 0
+def lastday(y, m): return (31, 29 if leapyear(y) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)[m - 1]
+def days(y, m, d):
+    """Days from 1970-01-01 in the proleptic Gregorian calendar, for any year."""
+    y -= m <= 2; era = y // 400; yoe = y - era * 400
+    doy = (153 * (m - 3 if m > 2 else m + 9) + 2) // 5 + d - 1
+    return era * 146097 + yoe * 365 + yoe // 4 - yoe // 100 + doy - 719468
+def civil(z):
+    z += 719468; era = z // 146097; doe = z - era * 146097
+    yoe = (doe - doe // 1460 + doe // 36524 - doe // 146096) // 365
+    doy = doe - (365 * yoe + yoe // 4 - yoe // 100); mp = (5 * doy + 2) // 153
+    m = mp + 3 if mp < 10 else mp - 9
+    return yoe + era * 400 + (m <= 2), m, doy - (153 * mp + 2) // 5 + 1
+def rfc3339(t, full):
+    """RFC 3339 section 5.6, with 5.7's days of the month. A second of 60 is allowed at 23:59 UTC on the
+    last day of any month, once the offset is taken off, as section 4.8 proposes. The match, or None."""
+    m = re.fullmatch(DATETIME if full else DATE, t)
+    if not m: return None
+    y, mo, d = (int(x) for x in m.groups()[:3])
+    if not (1 <= mo <= 12 and 1 <= d <= lastday(y, mo)): return None
+    if not full: return m
+    hh, mm, ss = (int(x) for x in m.groups()[3:6])
+    oh, om = (int(m[9]), int(m[10])) if m[8] else (0, 0)
+    if hh > 23 or mm > 59 or ss > 60 or oh > 23 or om > 59: return None
+    if ss == 60:
+        utc = days(y, mo, d) * 1440 + hh * 60 + mm - (-1 if m[8] == '-' else 1) * (oh * 60 + om)
+        z, rest = divmod(utc, 1440); uy, um, ud = civil(z)
+        if rest != 23 * 60 + 59 or ud != lastday(uy, um): return None
+    return m
+def dated(t, full, digits, rnd, path):
+    """Section 4.8: the value written, its fraction cut to the level under round, or a refusal."""
+    m = rfc3339(t, full)
+    if not m: raise ValueError
+    if full and digits is not None:
+        frac = m[7] or ''
+        if len(frac) > digits:
+            if not rnd: raise Cant(f'{path or "/"}: {t[:40]} has more than {digits} fraction digits')
+            t = t[:m.start(7) - 1] + ('.' + frac[:digits] if digits else '') + t[m.end(7):]
+            m = rfc3339(t, full)
+    if DATEHOLD:
+        held, leap, year0 = DATEHOLD
+        if full and digits is not None and digits > held: raise Cant(f'{path or "/"}: this parser keeps {held} fraction digits, not {digits}')
+        if (full and len(m[7] or '') > held) or (full and int(m[6]) == 60 and not leap) or (int(m[1]) == 0 and not year0):
+            raise Cant(f'{path or "/"}: this parser can not hold {t[:40]}')
+    return t
 
 TYPENAME = re.compile(r'(?:^|[ \[,])![^ \t()\[\],|/]+$')
 def args_end(text, i):
@@ -210,31 +258,54 @@ def pattern(p, whole):
 RANGE = r'(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?\.\.(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?'
 PATTERNED = ('str', 'int', 'decimal', 'null', *FLOATS)
 def limit(text, name, whole):
-    """Sections 4.2 and 4.5 to 4.7: in one pair of parentheses, in this order and at most one of
-    each, a precision (decimal only), a range and a pattern, one space between them."""
-    if name not in PATTERNED: raise SchemaError(f'{whole}: !{name} takes nothing in parentheses')
+    """Sections 4.2 and 4.4 to 4.8: in one pair of parentheses, in this order and at most one of
+    each, round (the float types, and datetime with a number of digits), a precision (decimal only) or
+    a number of fraction digits (datetime only), a range and a pattern, one space between them. With
+    round first, a pattern is still last, and still ends at the first `/)`."""
+    if name not in PATTERNED and name != 'datetime': raise SchemaError(f'{whole}: !{name} takes nothing in parentheses')
+    rnd = False
+    if text == 'round': rnd, text = True, ''
+    elif text.startswith('round '):
+        rnd, text = True, text[6:]
+        if not text or text.startswith(' '): raise SchemaError(f'bad limit: {whole}')
     i = text.find('/'); head, pat = (text, None) if i < 0 else (text[:i], text[i:])
     if pat is not None:
         if len(pat) < 2 or pat[-1] != '/': raise SchemaError(f'bad pattern: {whole}')
         if head:
             if not head.endswith(' '): raise SchemaError(f'bad limit: {whole}')
             head = head[:-1]
+        if name == 'datetime': raise SchemaError(f'{whole}: !datetime takes no pattern')
         pat = pattern(pat[1:-1], whole)[1]
-    prec = rng = None
+    prec = rng = digits = None
     for k, a in enumerate(head.split(' ') if head else []):
+        if k == 0 and name == 'datetime' and re.fullmatch(r'0|[1-9][0-9]*', a): digits = int(a); continue
         m = re.fullmatch(r'([1-9][0-9]*):(0|[1-9][0-9]*)', a)
         if m and k == 0 and name == 'decimal':
             prec = (int(m[1]), int(m[2]))
             if prec[1] > prec[0]: raise SchemaError(f'a scale larger than the precision: {whole}')
             continue
         m = re.fullmatch(RANGE, a)
-        if m and rng is None and (m[1] or m[2]) and name != 'null':
+        if m and rng is None and (m[1] or m[2]) and name not in ('null', 'datetime'):
             lo, hi = (None if x is None else Decimal(x) for x in m.groups())
             if lo is not None and hi is not None and lo > hi: raise SchemaError(f'bad limit: {whole}')
             rng = (lo, hi); continue
         raise SchemaError(f'bad limit: {whole}')
-    if not (pat or rng or prec): raise SchemaError(f'bad limit: {whole}')
-    return ('args', pat, rng, prec)
+    if rnd and name not in FLOATS and not (name == 'datetime' and digits is not None):
+        raise SchemaError(f'{whole}: round takes a float type, or !datetime with a number of digits')
+    if not (pat or rng or prec or digits is not None or rnd): raise SchemaError(f'bad limit: {whole}')
+    return ('args', pat, rng, prec, digits, rnd)
+def overrides(o):
+    """Section 3: an application can name a level and round for a float or date type, as a schema
+    would, for its own reading: {'datetime': 'round 6'}, {'float32': 'round'}, or '' for neither."""
+    out = {}
+    for k, text in o.items():
+        n = 'float64' if k == 'float' else k
+        if n not in WIDTHS and n != 'datetime': raise SchemaError(f'an application names a level only for a float or date type, not !{k}')
+        if text == '': out[n] = (None, False); continue
+        a = limit(text, n, f'!{k}({text})')
+        if a[1] or a[2] or a[3]: raise SchemaError(f'an application names only a level and round: !{k}({text})')
+        out[n] = (a[4], a[5])
+    return out
 def fits(d, p, sc):
     """Section 4.6, on the exact value: at most sc digits after the point and p - sc before it."""
     _, ds, e = d.as_tuple(); n = len(ds)
@@ -304,8 +375,8 @@ CEILING = 1024
 LIMIT = 64 * 2 ** 20
 
 class Schema:
-    def __init__(s, table, root, accept=False, limit=LIMIT):
-        s.table, s.defs, s.memo, s.seen, s.reached, s.accept = table, {}, {}, set(), {root}, accept
+    def __init__(s, table, root, over=None, limit=LIMIT):
+        s.table, s.defs, s.memo, s.seen, s.reached, s.over = table, {}, {}, set(), {root}, over or {}
         s.places, s.fulls = {}, {}
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
@@ -471,6 +542,9 @@ class Schema:
         if not isinstance(v, str): raise Bad(path, f'expected {name}')
         if name in ('int', 'decimal', 'bool', 'null', *FLOATS) and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
         t = str(v); out = None; pat = lim[1] if lim else None
+        # Sections 4.4 and 4.8: the level and round the schema gives, or the ones an application named (section 3).
+        digits, rnd = (lim[4], lim[5]) if lim else (None, False)
+        if name in s.over: digits, rnd = s.over[name]
         if pat and name != 'str':
             # Section 4.5: the pattern replaces the spelling, and the type reads what it matched.
             if not pat.fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
@@ -489,13 +563,12 @@ class Schema:
                 v = stored(d, name)
                 # Section 4.4: a store too small for the value refuses the document, before any limit.
                 if v is None: raise Cant(f'{path or "/"}: {t[:40]} is too large for {name}')
-                if not s.accept and not keeps(d, name): raise Cant(f'{path or "/"}: {t[:40]} would lose digits in {name}')
-                if name == 'float128': out = (v if v or not d.is_signed() else Decimal('-0')) if s.accept else d
-                elif s.accept and d != 0: out = -0.0 if v == 0 and d.is_signed() else float(v)
+                if not rnd and not keeps(d, name): raise Cant(f'{path or "/"}: {t[:40]} would lose digits in {name}')
+                if name == 'float128': out = (v if v or not d.is_signed() else Decimal('-0')) if rnd else d
+                elif rnd and d != 0: out = -0.0 if v == 0 and d.is_signed() else float(v)
                 else: out = float(t)
             elif name == 'decimal' and re.fullmatch(FLOAT, t): out = dec(t, path)
-            elif name == 'date' and re.fullmatch(DATE, t): datetime.date.fromisoformat(t); out = t
-            elif name == 'datetime' and re.fullmatch(DATETIME, t): datetime.datetime.fromisoformat(t.upper().replace('Z', '+00:00')); out = t
+            elif name in ('date', 'datetime'): out = dated(t, name == 'datetime', digits, rnd, path)
             elif name == 'binary':
                 t = t.replace('\n', '')
                 if base64.b64encode(base64.b64decode(t.encode('ascii'), validate=True)).decode() != t: raise ValueError
@@ -510,7 +583,7 @@ class Schema:
         return out
 
 PUB = re.compile(r'[^/]+(?:/[^/]+)*/([0-9a-f]{40})\.yes')
-def published(name, store, accept, limit=LIMIT):
+def published(name, store, over, limit=LIMIT):
     """Section 3.1. The store is what an application can get, by hash, from anywhere."""
     h = PUB.fullmatch(name)[1]; b = store.get(h)
     if b is None: raise Cant(f'{name}: the file is not to be had')
@@ -519,21 +592,23 @@ def published(name, store, accept, limit=LIMIT):
     marks = re.findall(r'^(?:---|\.\.\.)(?=[ \t\n]|$).*', text, re.M)
     if r.docs or not r.table or len(marks) != 1 or not marks[0].startswith('--- &'):
         raise SchemaError(f'{name}: a published schema is one table and nothing else')
-    return Schema(r.table, list(r.table)[-1], accept, limit)
-def typed(stream, app=None, accept=False, store=None, limit=LIMIT):
+    return Schema(r.table, list(r.table)[-1], over, limit)
+def typed(stream, app=None, accept=False, store=None, limit=LIMIT, override=None):
     """Type each stamped document by the file's table, others by the application's schema.
     With neither they stay strings. An application's schema is (schema text, root). A store
-    means the application looks published names up."""
+    means the application looks published names up. An override names levels (section 3), and
+    accept is an application naming round on every float type."""
     r = read(stream); out = []; reached = {}; live = None
-    own = None if app is None else Schema(read(app[0]).table, app[1], accept, limit)
+    over = overrides({**({n: 'round' for n in WIDTHS} if accept else {}), **(override or {})})
+    own = None if app is None else Schema(read(app[0]).table, app[1], over, limit)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
         if obj is not live: reached, live = {}, obj
         for k, e in reached.items():
             if table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
         if name and '/' not in name and name in table:
-            sc = Schema(table, name, accept, limit); out.append(sc.check(v))
+            sc = Schema(table, name, over, limit); out.append(sc.check(v))
             reached.update((k, table[k]) for k in sc.reached)
-        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, accept, limit).check(v))
+        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, over, limit).check(v))
         elif own: out.append(own.check(v))
         else: out.append(strip(v))
     if r.docs and r.table is live:
@@ -864,5 +939,78 @@ if __name__ == '__main__':
         except REFUSED: pass
     third_n = len(goods3) + len(bads3) + len(schemas3) + len(loads3) + 7 + 3 + 1 + 1 + 3
     f += third
+    # Precision (the user, 2026-11-11): RFC 3339's grammar, round and levels in the schema, an
+    # application naming its own, and a date a parser can't hold refusing the document.
+    prec = 0
+    def one(tp, v, **kw): return typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', **kw)[0]
+    T = '2001-02-03T04:05:06'; PI = '3.14159265358979323846'
+    goodsP = [('!datetime', T + 'Z', T + 'Z', {}), ('!datetime', '2001-02-03t04:05:06z', '2001-02-03t04:05:06z', {}),
+              ('!datetime', '1990-12-31T23:59:60Z', '1990-12-31T23:59:60Z', {}), ('!datetime', '1990-12-31T18:59:60-05:00', '1990-12-31T18:59:60-05:00', {}),
+              ('!datetime', '1991-01-01T00:59:60+01:00', '1991-01-01T00:59:60+01:00', {}), ('!datetime', '2016-12-31T23:59:60.5Z', '2016-12-31T23:59:60.5Z', {}),
+              ('!datetime', T + '-00:00', T + '-00:00', {}), ('!datetime', T + '+23:59', T + '+23:59', {}), ('!date', '2000-02-29', '2000-02-29', {}),
+              ('!date', '0000-02-29', '0000-02-29', {}), ('!date', '0000-01-01', '0000-01-01', {}),
+              ('!datetime | !str', '2001-02-03 04:05:06Z', '2001-02-03 04:05:06Z', {}), ('!date | !str', '2001-02-29', '2001-02-29', {}),
+              ('!date | !str', '1900-02-29', '1900-02-29', {}), ('!datetime | !str', '1990-12-30T23:59:60Z', '1990-12-30T23:59:60Z', {}),
+              ('!datetime | !str', '1990-12-31T23:58:60Z', '1990-12-31T23:58:60Z', {}), ('!datetime | !str', '1990-12-31T23:59:60+01:00', '1990-12-31T23:59:60+01:00', {}),
+              ('!datetime | !str', '2001-02-03T24:00:00Z', '2001-02-03T24:00:00Z', {}), ('!datetime | !str', T + '+24:00', T + '+24:00', {}),
+              ('!datetime | !str', T + '.Z', T + '.Z', {}), ('!datetime | !str', T, T, {}),
+              ('!datetime(3)', T + '.12Z', T + '.12Z', {}), ('!datetime(3)', T + 'Z', T + 'Z', {}), ('!datetime(round 3)', T + '.1234567Z', T + '.123Z', {}),
+              ('!datetime(round 3)', '1999-12-31T23:59:59.9999999Z', '1999-12-31T23:59:59.999Z', {}), ('!datetime(round 0)', T + '.9Z', T + 'Z', {}),
+              ('!datetime(round 3)', '2016-12-31T23:59:60.12345Z', '2016-12-31T23:59:60.123Z', {}), ('!datetime(round 3) | !str', T + '.1234567+05:30', T + '.123+05:30', {}),
+              ('!float32(round)', '0.123456789', 0.12345679104328156, {}), ('!float32(round) | !str', '0.123456789', 0.12345679104328156, {}),
+              ('!float(round)', PI, 3.141592653589793, {}), ('!float(round 0..4)', PI, 3.141592653589793, {}), ('!float64(round /[0-9.]+/)', PI, 3.141592653589793, {}),
+              ('!datetime', T + '.1234567Z', T + '.123456Z', {'override': {'datetime': 'round 6'}}),
+              ('!datetime(round 3)', T + '.1234567Z', T + '.1234567Z', {'override': {'datetime': ''}}),
+              ('!float32', '0.123456789', 0.12345679104328156, {'override': {'float32': 'round'}}), ('!float', PI, 3.141592653589793, {'override': {'float': 'round'}}),
+              ('!float64', PI, 3.141592653589793, {'override': {'float': 'round'}})]
+    for tp, v, w, kw in goodsP:
+        try: got = one(tp, v, **kw); prec += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, kw, got)
+        except REFUSED as e: prec += 1; print('REFUSED', tp, v, kw, e)
+    badsP = [('!datetime(3) | !str', T + '.1234Z', {}), ('!datetime(3)', T + '.1234Z', {}), ('!float32 | !str', '0.123456789', {}), ('!float32(round)', '1e39', {}),
+             ('!datetime', '2001-02-03 04:05:06Z', {}), ('!date', '1900-02-29', {}), ('!datetime', '1990-12-30T23:59:60Z', {}), ('!date', '2001-00-10', {}),
+             ('!datetime', '1990-12-31T23:58:60Z', {}), ('!datetime', '1990-12-31T23:59:60+01:00', {}), ('!datetime', '2001-02-03T24:00:00Z', {}),
+             ('!datetime', T + '+24:00', {}), ('!datetime', T + '.Z', {}), ('!datetime', T, {}), ('!date', '2001-02-29', {}), ('!datetime', '1991-01-01T00:59:60+00:30', {}),
+             ('!float32(round)', '0.123456789', {'override': {'float32': ''}}), ('!datetime(round 3) | !str', T + '.1234Z', {'override': {'datetime': '3'}})]
+    for tp, v, kw in badsP:
+        try: one(tp, v, **kw); prec += 1; print('NOT REFUSED', tp, v, kw)
+        except REFUSED: pass
+    # A parser that holds what Python's datetime does, then what JavaScript's Date does.
+    holds = [((6, False, False), [('!datetime', T + '.123456Z', T + '.123456Z'), ('!datetime(round 3)', T + '.1234567Z', T + '.123Z'), ('!datetime(6)', T + 'Z', T + 'Z'),
+                                  ('!datetime | !str', T + 'x', T + 'x')],
+              [('!datetime | !str', T + '.1234567Z'), ('!datetime | !str', '1990-12-31T23:59:60Z'), ('!date | !str', '0000-01-01'), ('!datetime(9)', T + 'Z'), ('!datetime(round 9) | !str', T + 'Z')]),
+             ((3, False, True), [('!date', '0000-01-01', '0000-01-01'), ('!datetime(round 3)', T + '.98765Z', T + '.987Z')],
+              [('!datetime(6) | !str', T + 'Z'), ('!datetime', T + '.1234Z'), ('!datetime | !str', '2016-12-31T23:59:60Z')])]
+    nholds = 0
+    for hold, oks, nos in holds:
+        DATEHOLD = hold
+        for tp, v, w in oks:
+            nholds += 1
+            try: got = one(tp, v); prec += 0 if got == w else 1; got == w or print('DIFFERS', hold, tp, v, got)
+            except REFUSED as e: prec += 1; print('REFUSED', hold, tp, v, e)
+        for tp, v in nos:
+            nholds += 1
+            try: one(tp, v); prec += 1; print('NOT REFUSED', hold, tp, v)
+            except REFUSED: pass
+    DATEHOLD = None
+    schemasP = ['a: !datetime(round)', 'a: !date(3)', 'a: !date(round)', 'a: !int(round)', 'a: !decimal(round 5:2)', 'a: !str(round)', 'a: !null(round)',
+                'a: !bool(round)', 'a: !datetime(3 3)', 'a: !datetime(03)', 'a: !datetime(0..1)', 'a: !datetime(3 0..1)', 'a: !float(round round)',
+                'a: !float(round  0..1)', 'a: !float( round)', 'a: !float(0..1 round)', 'a: !float32(3)', 'a: !datetime(-1)', 'a: !datetime(round 3 /x/)',
+                'a: !int(3)', 'a: !float(round 3)', 'a: !datetime(round3)']
+    for sP in schemasP:
+        try: typed('--- &\n' + sP + '\n'); prec += 1; print('SCHEMA NOT REFUSED', sP)
+        except REFUSED: pass
+    loadsP = ['a: !float32(round)', 'a: !float(round 0..1)', 'a: !float(round /[0-9.]+/)', 'a: !float(round 0..1 /[0-9.]+/)', 'a: !datetime(0)',
+              'a: !datetime(round 9)', 'a: [!datetime(round 3), ...]', 'a: {b: !float32(round)}', 'a: !datetime(round 3) | !str']
+    for sP in loadsP:
+        try: typed('--- &\n' + sP + '\n')
+        except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
+    oversP = [{'int': 'round'}, {'datetime': 'round'}, {'float32': '0..1'}, {'date': '3'}, {'datetime': '/x/'}, {'str': ''}, {'float32': 'round 3'}]
+    for o in oversP:
+        try: one('!datetime', T + 'Z', override=o); prec += 1; print('OVERRIDE NOT REFUSED', o)
+        except REFUSED: pass
+    z = one('!float32(round)', '-1e-60')
+    if not (z == 0 and str(z) == '-0.0'): prec += 1; print('SIGN OF ZERO UNDER ROUND', z)
+    prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP) + len(oversP) + 1
+    f += prec; third_n += prec_n
     print(f'edge cases: {alias + len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

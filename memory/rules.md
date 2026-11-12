@@ -850,12 +850,25 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   drops the rest silently; Node's `Date` keeps 3. Both read `-00:00` as UTC. The user asked whether an
   application could accept fewer fraction digits, as it can accept rounding on a float. Not yet in the spec
   or the checker, which still refuses second 60 and year 0000.
-- **Precision** (the user, 2026-11-11, **Open**). By default a valid date a library can't hold refuses the
+- **Precision** (the user, 2026-11-11). By default a valid date a library can't hold refuses the
   document ("sounds right"). Accepting less precision, on dates and floats, "may need to be more than a
   boolean flag, more like an acceptable level", and "starts to seem like a schema thing", with "an app
-  override of the schema?". Proposed to the user: the schema gives the level (`!datetime(3)`, as SQL's
-  `TIMESTAMP(3)`) and whether a value past it is fitted (`round`) or refused; an application may override
-  that only by naming a level, never "whatever my library holds".
+  override of the schema?". The agent proposed: the schema gives the level (`!datetime(3)`, as SQL's
+  `TIMESTAMP(3)`) and whether a value past it is fitted (`round`) or refused; an application may name its
+  own, never "whatever my library holds". The user: "yes", "this seems right to me". **Applied in main
+  `6c74755`** (part 2 sections 3, 4.1, 4.4, 4.7, a new 4.8, 14 and 15). This replaces the user's
+  2026-11-05 application flag for float rounding. The agent put `round` first, `!datetime(round 3)`, so a
+  pattern still ends at the first `/)`. Following existing rules: a level exceeded without `round` refuses
+  the document, as a float's store does; a parser holding fewer digits than a level refuses every value,
+  as with `!decimal`; `round` on a date drops digits, never carrying. **Proposal, not decided:** second
+  60 at 23:59 UTC on the last day of any month, with no table. **Open** (section 15): what every parser
+  holds of a date, and whether a value keeps its offset and `-00:00`.
+- **Parameters as YAML** (the user, 2026-11-11, **Open**): "why are we using yaml for the schema type
+  parameters", `{ !: datetime, round: 3 }`, as JSYNC's `"!"` key. The agent recommended keeping the short
+  form. SchemaStore (1,030 schemas, `1e82d8a`): 155,652 scalar types, 12,423 with a parameter (8,284 one,
+  4,097 two, 42 three or more), 1,144 of those in a union. Of 1,285 patterns, 17 hold `: ` or ` #`, 23
+  hold `/)`, and 1,000 hold `,` or a bracket. A scalar type is a subschema whose `type` is scalar, and a
+  parameter is `pattern`, `minimum`, `maximum`, their exclusive forms, `minLength` or `maxLength`.
 - **Further errors** (the user, 2026-11-11). A parser may go on to report further errors, and delivers
   nothing past the first. Part 1 section 2, main `e6878c7`.
 - **Held for review (Open):** big integers in linear time, and the count a kept reference adds to. See
