@@ -1239,6 +1239,14 @@ Added:
 - Guaranteed key order.
 - A size limit.
 
+Changed:
+
+- A `|` or `>` scalar that ends the stream with no line break after its last line ends in one
+  newline, as it would anywhere else, where 1.2 gives none. Whether a file ends in a line break,
+  which most editors don't show, then can't change the value, and nor can moving the key or adding
+  one after it. Of 4,651 public files, 17 end this way, 13 of them GitHub workflows. A converter
+  keeps the 1.2 value by writing `|-` or `>-` there.
+
 Kept: block and flow collections, plain, quoted and block scalars, comments, several
 documents in a stream, trailing commas and compact forms like `- - x` and `- a: 1`.
 
