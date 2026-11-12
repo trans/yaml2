@@ -490,7 +490,8 @@ tests settled on, all proposals, left open for the core team:
     `uses:`, 1.6% of 1,161 Compose `image:`, 2.1% of 427 Kubernetes `image:`. Only 8 of 4,651 files
     name a schema by URL today, 7 with no version in it and none pinned.
   - JSON Schema's core, 2020-12, sections 8.2 and 9.1.2, also treats a URI as an identifier and not a
-    download. The agent's proposal, not yet decided: the last entry is the root.
+    download. The agent's proposal was that the last entry is the root; replaced 2026-11-12 (see
+    "Published names" below).
   - 17 edge cases added, and 64 of 64 deliberate breaks of part 2 caught, the last 11 on publishing.
 - **A name is where app code attaches.** A field that is `true` or `${{ x }}` is
   two scalars, so it's a named string (`flag: !str`), and the app binds code to
@@ -899,6 +900,20 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   and compare a few times. A parser without binary128 refuses `!float128` values inside the limit only.
   **In main `b840c8f`,** with the checker in step (part 2: 71 examples, 831 edge cases; four order mutants
   and the six earlier ones fail).
+- **Published names** (the user, 2026-11-12). The user asked whether a name with no entry needed the
+  last-entry rule "to even work" (it did), then asked to "fix our URI to a better standard", naming RFC
+  6920's `ni`. The agent read RFC 6920: `ni:` can't be a 2.0 name (part 1 leaves out `:` and `;`), but its
+  `.well-known/ni/sha-256/<base64url>` HTTPS form fits. The user: "No, I don't like it", since it fixes the
+  path, and proposed `tabcomputing.com/address/v1/address.yes#<sha256>`, then "the basename of the file is
+  the root". The agent found PEP 503's `#sha256=<hex>`, the fragment pip uses, and proposed it; the user:
+  "I agree". So a published name is the publisher's path to `NAME.yes`, then `#sha256=` and 64 lowercase
+  hex digits of the file's SHA-256 (full, not 160 bits as before). The address is `https://` and the name
+  before the `#`. The root is the entry `NAME`, refused if missing. A publisher never changes the bytes at
+  an address (a file changed in place refuses every document stamped with it), as PyPI never replaces a
+  file. Part 1 lets a name end in a fragment, `#` and ASCII letters, digits and `=`; a comment needs a
+  space before its `#`, so nothing else changes. Open (part 2, section 15): other hash names, as PEP 503
+  allows. **In main `afbd21f`,** with both checkers in step: part 1's suite has 6 new tests (362), part 2
+  has 72 examples and 885 edge cases, and a last-entry root and a wrong hash in the spec's example fail.
 - **Typed** (the user, 2026-11-12: "I guess we have to, what other way is there?"). Section 11's "the
   node's own size counts against the limit" named no count, and the next sentence ruled out held and full.
   It is now a third number, typed: each time a node is typed, its own size (what held counts for the node

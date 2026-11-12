@@ -176,8 +176,13 @@ class P:
         if n and s.ch() == '!':
             s.i += 1; b = s.i
             while NAME.match(s.ch() or ' '): s.i += 1
+            if not s.t[b:s.i]: s.bad('no name')
+            if s.ch() == '#':
+                # Section 4.3: a name may end in a fragment, `#` and ASCII letters, digits and `=`.
+                s.i += 1; f = s.i
+                while re.match('[A-Za-z0-9=]', s.ch() or ' '): s.i += 1
+                if s.i == f: s.bad('an empty fragment')
             name = s.t[b:s.i]
-            if not name: s.bad('no name')
             j = s.i; n = s.spaces()
         if n and s.ch() not in ('#', '\n', ''):
             s.deliver(name, s.line_node(0))

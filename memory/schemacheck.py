@@ -624,17 +624,19 @@ class Schema:
             if (lo is not None and n < lo) or (hi is not None and n > hi): raise Bad(path, f'{t[:40]!r} is out of range')
         return out
 
-PUB = re.compile(r'[^/]+(?:/[^/]+)*/([0-9a-f]{40})\.yes')
+PUB = re.compile(r'[^/#]+(?:/[^/#]+)*/([^/#]+)\.yes#sha256=([0-9a-f]{64})')
 def published(name, store, over, limit=LIMIT, keep=False):
     """Section 3.1. The store is what an application can get, by hash, from anywhere."""
-    h = PUB.fullmatch(name)[1]; b = store.get(h)
+    root, h = PUB.fullmatch(name).groups(); b = store.get(h)
     if b is None: raise Cant(f'{name}: the file is not to be had')
-    if hashlib.sha256(b).hexdigest()[:40] != h: raise Cant(f'{name}: the file does not hash to its name')
+    if hashlib.sha256(b).hexdigest() != h: raise Cant(f'{name}: the file does not hash to its name')
     text = b.decode('utf-8'); r = read(text)
     marks = re.findall(r'^(?:---|\.\.\.)(?=[ \t\n]|$).*', text, re.M)
     if r.docs or not r.table or len(marks) != 1 or not marks[0].startswith('--- &'):
         raise SchemaError(f'{name}: a published schema is one table and nothing else')
-    return Schema(r.table, list(r.table)[-1], over, limit, keep)
+    # Section 3.1: the root is the entry named like the file.
+    if root not in r.table: raise SchemaError(f'{name}: the file has no entry {root}')
+    return Schema(r.table, root, over, limit, keep)
 def typed(stream, app=None, accept=False, store=None, limit=LIMIT, override=None, keep=False):
     """Type each stamped document by the file's table, others by the application's schema.
     With neither they stay strings. An application's schema is (schema text, root). A store
@@ -786,24 +788,26 @@ if __name__ == '__main__':
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
     # Publishing: a name holding a hash, which only an application that asks looks up.
-    Y = b'%YAML 2.0\n--- &\naddress:\n  street: !str\n  floor?: !int\n'; h = hashlib.sha256(Y).hexdigest()[:40]
-    def yes(b): return hashlib.sha256(b).hexdigest()[:40], b
-    D = f'--- !tabcomputing.com/address/v1/{h}.yes\nstreet: a\nfloor: 3\n'; T = {'street': 'a', 'floor': 3}; U = {'street': 'a', 'floor': '3'}
+    Y = b'%YAML 2.0\n--- &\naddress:\n  street: !str\n  floor?: !int\n'; h = hashlib.sha256(Y).hexdigest()
+    def yes(b): return hashlib.sha256(b).hexdigest(), b
+    D = f'--- !tabcomputing.com/address/v1/address.yes#sha256={h}\nstreet: a\nfloor: 3\n'; T = {'street': 'a', 'floor': 3}; U = {'street': 'a', 'floor': '3'}
     Q = dict([yes(b'%YAML 2.0\n--- &\na: !int\nb: !str\n')]); q = next(iter(Q))
     W = dict([yes(b'%YAML 2.0\n--- &\na: !int\n---\n1\n')]); w = next(iter(W))
     pub = [(D, {h: Y}, None, T), (D, None, None, U), (D.replace('tabcomputing.com/address/v1', 'mirror.example'), {h: Y}, None, T),
-           (D.replace(h, h.upper()), {h: Y}, None, U), (D.replace(h + '.yes', h[:39] + '.yes'), {h: Y}, None, U), (D.replace(f'tabcomputing.com/address/v1/{h}', h), {h: Y}, None, U),
-           ('--- !tabcomputing.com/address/v1\nstreet: a\n', {}, None, {'street': 'a'}), (f'--- !x.example/{q}.yes\nz\n', Q, None, 'z'),
+           (D.replace(h, h.upper()), {h: Y}, None, U), (D.replace(h, h[:63]), {h: Y}, None, U), (D.replace('tabcomputing.com/address/v1/', ''), {h: Y}, None, U),
+           (D.replace('#sha256=', '#sha512='), {h: Y}, None, U), (D.replace('address.yes', 'address'), {h: Y}, None, U),
+           ('--- !tabcomputing.com/address/v1\nstreet: a\n', {}, None, {'street': 'a'}), (f'--- !x.example/b.yes#sha256={q}\nz\n', Q, None, 'z'), (f'--- !x.example/a.yes#sha256={q}\n1\n', Q, None, 1),
            ('--- &\naddress: !int\n' + D, {h: Y}, None, T), (D, {h: Y}, ('--- &\nj:\n  !**: !str\n', 'j'), T), (D, None, ('--- &\nj:\n  !**: !str\n', 'j'), U)]
     for t, st, ap, w_ in pub:
         try: got = typed(t, ap, store=st)[0]; f += 0 if same(got, w_) else 1; same(got, w_) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
-    notpub = [(D, {h: Y + b' '}), (D, {}), (D, {h: Y[:-1]}), (f'--- !x.example/{w}.yes\n1\n', W), (f'--- !x.example/{q}.yes\n1\nnot: a scalar\n', Q)]
+    notpub = [(D, {h: Y + b' '}), (D, {}), (D, {h: Y[:-1]}), (f'--- !x.example/a.yes#sha256={w}\n1\n', W), (f'--- !x.example/b.yes#sha256={q}\n1\nnot: a scalar\n', Q),
+              (f'--- !x.example/c.yes#sha256={q}\nz\n', Q), (f'--- !x.example/b.yes#sha256={q}\n[z]\n', Q)]
     for t, st in notpub:
         try: typed(t, store=st); f += 1; print('NOT REFUSED', repr(t))
         except REFUSED: pass
-    Z = re.search(r'```yaml\n(%YAML 2\.0\n--- &\naddress:.*?)```', spec, re.S)
-    if Z and hashlib.sha256(Z[1].encode('utf-8')).hexdigest()[:40] + '.yes' not in spec: f += 1; print('THE SPEC NAMES THE WRONG HASH')
+    Z = re.search(r'### 3\.1 .*?```yaml\n(%YAML 2\.0\n--- &\n.*?)```', spec, re.S)
+    if not Z or 'address.yes#sha256=' + hashlib.sha256(Z[1].encode('utf-8')).hexdigest() not in spec: f += 1; print('THE SPEC NAMES THE WRONG HASH')
     doubling = lambda n: '--- &\n' + ''.join(f'a{i}: !a{i+1} | !a{i+1}\n' for i in range(n)) + f'a{n}: !int\n--- !a0\n1\n'
     f += 0 if typed(doubling(10)) == [1] else 1
     try: typed(doubling(200)); f += 1; print('NOT REFUSED: 200 doublings')
@@ -974,8 +978,8 @@ if __name__ == '__main__':
         if not (z == 0 and str(z) == '-0.0'): third += 1; print('SIGN OF ZERO', repr(s3), z)
     if typed('--- &\nn: !float32\n--- !n\n0.1\n')[0] != 0.1: third += 1; print('FLOAT32 DELIVERS THE STORE')
     def pub3(body):
-        b = ('%YAML 2.0\n' + body).encode(); h = hashlib.sha256(b).hexdigest()[:40]
-        return typed(f'--- !x.org/{h}.yes\ntrue\n', store={h: b})[0]
+        b = ('%YAML 2.0\n' + body).encode(); h = hashlib.sha256(b).hexdigest()
+        return typed(f'--- !x.org/b.yes#sha256={h}\ntrue\n', store={h: b})[0]
     if pub3('--- &\na: !int\nb: !bool\n') is not True: third += 1; print('PUBLISHED ROOT')
     for body3 in ('--- &\na: !int\nb: !str\n--- &\na: !bool\n', '--- &\na: !int\nb: !bool\n...\n', '--- &\na: !int\nb: !bool\n---\nx\n'):
         try: pub3(body3); third += 1; print('PUBLISHED NOT REFUSED', repr(body3))
