@@ -215,7 +215,7 @@ delivered as written, for money or a bigfloat. In main `4d7f934`; the reasons ar
 simplified". Dates followed (the user, 2026-11-12: "yes"): a parser refuses a time it can't hold,
 unless the application turns on a cut to its language's fraction digits; `!datetime(3)` and `round` are
 gone. In main `7989372`; see rules.md, "Dates simplified". The user chose to keep `!bigint` beside
-`!decimal` (2026-11-12), as the agent recommended; no spec change (rules.md).
+`!decimal` (2026-11-12), as the agent recommended; 4.4 says why, in main `57407f1` (rules.md).
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a

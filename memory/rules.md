@@ -957,7 +957,7 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   takes, and plain `!decimal` also takes `1.5`, `1e3` and `1.0`. The agent recommended keeping `!bigint`
   for its name, which tells an application to make an integer: JavaScript has `BigInt` and no decimal,
   and Go's and C#'s standard libraries have a big integer and no decimal of any size. The user went on to
-  dates first, then chose to keep it. No change to either spec.
+  dates first, then chose to keep it, and agreed to a paragraph in part 2's 4.4 saying why. **In main `57407f1`.**
 - **Published names** (the user, 2026-11-12). The user asked whether a name with no entry needed the
   last-entry rule "to even work" (it did), then asked to "fix our URI to a better standard", naming RFC
   6920's `ni`. The agent read RFC 6920: `ni:` can't be a 2.0 name (part 1 leaves out `:` and `;`), but its
