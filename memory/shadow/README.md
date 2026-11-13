@@ -42,6 +42,8 @@ and 311 by hash: 63 of the workflows are copies of one non-workflow text file). 
 | Workflows | 395 of 418 | 360 | 35 | 389 of 391 with a mapping root | 2 |
 | Compose | 257 of 311 | 255 | 2 | 257 of 257 | 0 |
 
+- **Oyl NG agrees on all 490 workflow files** (its agent, 2026-11-13, at `80ed772`, also under ASan and UBSan):
+  the same verdict and the same refusal path on every file. Compose waits for patterns in the engine.
 - The two workflow disagreements are the null ones from 2026-11-07: `pull_request: ~` (text in 2.0,
   refused at `/on/pull_request`) and an empty `TESTFLAGS:` (the JSON Schema refuses a null).
 - On PyYAML's reading, Compose now agrees on 311 of 311, where it was 308.

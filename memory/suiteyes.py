@@ -252,6 +252,13 @@ def tags(r, sec, fail):
     if r['keep']: out.append('typed')
     if r['cut']: out.append('cut')
     if r['hold']: out.append('holds')
+    else:
+        # Without holds, a test is for a parser that holds every time. These say what more it needs than
+        # 9 fraction digits, the most a common language holds, so one that holds less can skip it.
+        docs = TABLE.sub('', r['stream'])
+        if re.search(r'!datetime', t) and re.search(r'[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{10,}', docs): out.append('long-fraction')
+        if re.search(r'!datetime', t) and re.search(r'[Tt][0-9]{2}:[0-9]{2}:60', docs): out.append('second-60')
+        if re.search(r'!date(time)?\b', t) and re.search(r'(^|[^0-9])0000-[0-9]{2}-[0-9]{2}', docs): out.append('year-0000')
     if r['limit'] != LIMIT: out.append('size')
     if not out or out == ['error']: out.insert(0, 'schema')
     if fail: out.append('error')

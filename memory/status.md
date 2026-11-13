@@ -239,6 +239,22 @@ verdicts: done, see [shadow/README.md](shadow/README.md); (3) what may change so
   its typed tests sit below the stream's held size (the table counts in held: 74 for section 11's
   `[*s, *s, *s]` stream, whose typed is 10). The suite leaves those 17 out and has 15 scaled ones.
 
+**Oyl NG against the checker (2026-11-13)**
+(`mail/received/20261113-105601Z-@oylng--the-engine-on-the-shadows-and-the-checker-6c5df137.md`). The
+engine logged each stream the checker's tests type, as `suiteyes.py` does, and agrees on 526 of 526, types
+and refusal paths included. It skipped 265 for patterns or `!**` and didn't run 20 with a store. It found the
+limit shortcut above too. It applies one limit to held, full and typed, and its typed count matches the
+checker's at every limit and one under. For `!binary` in a block, the checker delivers the text without its
+breaks and the engine the bytes; the suite writes bytes. Its fuzzer now types streams too. Its first run
+found an engine bug (a union picking a literal or `!any` left a field unset), which is fixed. A second run,
+of 187,909 cases, was clean. Two points for the user, **Open:**
+- **The path of a key's refusal.** The checker gives an unknown key its mapping's path (`/` for
+  `nmae` at the root), and the engine now does too. Section 2 says "the path to the value", which
+  doesn't settle whether that means the mapping or `/nmae`.
+- **Typed on a data interface.** @oylng's point: a node is typed once per type that reaches it, and each
+  type comes down a path of its own, so typed never passes full. So typed only refuses where references are
+  kept, as section 11 already says. A sentence saying why is the user's to add or not.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
