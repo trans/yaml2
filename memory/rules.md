@@ -859,7 +859,7 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   keeps) is answered under Precision below, in `6c74755`: it refuses the document. `-00:00` is still open. Python 3.14's `fromisoformat` keeps 6 fraction digits and
   drops the rest silently; Node's `Date` keeps 3. Both read `-00:00` as UTC. The user asked whether an
   application could accept fewer fraction digits, as it can accept rounding on a float.
-- **Precision** (the user, 2026-11-11). By default a valid date a library can't hold refuses the
+- **Precision** (the user, 2026-11-11). *Levels and `round` superseded 2026-11-12 by "Dates simplified", below; the default refusal stands.* By default a valid date a library can't hold refuses the
   document ("sounds right"). Accepting less precision, on dates and floats, "may need to be more than a
   boolean flag, more like an acceptable level", and "starts to seem like a schema thing", with "an app
   override of the schema?". The agent proposed: the schema gives the level (`!datetime(3)`, as SQL's
@@ -932,6 +932,32 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   a precision on the text, and reads an example's JSON with `parse_float=Decimal`. Of 14 float mutants, 13
   fail the checker; the 14th (a limit tested on the binary64 value) is masked by the second limit test at
   the end of `scalar()`, and fails once that test is changed too.
+- **Dates simplified** (the user, 2026-11-12: "yes"). After floats, the agent offered the same trimming
+  for dates. The user: "for dates that's trickier. the quesiton is subseconds." The agent: no precision is
+  common to all languages (JavaScript's `Date` 3 fraction digits, Python's `datetime` 6, C#'s `DateTime`
+  7, Java's `Instant` and Go's `time.Time` 9), so binary64's answer doesn't carry over, and proposed
+  delivering times as written. The user said the 2026-11-11 choice "really just boils down to which is
+  the default setting in the parser and which has to be set. which default is better, rejection or
+  rounding?" The agent: rejection, since cutting by default gives `.1234567`, `.123456` and `.123` from
+  one file without saying so; and "as written" only moves that choice to each library. The user: "I an not
+  sure we need `round 3`, if the parser simple has the option to round to what the language needs and
+  avoid rejection ... it doesn't boil down to the document and it's schema, it boils down to what the
+  parser can deliver." The agent proposed dropping `!datetime(3)` too, since without `round` its effect
+  is mostly what a parser must hold; the user: "yes". So a parser refuses a time it can't hold (not no
+  match); a library may let an application cut a time to its language's fraction digits, off unless the
+  application turns it on, dropping digits and never rounding up; a second `60` or year `0000` the
+  language can't hold is still refused; a schema can't ask for a cut. Gone: `!datetime(3)`, `round N`,
+  a level's "an application must hold", section 3's application `round`, and `round` and `level` in the
+  grammar; `!date` and `!datetime` take nothing in parentheses. Cost, which the agent stated: nothing in
+  a file can make two languages agree on a cut time. **In main `7989372`.** The checker's `typed()` takes
+  `cut=True`; its date tests hold as Python, JavaScript, and a parser with no fraction; 7 date mutants
+  fail it. Part 2: 68 examples, 756 edge cases.
+- **`!bigint` beside `!decimal`** (**Open**, 2026-11-12). The user asked whether `!decimal` makes
+  `!bigint` unneeded. The agent checked: `!decimal(/-?(0|[1-9][0-9]*)/)` takes exactly what `!bigint`
+  takes, and plain `!decimal` also takes `1.5`, `1e3` and `1.0`. The agent recommended keeping `!bigint`
+  for its name, which tells an application to make an integer: JavaScript has `BigInt` and no decimal,
+  and Go's and C#'s standard libraries have a big integer and no decimal of any size. The user went on to
+  dates without ruling.
 - **Published names** (the user, 2026-11-12). The user asked whether a name with no entry needed the
   last-entry rule "to even work" (it did), then asked to "fix our URI to a better standard", naming RFC
   6920's `ni`. The agent read RFC 6920: `ni:` can't be a 2.0 name (part 1 leaves out `:` and `;`), but its

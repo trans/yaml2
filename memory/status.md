@@ -99,7 +99,7 @@ fine"), and section 15 no longer lists the second: a quoted scalar in a schema i
 reference is typed where it's used. The user hasn't ruled on the rest: `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
 every named type reachable from the root is checked. `schemacheck.py` tests the draft: 68
-examples and 756 edge cases pass (2026-11-12, after floats were simplified in `4d7f934`). Breaking 152 rules on purpose failed it each time, though 6 of
+examples and 756 edge cases pass (2026-11-12, after floats and dates were simplified in `4d7f934` and `7989372`). Breaking 152 rules on purpose failed it each time, though 6 of
 those only by a crash or a time-out, not a failing test. Not done yet: tests that catch those 6, and the same
 for any older rules not covered. `\p{..}` is read since the third review. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
@@ -212,8 +212,10 @@ a time-out. The user is weighing more work on part 2 before showing it.
 **Floats simplified (the user, 2026-11-12: "yes").** `!float` is the nearest binary64; one too large
 refuses the document, after the limit; the width names and `round` on floats are gone; `!decimal` is
 delivered as written, for money or a bigfloat. In main `4d7f934`; the reasons are in rules.md, "Floats
-simplified". The agent offered the same trimming next for dates (`!datetime(3)`, `round 3`, and "an
-application must hold") and for `!bigint`, after floats; the user hasn't answered.
+simplified". Dates followed (the user, 2026-11-12: "yes"): a parser refuses a time it can't hold,
+unless the application turns on a cut to its language's fraction digits; `!datetime(3)` and `round` are
+gone. In main `7989372`; see rules.md, "Dates simplified". **Open:** whether to keep `!bigint` beside
+`!decimal`; the agent recommended keeping it (rules.md).
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
