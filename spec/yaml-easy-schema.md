@@ -150,11 +150,8 @@ name the table doesn't have. A document with neither stays strings.
 A library may let an application ignore a file's schema and read the document as it is, or hand it
 the schema, which is YAML too.
 
-An application can also name, for its own reading, the level and `round` of `!datetime`, as a schema
-would write them: `round 6` (section 4.8).
-Because it names them, every program that names the same ones gets the same data. It can't ask for
-whatever its library happens to hold, which would give `.123` in one language and `.123456` in
-another. Nothing else in a schema can be changed this way.
+A library may also let an application cut a time to the fraction digits its language holds, rather than
+refuse it (section 4.8). It is off unless the application turns it on.
 
 A schema sees how each scalar was written, and that isn't in the delivered data (part 1, section
 11). So it runs over what a parser read, not over what it delivered. A parser can type events as
@@ -620,12 +617,11 @@ price: !decimal(5:2)
 
 ### 4.7 Precision, limit and pattern together
 
-A type can carry `round`, a precision, a limit and a pattern together, in one pair of parentheses, in
-that order, with one space between each. Each says something of its own: the pattern says which text is
-the type, the precision how many digits the value may have, the limit which values are allowed, and
-`round` that a value past its type's level is fitted to it. A precision goes on `!decimal` only, a
-limit on `!str` and the numbers, and a pattern on those and on `!null`. `round` goes on `!datetime`
-only, with its number of fraction digits, which stands where a precision would (section 4.8).
+A type can carry a precision, a limit and a pattern together, in one pair of parentheses, in that
+order, with one space between each. Each says something of its own: the pattern says which text is the
+type, the precision how many digits the value may have, and the limit which values are allowed. A
+precision goes on `!decimal` only, a limit on `!str` and the numbers, and a pattern on those and on
+`!null`.
 
 A type carries at most one of each, so each type has one spelling:
 `!int(/[-+][0-9]+/ 0..100)` is refused, and so is `!int(0..10 20..30)`. With the pattern last, it still
@@ -692,38 +688,39 @@ offset is taken off. So `1990-12-31T23:59:60Z` and `1990-12-31T18:59:60-05:00` a
 `1990-12-30T23:59:60Z` is no match.
 
 A parser delivers the value written, or refuses. One it can't hold refuses the document. It doesn't
-count as no match, so `!datetime | !str` can't give text on one parser only. Python's `datetime` holds no second
-`60`, no year `0000` and 6 fraction digits, and JavaScript's `Date` no second `60` and 3 fraction
+count as no match, so `!datetime | !str` can't give text on one parser only. Python's `datetime` holds no
+second `60`, no year `0000` and 6 fraction digits, and JavaScript's `Date` no second `60` and 3 fraction
 digits. Python's `fromisoformat` and JavaScript's `Date` drop the digits past those without saying so,
-which a parser mustn't do.
+which a parser mustn't do unless the application asks.
 
-`!datetime(3)` says how many fraction digits a value keeps, as SQL's `TIMESTAMP(3)` does. A value with
-more refuses the document, so a time never becomes text because of how many digits it has. One with
-fewer is delivered as written, so `06.5` stays `06.5`. The number says what an application must hold. One that keeps fewer
-than 3 fraction digits refuses any value of `!datetime(3)`, even one with none.
+A library may let an application cut a time instead, to the fraction digits its language holds. It is
+off unless the application turns it on. The cut keeps the digits up to that number and drops the rest,
+so Python delivers `2001-02-03T04:05:06.1234567Z` as `2001-02-03T04:05:06.123456Z`, and JavaScript as
+`2001-02-03T04:05:06.123Z`. A time is never rounded up, because that can carry:
+`1999-12-31T23:59:59.9999999Z` would become a time in 2000. A cut changes only fraction digits, so a
+second `60` or a year `0000` that the language can't hold still refuses the document. With the cut on,
+two languages can give one file different times, so it is the application's choice, and never a
+parser's default. A schema can't ask for a cut: what a parser can deliver depends on its language, not
+on the document.
 
-`round` keeps the digits up to that number and drops the rest, so `2001-02-03T04:05:06.1234567Z` under
-`!datetime(round 3)` is `2001-02-03T04:05:06.123Z`. A time is never rounded up, because that can carry:
-`1999-12-31T23:59:59.9999999Z` would become a time in 2000. `round` on `!datetime` needs a number of
-digits, and `!date` takes neither.
+`!date` and `!datetime` take nothing in parentheses.
 
 ```yaml
 --- &
-reading:
-  at: !datetime(round 3)
---- !reading
-at: 2001-02-03T04:05:06.1234567Z
+at: !datetime
+--- !at
+2001-02-03T04:05:06.123456789Z
 ```
 
 ```json
-{"at": "2001-02-03T04:05:06.123Z"}
+"2001-02-03T04:05:06.123456789Z"
 ```
 
 ```yaml refused
 --- &
-at: !datetime(3)
+at: !datetime
 --- !at
-2001-02-03T04:05:06.1234Z
+2001-02-30T04:05:06Z
 ```
 
 ## 5. Literals
@@ -1385,9 +1382,8 @@ of sequences and mappings are part 1's.
 expression ::= part (" | " part)*
 part       ::= type | sequence | "''" | literal
 type       ::= "!" name args?
-args       ::= "(" ("round ")? body ")"
-body       ::= (level " ")? (range " ")? regex | (level " ")? range | level
-level      ::= precision | whole
+args       ::= "(" body ")"
+body       ::= (precision " ")? (range " ")? regex | (precision " ")? range | precision
 precision  ::= whole ":" whole, the first at least 1 and the second no larger than the first
 whole      ::= "0" | digit+ not starting with "0"
 range      ::= number ".." number? | ".." number, the first no larger than the second
@@ -1417,7 +1413,8 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   know that the first figure is the total.
 - **What every parser holds of a date.** Section 4.4 gives `!int` a range every parser holds. Dates
   have none yet: Python holds 6 fraction digits, JavaScript 3, .NET 7, and Java and Go 9. Without one,
-  a parser could refuse every fraction.
+  a parser could refuse every fraction, and an application's cut (section 4.8) gives different times in
+  different languages.
 - **A date's offset.** Whether a value keeps its offset, so that `2001-02-03T04:05:06+05:00` and
   `2001-02-02T23:05:06Z`, the same instant, are different values. And whether `-00:00`, which RFC 3339
   section 4.3 gives as an unknown offset, differs from `Z`. Python reads `-00:00` as UTC, and
