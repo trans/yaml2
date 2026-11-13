@@ -952,12 +952,12 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   a file can make two languages agree on a cut time. **In main `7989372`.** The checker's `typed()` takes
   `cut=True`; its date tests hold as Python, JavaScript, and a parser with no fraction; 7 date mutants
   fail it. Part 2: 68 examples, 756 edge cases.
-- **`!bigint` beside `!decimal`** (**Open**, 2026-11-12). The user asked whether `!decimal` makes
+- **`!bigint` beside `!decimal`** (the user, 2026-11-12: "yes keep !bigint"). The user asked whether `!decimal` makes
   `!bigint` unneeded. The agent checked: `!decimal(/-?(0|[1-9][0-9]*)/)` takes exactly what `!bigint`
   takes, and plain `!decimal` also takes `1.5`, `1e3` and `1.0`. The agent recommended keeping `!bigint`
   for its name, which tells an application to make an integer: JavaScript has `BigInt` and no decimal,
   and Go's and C#'s standard libraries have a big integer and no decimal of any size. The user went on to
-  dates without ruling.
+  dates first, then chose to keep it. No change to either spec.
 - **Published names** (the user, 2026-11-12). The user asked whether a name with no entry needed the
   last-entry rule "to even work" (it did), then asked to "fix our URI to a better standard", naming RFC
   6920's `ni`. The agent read RFC 6920: `ni:` can't be a 2.0 name (part 1 leaves out `:` and `;`), but its
