@@ -350,6 +350,11 @@ U+180E.
 writer who means an anchor would get a pattern that never matches. A pattern ends at the first
 `/)`.
 
+A pattern's groups nest at most 256 deep. Part 1 lets a parser go deeper than that in a document
+(part 1, section 10), but every parser refuses a deeper pattern when the schema is loaded, so all
+of them agree on what loads. Section 9's count doesn't limit depth, since a group counts only what
+it holds. Of SchemaStore's 1,287 patterns, the deepest nests 7.
+
 ```yaml
 --- &
 tag: !str(/[a-z][a-z0-9-]*/)
