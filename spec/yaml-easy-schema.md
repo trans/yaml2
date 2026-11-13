@@ -487,6 +487,12 @@ it, and the longer the value, the more so. Python's `int()` takes 6 seconds on 1
 refuses past 4,300 by default for this reason. Typing must take time in line with the size (section 2),
 so converting is left to the application, when it uses the value.
 
+`!decimal(/-?(0|[1-9][0-9]*)/)`, which is `!decimal` with `!int`'s spelling, takes the same values as
+`!bigint`. `!bigint` is a type of its own because its name tells an application to make an integer, and
+languages keep integers and decimals apart. JavaScript has `BigInt` and no decimal type. The standard
+libraries of Go and C# have an integer of unlimited size but no decimal of unlimited size: C#'s
+`decimal` holds 28 or 29 significant digits.
+
 ```yaml
 --- &
 row:
