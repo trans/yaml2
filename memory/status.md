@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-12*
+*Updated 2026-11-13*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -216,6 +216,16 @@ simplified". Dates followed (the user, 2026-11-12: "yes"): a parser refuses a ti
 unless the application turns on a cut to its language's fraction digits; `!datetime(3)` and `round` are
 gone. In main `7989372`; see rules.md, "Dates simplified". The user chose to keep `!bigint` beside
 `!decimal` (2026-11-12), as the agent recommended; 4.4 says why, in main `57407f1` (rules.md).
+
+**Oyl NG starts part 2 (2026-11-13).** The user told @oylng "yes please" to starting part 2 in the engine,
+with a plain shadow first, and to asking this project for a suite and current shadows
+(`mail/received/20261113-095948Z-@oylng--part-2-in-the-engine-a-suite-and-the-shadows-pleas-d0d7ce88.md`).
+Its first scope leaves out patterns, `!**`, published names, the cut and bindings. Asked for: (1) a public
+part 2 suite in part 1's format, with typed output JSON can't tell apart, keys for what the application
+supplies, tags for subsets, and refusal paths; (2) both shadows at the current draft, with per-file
+verdicts: done, see [shadow/README.md](shadow/README.md); (3) what may change soon: answered from section
+15, since the third review has nothing left open. **Open:** the suite, which goes on main and so waits for
+the user.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a

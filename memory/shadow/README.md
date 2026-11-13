@@ -1,6 +1,6 @@
 # Typed shadow experiments
 
-*Updated 2026-11-07*
+*Updated 2026-11-13*
 
 Does a typed shadow carry a full real format? `github-workflow.shadow` is
 GitHub's workflow format, written from SchemaStore's `github-workflow.json`, and
@@ -21,6 +21,32 @@ an ordinary recursive schema (2026-11-05). It matched on all 994 SchemaStore fil
 
 `current.py` runs a shadow through the current checker, `schemacheck.py`, against its JSON Schema. Its
 results are below; those in the sections after it are from `shadow.py`, an earlier prototype.
+
+## At `57407f1` (2026-11-13), file by file
+
+For Oyl NG's part 2 work (its agent asked, 2026-11-13). `compose.shadow` now has the three `!null` lines of
+the 2026-11-07 fit; `github-workflow.shadow` is unchanged, and nothing in either uses what changed since
+(widths, `round`, date levels). `verdicts.py` writes one line per file, every copy included: the 2.0
+grammar's reading, framed as Oyl NG frames the public sample (BOM dropped, `%YAML 2.0`, `---` where
+needed), each document typed by the shadow as an application's schema with its root, the path it
+refuses at, and the JSON Schema on PyYAML's reading:
+
+    python3 verdicts.py workflows github-workflow.shadow workflow github-workflow.json DIR > verdicts-workflows.tsv
+    python3 verdicts.py compose compose.shadow compose compose.json DIR > verdicts-compose.tsv
+
+The files are the workflows and Compose kinds of the 4,651-file public sample (490 and 311 files; 418
+and 311 by hash: 63 of the workflows are copies of one non-workflow text file). By hash:
+
+| Kind | Grammar reads | Shadow accepts | Shadow refuses | Agree with the JSON Schema | Disagree |
+|---|---|---|---|---|---|
+| Workflows | 395 of 418 | 360 | 35 | 389 of 391 with a mapping root | 2 |
+| Compose | 257 of 311 | 255 | 2 | 257 of 257 | 0 |
+
+- The two workflow disagreements are the null ones from 2026-11-07: `pull_request: ~` (text in 2.0,
+  refused at `/on/pull_request`) and an empty `TESTFLAGS:` (the JSON Schema refuses a null).
+- On PyYAML's reading, Compose now agrees on 311 of 311, where it was 308.
+- `compose.shadow` has one pattern, `!str(/x-.*/)`, for `x-` keys; `github-workflow.shadow` has none.
+  Neither uses `!*` or `!**`. Compose has 50 merges, workflows 15.
 
 ## Through the current checker (2026-11-07)
 

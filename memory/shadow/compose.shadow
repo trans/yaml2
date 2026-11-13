@@ -1,7 +1,8 @@
 %YAML 2.0
 # A typed shadow of a Compose file, written blind from compose-spec.json: no
-# Compose file was looked at. Changed twice since the blind run: `!str?: !x` became `!str: !x | ''`,
-# with the same results, and a pattern became whole-match, `/x-.*/`, as patterns now are.
+# Compose file was looked at. Changed three times since the blind run: `!str?: !x` became `!str: !x | ''`,
+# with the same results; a pattern became whole-match, `/x-.*/`, as patterns now are; and three
+# entries take `!null`, for `pgdata: null` and the like, once `!null` existed.
 --- &
 # Compose substitutes ${VAR} anywhere, so its schema takes a string wherever it
 # takes a number or a boolean. These are named strings an app could bind.
@@ -76,7 +77,7 @@ service-network:
   gw_priority?: !number
   use_service_name_alias?: !flag
 service-networks-map:
-  !str: !service-network | ''
+  !str: !service-network | !null | ''
 
 volume-bind:
   <<: *ext
@@ -512,9 +513,9 @@ compose:
   models?:
     !str: !model
   networks?:
-    !str: !network | ''
+    !str: !network | !null | ''
   volumes?:
-    !str: !volume | ''
+    !str: !volume | !null | ''
   secrets?:
     !str: !secret
   configs?:
