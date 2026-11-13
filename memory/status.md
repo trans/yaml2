@@ -255,6 +255,30 @@ of 187,909 cases, was clean. Two points for the user, **Open:**
   type comes down a path of its own, so typed never passes full. So typed only refuses where references are
   kept, as section 11 already says. A sentence saying why is the user's to add or not.
 
+**Oyl NG with patterns (2026-11-13)**
+(`mail/received/20261113-153724Z-@oylng--patterns-and-a-stream-with-no-document-2b7d9854.md`). The engine
+now has sections 4.3, 4.5 and 9's count. It gives `verdicts-compose.tsv`'s verdict and path on all 311
+Compose files (255 accept, 2 refuse, 54 the grammar refuses), and still 490 of 490 workflows. Against the
+checker: 716 of 791 agree and none differ, and the 75 left use `!**`, which is next. A pattern generator
+compared the engine with `pattern()` and `re.fullmatch`: none differ on 50,000 patterns and 199,553 strings
+(seed 7). The engine doesn't backtrack: `(a*)*b` against 100,000 `a`s takes 2 ms. On a table with no
+document, the engine checks only what a document reaches. Its comparison tool had copied the checker's
+shortcut, and now does so only with `--every-entry`. Without it, 141 of the 791 cases differ, each one a
+stream the checker refuses and the engine loads (the suite counts 152, after dropping repeats in another
+way). Two points for the user, **Open:**
+- **How deep a pattern's groups go.** The engine refuses groups nested past 256, as part 1 bounds a
+  document; the checker goes on until Python's recursion limit. Section 9's count doesn't bound depth,
+  since a group adds only what it holds. The agent measured SchemaStore's patterns: of 1,271, the
+  deepest nests 7 (447 have no group, 706 one level). The agent recommends one fixed limit that every
+  parser refuses past, such as 256, rather than part 1's "may refuse", since section 9 wants every parser
+  to agree on what loads.
+- **What the count bounds.** Section 16 says the ceiling limits a pattern's size, but a part that counts 0
+  (`x{0}`, an empty branch) still has to be matched. `(|||...)` with 100,000 bars counts 0 and loads, and a
+  plain matcher steps through 100,000 states per character. The engine drops parts that count 0 and folds
+  nested counts of 1 (`((a?)?)?`, `(a+)*`) into one, so its steps per character stay within the count.
+  10 of SchemaStore's 1,271 patterns have an empty branch, and none has `{0}`. The text could require
+  what the engine does, or count each group and branch as at least 1.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
