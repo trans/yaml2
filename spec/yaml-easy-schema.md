@@ -150,8 +150,8 @@ name the table doesn't have. A document with neither stays strings.
 A library may let an application ignore a file's schema and read the document as it is, or hand it
 the schema, which is YAML too.
 
-An application can also name, for its own reading, the level and `round` of a float or date type, as a
-schema would write them: `round` on `!float32`, or `round 6` on `!datetime` (sections 4.4 and 4.8).
+An application can also name, for its own reading, the level and `round` of `!datetime`, as a schema
+would write them: `round 6` (section 4.8).
 Because it names them, every program that names the same ones gets the same data. It can't ask for
 whatever its library happens to hold, which would give `.123` in one language and `.123456` in
 another. Nothing else in a schema can be changed this way.
@@ -237,9 +237,8 @@ fixes uses an application's schema instead.
 | `!str` | any scalar | its text |
 | `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)`, and one outside -2^63 to 2^64-1 refuses the document (section 4.4) | an integer |
 | `!bigint` | a plain scalar, spelled as `!int` is, of any size | that integer, as written (section 4.4) |
-| `!float`, `!float64` | a plain scalar: `-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, JSON's number, and one that binary64 can't keep refuses the document (section 4.4) | a number |
-| `!float16`, `!bfloat16`, `!float32`, `!float128` | the same, in binary16, bfloat16, binary32 or binary128 | a number |
-| `!decimal` | a plain scalar, spelled as `!float` is | that exact number |
+| `!float` | a plain scalar: `-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, JSON's number, and one too large for binary64 refuses the document (section 4.4) | the nearest binary64 number |
+| `!decimal` | a plain scalar, spelled as `!float` is | that exact number, as written |
 | `!bool` | a plain `true` or `false` | a boolean |
 | `!null` | a plain `null` | null |
 | `!date` | any scalar: an RFC 3339 full-date (section 4.8) | a date |
@@ -250,7 +249,7 @@ fixes uses an application's schema instead.
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans. A
 pattern can change this for a type that takes one (section 4.5), and nothing else can.
 
-`!int`, `!bigint`, the float types, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can
+`!int`, `!bigint`, `!float`, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can
 be an integer, and `"3"` never is. A block scalar isn't plain. This is what a YAML 1.2 parser with JSON Schema
 does today.
 
@@ -304,11 +303,11 @@ blob: !binary
 
 ### 4.2 Limits
 
-`!int`, `!bigint`, the float types, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
+`!int`, `!bigint`, `!float`, `!decimal` and `!str` can carry a limit. For `!str`, a range counts code points.
 Both ends are inclusive, and either can be left out but not both, so `!int(..)` is refused, and so is
 `!int(5..1)`. A limit may have an exponent, as `!float(..3.4e38)` does. A limit tests the number as
-written, not what a parser stores, so `!float(..0.1)` takes `0.1` on every parser, and refuses
-`0.10000000000000001`.
+written, not its binary64 value, so `!float(..0.1)` takes `0.1` and refuses `0.10000000000000001`,
+though binary64 reads both as the same value.
 
 ```yaml
 --- &
@@ -405,52 +404,48 @@ tags: [!str(/[a-z]+/), ...]
 
 `!int` is an integer from -2^63 to 2^64-1, on every parser. That holds every int64 and every uint64
 value. `!bigint` is an integer of any size. A narrower width is a limit: `uint32: !int(0..4294967295)`.
-A float's width is a name, and `!float` is short for the most common, `!float64`, as this section goes
-on to say. YAML writes digits, so byte order doesn't arise.
+`!float` is an IEEE 754 binary64 number, and `!decimal` is the number exactly as written. YAML writes
+digits, so byte order doesn't arise.
 
-A parser delivers the number written, or refuses. It never wraps an integer, and never loses
-digits without saying so. A value keeps its digits if what is stored is no more than half a unit of
-its last written digit away from what is written, and otherwise it loses them. That needs no
-rounding rule, so `1.0000076293945313`, stored as exactly 1.00000762939453125, keeps its digits on
-every parser. Binary64 can't hold `0.1` exactly, but `0.1` keeps its digits.
-`3.14159265358979323846` doesn't. A value of up to 15 significant digits always does if its
-magnitude is from 2.2250738585072014e-308 to 1.7976931348623157e308, but closer to 0 it may not:
-`1.234567890123e-320` is stored as about 1.23467e-320. A value too large to hold, or so small it
-would become 0, loses its digits too. Too large means it would round to infinity, as C's `strtod`
-reads it, so `1.79769313486231570815e308`, within half a unit of binary64's largest value, is that
-value and keeps its digits, and `1.8e308` is too large.
+A `!float` value is the binary64 value nearest the number written, the even one on a tie, as IEEE 754
+rounds and as a JSON parser reads a number. So `3.14159265358979323846` is 3.141592653589793, and
+`9007199254740993` is 9007199254740992. Every language in common use has binary64, on 32-bit machines
+too. A parser doesn't use a wider type where it has one, or the same file would give different numbers:
+C's `long double` holds 3.1415926535897932385 on x86 Linux, and every digit of `3.14159265358979323846`
+on ARM64 Linux. A value whose digits must all be kept is a `!decimal`.
 
-`round` lets a float type round, because the digits may not matter: `!float32(round)`. A value then
-takes the nearest one in the store its type names, the even one on a tie as IEEE 754 does, and one too
-large for that store is still refused. Whoever writes a schema knows whether the digits matter, so the
-schema says so, and every program reading the file gets the same values. An application can say so
-too, for its own reading (section 3).
+A value too large for binary64 refuses the document. Too large means it would round to infinity, as C's
+`strtod` reads it, so `1.79769313486231570815e308`, within half a unit of binary64's largest value, is
+that value, and `1.8e308` is too large. JSON has no infinity, so a parser can't deliver one. A value too
+large doesn't count as no match, so a number never becomes text because of its size. As with `!int`
+(below), a limit is tested first, on the number as written, and the size only on a value inside it, so
+`!float(0..1) | !str` gives `1e999` as text, as it gives `2`, and `!float(0..) | !str` refuses it. A
+value too small for binary64 is 0 and keeps its sign, as IEEE 754 has it: `1e-999` is 0, and `-1e-999`
+and `-0` are negative zero.
 
 ```yaml
 --- &
-point:
-  x: !float32(round)
-  y: !float32
---- !point
-x: 0.123456789
-y: 0.5
+n: !float(0..1) | !str
+--- !n
+1e999
 ```
 
 ```json
-{"x": 0.12345679104328156, "y": 0.5}
+"1e999"
 ```
 
 ```yaml refused
 --- &
-x: !float32
---- !x
-0.123456789
+n: !float | !str
+--- !n
+1e999
 ```
 
-`!decimal` takes no `round`, and an application can't ask for one. It is for money and anything
-else where a rounded value is a wrong one. A parser keeps the digits and exponent as written and
-never expands them, so `1e999999999` stays small. An application that can't keep the exact value
-refuses it.
+`!decimal` is for money, and for anything else where a rounded value is a wrong one. A parser keeps the
+digits and exponent as written and never expands them, so `1e999999999` stays small, and
+`3.14159265358979323846` keeps all 21 digits. What they become is up to the application: a decimal
+type, such as Python's `Decimal` or Java's `BigDecimal`, or a float with more precision than binary64,
+such as one of MPFR's.
 
 ```yaml
 --- &
@@ -466,16 +461,23 @@ ratio: 0.1
 {"price": 19.99, "ratio": 0.1}
 ```
 
-```yaml refused
+```yaml
 --- &
-pi: !float
+pi:
+  float: !float
+  decimal: !decimal
 --- !pi
-3.14159265358979323846
+float: 3.14159265358979323846
+decimal: 3.14159265358979323846
 ```
 
-An integer outside `!int`'s range refuses the document, as a float too large for its store does
-(below). It doesn't count as no match, so `!int | !str` refuses `1` followed by 29 zeros, and doesn't
-give text. A limit is tested first, on the number as written, and the range only on a value inside it,
+```json
+{"float": 3.141592653589793, "decimal": 3.14159265358979323846}
+```
+
+An integer outside `!int`'s range refuses the document, as a float too large for binary64 does. It
+doesn't count as no match, so `!int | !str` refuses `1` followed by 29 zeros, and doesn't give text. A
+limit is tested first, on the number as written, and the range only on a value inside it,
 so `!int(0..10) | !str` gives that value as text, as it gives `11`. Every parser holds the whole range
 without losing digits. So a JavaScript parser can't deliver a value past 2^53 as
 a `number`, which is what JavaScript's own `JSON.parse` does: it reads `9007199254740993` as
@@ -509,83 +511,13 @@ id: !int | !str
 18446744073709551616
 ```
 
-`!float16`, `!float32`, `!float64` and `!float128` name IEEE 754 binary16, binary32, binary64 and
-binary128. `!bfloat16` names bfloat16: binary32's exponents with 8 bits of precision, by IEEE 754's rules,
-subnormals included. `!float` is `!float64`. A value that wouldn't keep its digits in that store, by the rule above, refuses the
-document, and so does one too large for it. It doesn't count as no match. A limit is a rule about the
-data, and a store too small for a value isn't, so a number never becomes text because of how many digits
-it has. As with `!int`, a limit is tested first and the store only on a value inside it, so
-`!float(0..1) | !str` gives `1e999` as text, as it gives `2`, and `!float(0..) | !str` refuses it. Every
-parser gets the same answer, whatever it holds itself. A float type is a test: it delivers the number written,
-and an application with that store can keep it without losing digits. So a file can be checked before
-it is used: the program that checks it refuses what the program that uses it would, and the second
-doesn't fail later, on the first long value.
-
-Without `round`, a float type doesn't deliver what its store would hold, so `0.1` under
-`!float32` is 0.1, and not binary32's 0.100000001490116119384765625. A float keeps the sign of zero, as
-IEEE 754 does: `-0` is negative zero, and so is a negative value that `round` takes to 0.
-
-```yaml
---- &
-n: !float(0..1) | !str
---- !n
-1e999
-```
-
-```json
-"1e999"
-```
-
-```yaml refused
---- &
-n: !float | !str
---- !n
-1e999
-```
-
-These are names, not sizes, because formats of one size can hold different values. Binary16 and
-bfloat16 are both 16 bits, and neither holds what the other does. Binary16 has 11 bits of precision, so
-it holds every integer up to 2048, and reaches 65504. Bfloat16 has 8, so it holds every integer only up
-to 256, and reaches about 3.4e38, as binary32 does. So `257` keeps its digits in binary16 and not in
-bfloat16, and `1e5` keeps them in bfloat16 and is too large for binary16. Other formats shift the
-exponent's range, have no subnormals, or use base 10 or 16 (section 15).
-
-Every parser works in binary16, bfloat16, binary32 and binary64. Each value of the first two is exactly
-a value of binary32, so they need no hardware of their own. A parser that can't work in binary128 refuses any value
-of `!float128` that is spelled as a number and inside its limit, even `0.1`, so that what it refuses
-doesn't depend on which values happen to fit.
-
-```yaml
---- &
-reading:
-  gain: !float32(0..1)
-  total: !float64
-  note: !float32 | !str
---- !reading
-gain: 0.1
-total: 16777217
-note: n/a
-```
-
-```json
-{"gain": 0.1, "total": 16777217.0, "note": "n/a"}
-```
-
-```yaml refused
---- &
-gain: !float32 | !str
---- !gain
-16777217
-```
-
-
 ### 4.5 A pattern on another type
 
-`!int`, `!bigint`, the float types, `!decimal` and `!null` take a pattern too, and it replaces the type's
+`!int`, `!bigint`, `!float`, `!decimal` and `!null` take a pattern too, and it replaces the type's
 standard spelling. The type matches a plain scalar that the pattern matches, and reads the value from it:
 
 - `!int` and `!bigint` read an optional sign and base-10 digits, so `+5` is 5 and `007` is 7.
-- The float types and `!decimal` read an optional sign, digits with at most one `.`, and an optional
+- `!float` and `!decimal` read an optional sign, digits with at most one `.`, and an optional
   exponent, so `+19.99` is 19.99, `.5` is 0.5 and `1.` is 1.
 - `!null` is null whatever the pattern matched, so `!null(/~|null/)` reads both.
 
@@ -666,11 +598,6 @@ and the scale is no larger than it. A colon stands where SQL has a comma,
 because a comma would end the type in a flow collection (section 4.2). Section 15 gives another
 spelling.
 
-It also says what an application must hold. An application that can't keep every value of 38 digits
-refuses any value of `!decimal(38:10)`, even `1.5`, so that what it refuses doesn't depend on which
-values a file happens to have. A parser can't check this, because it keeps the digits as written, so it
-falls to the application. `!float128` makes the same kind of promise for a binary float (section 4.4).
-
 ```yaml
 --- &
 prices: [!decimal(5:2), ...]
@@ -697,9 +624,8 @@ A type can carry `round`, a precision, a limit and a pattern together, in one pa
 that order, with one space between each. Each says something of its own: the pattern says which text is
 the type, the precision how many digits the value may have, the limit which values are allowed, and
 `round` that a value past its type's level is fitted to it. A precision goes on `!decimal` only, a
-limit on `!str` and the numbers, and a pattern on those and on `!null`. `round` goes on the float
-types, and on `!datetime` with its number of fraction digits, which stands where a precision would
-(section 4.8).
+limit on `!str` and the numbers, and a pattern on those and on `!null`. `round` goes on `!datetime`
+only, with its number of fraction digits, which stands where a precision would (section 4.8).
 
 A type carries at most one of each, so each type has one spelling:
 `!int(/[-+][0-9]+/ 0..100)` is refused, and so is `!int(0..10 20..30)`. With the pattern last, it still
@@ -765,17 +691,15 @@ were made, so a parser uses none: it allows `60` at 23:59 UTC on the last day of
 offset is taken off. So `1990-12-31T23:59:60Z` and `1990-12-31T18:59:60-05:00` are dates, and
 `1990-12-30T23:59:60Z` is no match.
 
-A parser delivers the value written, or refuses. One it can't hold refuses the document, as a value
-of `!float128` does on a parser that can't work in binary128 (section 4.4). It doesn't count as no
-match, so `!datetime | !str` can't give text on one parser only. Python's `datetime` holds no second
+A parser delivers the value written, or refuses. One it can't hold refuses the document. It doesn't
+count as no match, so `!datetime | !str` can't give text on one parser only. Python's `datetime` holds no second
 `60`, no year `0000` and 6 fraction digits, and JavaScript's `Date` no second `60` and 3 fraction
 digits. Python's `fromisoformat` and JavaScript's `Date` drop the digits past those without saying so,
 which a parser mustn't do.
 
 `!datetime(3)` says how many fraction digits a value keeps, as SQL's `TIMESTAMP(3)` does. A value with
-more refuses the document, as a float that wouldn't keep its digits does, so a time never becomes text
-because of how many digits it has. One with fewer is delivered as written, so `06.5` stays `06.5`. As
-with a precision on `!decimal`, the number says what an application must hold. One that keeps fewer
+more refuses the document, so a time never becomes text because of how many digits it has. One with
+fewer is delivered as written, so `06.5` stays `06.5`. The number says what an application must hold. One that keeps fewer
 than 3 fraction digits refuses any value of `!datetime(3)`, even one with none.
 
 `round` keeps the digits up to that number and drops the rest, so `2001-02-03T04:05:06.1234567Z` under
@@ -787,14 +711,12 @@ digits, and `!date` takes neither.
 --- &
 reading:
   at: !datetime(round 3)
-  value: !float32(round)
 --- !reading
 at: 2001-02-03T04:05:06.1234567Z
-value: 0.123456789
 ```
 
 ```json
-{"at": "2001-02-03T04:05:06.123Z", "value": 0.12345679104328156}
+{"at": "2001-02-03T04:05:06.123Z"}
 ```
 
 ```yaml refused
@@ -924,7 +846,7 @@ job:
 A key that is a type takes every key it fits that isn't named, tried in the order written. A
 key stays a string, and how it was written doesn't count, so `!int` as a key takes `1` and `"1"`.
 A key that a type key can't hold refuses the document, as a value does (section 4.4), so under
-`!float` as a key, `3.14159265358979323846` is refused, not passed to the next key.
+`!float` as a key, `1e999` is refused, not passed to the next key.
 
 ```yaml
 --- &
@@ -1170,7 +1092,9 @@ The other 2 are repeated keys, which part 1 refuses.
 
 An integer outside `!int`'s range refuses the document here. None of those 1,015 files holds one, and
 3 of JSONTestSuite's `i_` files do, which RFC 8259 lets a parser read or refuse. With `!bigint` in place
-of `!int`, they are read.
+of `!int`, they are read. A float too large for binary64 refuses the document too (section 4.4). None of the
+1,015 files holds one, and 5 `i_` files do, which Python's `json` reads as infinity. The 2 `i_` files
+whose float is too small for binary64 read as 0, as `json` reads them.
 
 `!**` covers the node it sits on as well, so a type with `!**` and no required keys also takes a
 scalar or a sequence: `5` and `[1, 2]` are JSON here too. In a union the node's shape chooses first
@@ -1461,7 +1385,7 @@ of sequences and mappings are part 1's.
 expression ::= part (" | " part)*
 part       ::= type | sequence | "''" | literal
 type       ::= "!" name args?
-args       ::= "(" ("round" | ("round ")? body) ")"
+args       ::= "(" ("round ")? body ")"
 body       ::= (level " ")? (range " ")? regex | (level " ")? range | level
 level      ::= precision | whole
 precision  ::= whole ":" whole, the first at least 1 and the second no larger than the first
@@ -1485,16 +1409,6 @@ A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is 
   workflow schema are optional, so it is noisy there. Marking required keys may read better.
 - **Quoted scalars as literals.** Section 5 removes two warts, and hasn't been tried on a real
   schema. It means a type expression can't be quoted.
-- **Which float names.** A float is named, not sized, because formats of one size hold different
-  values. Binary16 and bfloat16 are both 16 bits, with 11 and 8 bits of precision. Two sizes, such as
-  binary64's 11 exponent and 52 fraction bits, describe a format only if it follows IEEE 754's rules, as
-  bfloat16 does. The common 8-bit E4M3 format doesn't: it has 4 exponent and 3 fraction bits and no
-  infinity, and reaches 448, where IEEE 754's rules give 240. Some hardware has no subnormals, IBM's
-  hexadecimal floats are base 16, and double-double, C's `long double` on older PowerPC Linux, has no
-  fixed precision. A digit count, as Ada and Fortran have, describes no binary format exactly:
-  `16777216` fits binary32 and `16777217` doesn't, with 8 digits each. C++23 names five: binary16,
-  binary32, binary64, binary128 and bfloat16, and section 4.4 has all five. Which others to add is open,
-  and names can be added later, as section 8 says.
 - **Spelling precision and scale.** `!decimal(38:10)` follows SQL's `NUMERIC(38,10)`: the digits in all,
   then those after the point. SQL's comma can't stay (section 4.6). A picture would give the digits
   before and after the point, `!decimal(28.10)`, as COBOL's `PIC S9(28)V9(10)` does. That reads as a
