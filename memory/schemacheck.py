@@ -5,7 +5,7 @@
 Reads every example with the grammar in draftcheck.py, types each document whose local name
 is in the table, and compares the result with the example's JSON. Then runs edge cases.
 """
-import base64, binascii, datetime, hashlib, json, os, re, sys, unicodedata
+import base64, binascii, datetime, hashlib, json, math, os, re, sys, unicodedata
 from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 here = os.path.dirname(os.path.abspath(__file__))
@@ -28,11 +28,13 @@ class SchemaError(Exception): pass
 class Bad(Exception):
     def __init__(s, path, msg): super().__init__(f'{path or "/"}: {msg}')
 class Cant(Exception):
-    """A number that can't be held. It refuses the document, and isn't a failed match."""
-def stored(d, name):
-    """d in the IEEE 754 binary store a width names, exactly: the nearest, the even one on a tie.
-    None if it is too large to hold."""
-    p, low, top = WIDTHS[name]
+    """A value a parser can't deliver. It refuses the document, and isn't a failed match."""
+class Written(str):
+    """A !decimal whose exponent Python's Decimal can't hold, delivered as written (section 4.4)."""
+def nearest(d):
+    """d in binary64, exactly: the nearest, the even one on a tie. None if it is too large to hold.
+    Exact arithmetic, to check that float() rounds as section 4.4 says."""
+    p, low, top = 53, -1074, 1024
     if d == 0: return Fraction(0)
     if d.adjusted() > 5000: return None
     if d.adjusted() < -5000: return Fraction(0)
@@ -45,25 +47,22 @@ def stored(d, name):
     v = k * unit
     if v >= Fraction(2) ** top: return None
     return v if d > 0 else -v
-def dec(t, path):
-    """t as a Decimal. One whose exponent Decimal can't hold is 0 if its digits are, and otherwise can't be held."""
+def dec(t):
+    """t as a Decimal, to test a limit on. Decimal holds an exponent to about 10^18. Past that, a
+    stand-in that compares with a limit as t does: 0 if its digits are, and otherwise infinity or
+    Decimal's smallest value above 0, with t's sign."""
     try: return Decimal(t)
     except InvalidOperation:
-        m = re.match(r'([-+]?)([0-9.]*)[eE]', t)
-        if m and not m.group(2).strip('0.'): return Decimal(m.group(1) + '0')
-        raise Cant(f'{path or "/"}: {t[:40]} is too large or too small to hold')
-def keeps(d, name):
-    """Is d, stored in that width, no more than half a unit of its last written digit away?"""
-    v = stored(d, name)
-    if v is None: return False
-    if d == 0: return True
-    if v == 0: return False
-    return abs(v - Fraction(d)) * 2 <= Fraction(10) ** d.as_tuple().exponent
+        m = re.fullmatch(r'([-+]?)([0-9.]*)[eE]([-+]?)[0-9]+', t)
+        if not m[2].strip('0.'): return Decimal(m[1] + '0')
+        return Decimal(m[1] + ('1e-1999999999999999997' if m[3] == '-' else 'Infinity'))
+def canon(t):
+    """Section 4.5: a number a pattern matched, in the standard spelling: no +, no leading zeros, and
+    a digit on each side of a point. The digits and exponent are kept, so 100e-2 stays 100e-2."""
+    m = re.fullmatch(r'([-+]?)([0-9]*)(?:\.([0-9]*))?([eE][-+]?[0-9]+)?', t)
+    return ('-' if m[1] == '-' else '') + (m[2].lstrip('0') or '0') + ('.' + m[3] if m[3] else '') + (m[4] or '')
 
-WIDTHS = {'float16': (11, -24, 16), 'bfloat16': (8, -133, 128), 'float32': (24, -149, 128), 'float64': (53, -1074, 1024), 'float128': (113, -16494, 16384)}
-HELD = {'float16', 'bfloat16', 'float32', 'float64'}  # The stores this parser can work in. A test adds float128.
-FLOATS = {'float', *WIDTHS}
-STD = {'str', 'int', 'bigint', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary', *FLOATS}
+STD = {'str', 'int', 'bigint', 'float', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary'}
 FLOAT = r'-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?'
 INT = r'-?(0|[1-9][0-9]*)'
 INTS = ('int', 'bigint')
@@ -258,16 +257,15 @@ def pattern(p, whole):
     except re.error: raise SchemaError(f'not I-Regexp: {whole}')
     return ('re', Pat(rx, n, p))
 RANGE = r'(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?\.\.(-?[0-9]+(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?)?'
-PATTERNED = ('str', 'int', 'bigint', 'decimal', 'null', *FLOATS)
+PATTERNED = ('str', 'int', 'bigint', 'float', 'decimal', 'null')
 def limit(text, name, whole):
     """Sections 4.2 and 4.4 to 4.8: in one pair of parentheses, in this order and at most one of
-    each, round (the float types, and datetime with a number of digits), a precision (decimal only) or
+    each, round (datetime with a number of digits only), a precision (decimal only) or
     a number of fraction digits (datetime only), a range and a pattern, one space between them. With
     round first, a pattern is still last, and still ends at the first `/)`."""
     if name not in PATTERNED and name != 'datetime': raise SchemaError(f'{whole}: !{name} takes nothing in parentheses')
     rnd = False
-    if text == 'round': rnd, text = True, ''
-    elif text.startswith('round '):
+    if text.startswith('round '):
         rnd, text = True, text[6:]
         if not text or text.startswith(' '): raise SchemaError(f'bad limit: {whole}')
     i = text.find('/'); head, pat = (text, None) if i < 0 else (text[:i], text[i:])
@@ -288,31 +286,32 @@ def limit(text, name, whole):
             continue
         m = re.fullmatch(RANGE, a)
         if m and rng is None and (m[1] or m[2]) and name not in ('null', 'datetime'):
-            lo, hi = (None if x is None else Decimal(x) for x in m.groups())
+            lo, hi = (None if x is None else dec(x) for x in m.groups())
             if lo is not None and hi is not None and lo > hi: raise SchemaError(f'bad limit: {whole}')
             rng = (lo, hi); continue
         raise SchemaError(f'bad limit: {whole}')
-    if rnd and name not in FLOATS and not (name == 'datetime' and digits is not None):
-        raise SchemaError(f'{whole}: round takes a float type, or !datetime with a number of digits')
+    if rnd and not (name == 'datetime' and digits is not None):
+        raise SchemaError(f'{whole}: round takes !datetime with a number of digits')
     if not (pat or rng or prec or digits is not None or rnd): raise SchemaError(f'bad limit: {whole}')
     return ('args', pat, rng, prec, digits, rnd)
 def overrides(o):
-    """Section 3: an application can name a level and round for a float or date type, as a schema
-    would, for its own reading: {'datetime': 'round 6'}, {'float32': 'round'}, or '' for neither."""
+    """Section 3: an application can name a level and round for !datetime, as a schema would, for its
+    own reading: {'datetime': 'round 6'}, or '' for neither."""
     out = {}
     for k, text in o.items():
-        n = 'float64' if k == 'float' else k
-        if n not in WIDTHS and n != 'datetime': raise SchemaError(f'an application names a level only for a float or date type, not !{k}')
-        if text == '': out[n] = (None, False); continue
-        a = limit(text, n, f'!{k}({text})')
+        if k != 'datetime': raise SchemaError(f'an application names a level only for !datetime, not !{k}')
+        if text == '': out[k] = (None, False); continue
+        a = limit(text, k, f'!{k}({text})')
         if a[1] or a[2] or a[3]: raise SchemaError(f'an application names only a level and round: !{k}({text})')
-        out[n] = (a[4], a[5])
+        out[k] = (a[4], a[5])
     return out
-def fits(d, p, sc):
-    """Section 4.6, on the exact value: at most sc digits after the point and p - sc before it."""
-    _, ds, e = d.as_tuple(); n = len(ds)
-    while n > 1 and ds[n - 1] == 0: n -= 1; e += 1
-    if n == 1 and ds[0] == 0: return True
+def fits(t, p, sc):
+    """Section 4.6, on the exact value: at most sc digits after the point and p - sc before it. On the
+    text, so an exponent of any size is counted."""
+    m = re.fullmatch(r'-?([0-9]+)(?:\.([0-9]+))?(?:[eE]([-+]?[0-9]+))?', t)
+    ds = (m[1] + (m[2] or '')).lstrip('0'); e = int(m[3] or 0) - len(m[2] or '')
+    if not ds: return True
+    n = len(ds.rstrip('0')); e += len(ds) - n
     return max(0, -e) <= sc and n + e <= p - sc
 def atom(p):
     if not p: raise SchemaError('an empty part')
@@ -570,15 +569,14 @@ class Schema:
         return out
     def scalar(s, name, lim, v, path):
         if name == 'any': return strip(v)
-        if name == 'float': name = 'float64'  # Section 4.4: !float is short for !float64.
         if not isinstance(v, str): raise Bad(path, f'expected {name}')
-        if name in ('int', 'bigint', 'decimal', 'bool', 'null', *FLOATS) and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
+        if name in ('int', 'bigint', 'float', 'decimal', 'bool', 'null') and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
         t = str(v); out = None; pat = lim[1] if lim else None
         def outside(n):
             if lim and lim[2]:
                 lo, hi = lim[2]
                 if (lo is not None and n < lo) or (hi is not None and n > hi): raise Bad(path, f'{t[:40]!r} is out of range')
-        # Sections 4.4 and 4.8: the level and round the schema gives, or the ones an application named (section 3).
+        # Section 4.8: the level and round the schema gives, or the ones an application named (section 3).
         digits, rnd = (lim[4], lim[5]) if lim else (None, False)
         if name in s.over: digits, rnd = s.over[name]
         if pat and name != 'str':
@@ -587,7 +585,7 @@ class Schema:
             if name == 'null': return None
             if not re.fullmatch(READINT if name in INTS else READDEC, t):
                 raise Cant(f'{path or "/"}: {t[:40]!r} matched, and is not ' + ('an integer' if name in INTS else 'a number'))
-            t = str(int(t)) if name in INTS else str(dec(t, path)).replace('E', 'e')
+            t = str(int(t)) if name in INTS else canon(t)
         try:
             if name == 'str': out = t
             elif name == 'bool' and t in ('true', 'false'): out = t == 'true'
@@ -598,18 +596,16 @@ class Schema:
                 # compare with JSON.
                 out = int(t); outside(out)
                 if name == 'int' and not INTRANGE[0] <= out <= INTRANGE[1]: raise Cant(f'{path or "/"}: {t[:40]} is outside !int')
-            elif name in WIDTHS and re.fullmatch(FLOAT, t):
-                # Section 4.4: a limit first, on the number as written; then the store, whose failure
-                # refuses the document, and a store this parser lacks refuses every value inside the limit.
-                d = dec(t, path); outside(d)
-                if name not in HELD: raise Cant(f'{path or "/"}: this parser can not work in {name}')
-                v = stored(d, name)
-                if v is None: raise Cant(f'{path or "/"}: {t[:40]} is too large for {name}')
-                if not rnd and not keeps(d, name): raise Cant(f'{path or "/"}: {t[:40]} would lose digits in {name}')
-                if name == 'float128': out = (v if v or not d.is_signed() else Decimal('-0')) if rnd else d
-                elif rnd and d != 0: out = -0.0 if v == 0 and d.is_signed() else float(v)
-                else: out = float(t)
-            elif name == 'decimal' and re.fullmatch(FLOAT, t): out = dec(t, path)
+            elif name == 'float' and re.fullmatch(FLOAT, t):
+                # Section 4.4: a limit first, on the number as written; then the nearest binary64, the
+                # even one on a tie, which is what Python's float() gives. One too large for binary64
+                # refuses the document, and one too small for it is 0, with its sign.
+                outside(dec(t)); out = float(t)
+                if math.isinf(out): raise Cant(f'{path or "/"}: {t[:40]} is too large for binary64')
+            elif name == 'decimal' and re.fullmatch(FLOAT, t):
+                # Section 4.4: the digits and exponent as written, never expanded.
+                try: out = Decimal(t)
+                except InvalidOperation: out = Written(t)
             elif name in ('date', 'datetime'): out = dated(t, name == 'datetime', digits, rnd, path)
             elif name == 'binary':
                 t = t.replace('\n', '')
@@ -618,9 +614,9 @@ class Schema:
             else: raise ValueError
         except (ValueError, binascii.Error, UnicodeEncodeError): raise Bad(path, f'expected {name}, got {t[:40]!r}')
         if pat and name == 'str' and not pat.fullmatch(t): raise Bad(path, f'{t[:40]!r} does not match')
-        if lim and lim[3] and not fits(out, *lim[3]): raise Bad(path, f'{t[:40]!r} has too many digits for {lim[3][0]}:{lim[3][1]}')
+        if lim and lim[3] and not fits(t, *lim[3]): raise Bad(path, f'{t[:40]!r} has too many digits for {lim[3][0]}:{lim[3][1]}')
         if lim and lim[2]:
-            lo, hi = lim[2]; n = len(t) if name == 'str' else dec(t, path) if name in FLOATS else out
+            lo, hi = lim[2]; n = len(t) if name == 'str' else dec(t) if name in ('float', 'decimal') else out
             if (lo is not None and n < lo) or (hi is not None and n > hi): raise Bad(path, f'{t[:40]!r} is out of range')
         return out
 
@@ -637,14 +633,13 @@ def published(name, store, over, limit=LIMIT, keep=False):
     # Section 3.1: the root is the entry named like the file.
     if root not in r.table: raise SchemaError(f'{name}: the file has no entry {root}')
     return Schema(r.table, root, over, limit, keep)
-def typed(stream, app=None, accept=False, store=None, limit=LIMIT, override=None, keep=False):
+def typed(stream, app=None, store=None, limit=LIMIT, override=None, keep=False):
     """Type each stamped document by the file's table, others by the application's schema.
     With neither they stay strings. An application's schema is (schema text, root). A store
-    means the application looks published names up. An override names levels (section 3), and
-    accept is an application naming round on every float type. Keep types as an interface that keeps
-    references does, counting typed (section 11)."""
+    means the application looks published names up. An override names levels (section 3). Keep
+    types as an interface that keeps references does, counting typed (section 11)."""
     r = read(stream); out = []; reached = {}; live = None
-    over = overrides({**({n: 'round' for n in WIDTHS} if accept else {}), **(override or {})})
+    over = overrides(override or {})
     own = None if app is None else Schema(read(app[0]).table, app[1], over, limit, keep)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
         if obj is not live: reached, live = {}, obj
@@ -664,7 +659,9 @@ def typed(stream, app=None, accept=False, store=None, limit=LIMIT, override=None
     return out
 REFUSED = (No, Bad, SchemaError, Cant)
 def same(a, b):
+    if isinstance(a, Written) or isinstance(b, Written): return type(a) is type(b) and a == b
     if isinstance(a, Decimal): return a == Decimal(repr(b) if isinstance(b, float) else str(b))
+    if isinstance(a, float) and isinstance(b, Decimal): return a == float(b)  # An example's JSON, read exactly.
     if type(a) is not type(b): return False
     if isinstance(a, dict): return list(a) == list(b) and all(same(a[k], b[k]) for k in a)
     if isinstance(a, list): return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
@@ -683,7 +680,7 @@ if __name__ == '__main__':
         if kind == 'json': i += 1; continue
         want = None
         if i + 1 < len(blocks) and blocks[i + 1][1] == 'json':
-            d = json.JSONDecoder(); t = blocks[i + 1][2].strip(); want = []; k = 0
+            d = json.JSONDecoder(parse_float=Decimal); t = blocks[i + 1][2].strip(); want = []; k = 0
             while k < len(t):
                 v, e = d.raw_decode(t, k); want.append(v); k = e
                 while k < len(t) and t[k].isspace(): k += 1
@@ -705,7 +702,7 @@ if __name__ == '__main__':
         try: typed(H + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, repr(v))
         except REFUSED: pass
     schemas = ['"my type": !int\na: !my type', '"my\ttype": !int\na: !my\ttype', 'a: !int | [ ]', 'a: !int | [!int, ]', 'a: !int | [, !int]', 'a: !int | [...]', 'a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !bool(/x/)', 'a: !date(/x/)', 'a: !datetime(/x/)', 'a: !binary(/x/)', 'a: !any(/x/)', 'a: !int(/(1{1000}){1000}/)', 'a: !int(/^1/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)', 'a: !int | "none"', "a: !int | 'none'", 'a: !b | !int\nb: !a | !str', 'a: !str(/(a{1000}){1000}/)', 'a: !str(/a{1025}/)', 'a: !str(/a{513}/) | !str(/b{512}/)', 'a:\n  !str(/a{513}/): !int\n  !str(/b{512}/): !int',
-               'a: !int(/[0-9]+/ 0..100)', 'a: !int(0..1 5..9)', 'a: !int(5:2)', 'a: !float(5:2)', 'a: !float32(5:2)', 'a: !str(5:2)', 'a: !decimal(0..1 5:2)',
+               'a: !int(/[0-9]+/ 0..100)', 'a: !int(0..1 5..9)', 'a: !int(5:2)', 'a: !float(5:2)', 'a: !str(5:2)', 'a: !decimal(0..1 5:2)',
                'a: !decimal(2:5)', 'a: !decimal(0:0)', 'a: !decimal(05:2)', 'a: !decimal(5:02)', 'a: !decimal(5: 2)', 'a: !decimal(5,2)', 'a: !decimal(5:2 5:2)',
                'a: !decimal(5:2 /x/ 0..1)', 'a: !int(0..100  /x/)', 'a: !int(0..100/x/)', 'a: !int( 0..100)', 'a: !int(0..100 )', 'a: !null(0..1 /x/)',
                'a: !null(0..1)', 'a: !int()', 'a: [!decimal(5,2), ...]', 'a: {b: !decimal(5,2)}', 'a: !decimal(5:2 /^x/)', 'a: !float(/x/ 0..1)']
@@ -817,64 +814,67 @@ if __name__ == '__main__':
     for t, w in reach:
         try: got = typed(t); f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
-    # Numbers: the number written, or a refusal.
+    # Numbers: the number written, the nearest binary64 for !float, or a refusal.
     N = '--- &\nf: !float\nd: !decimal\ni: !int\nb: !bigint\nbu: !bigint(0..) | !str\nu: !float | !str\nw: !int | !float\nc: !decimal(0..100)\nq: !float(..3.4e38)\nv: !int(0..18446744073709551615)\n'
-    nums = [('f', '1.00000000000000011102230246251565404236316680908203125', 1.0, 1), ('f', '1.00000000000000033306690738754696212708950042724609375', 1.0000000000000004, 1), ('f', '0.1', 0.1, 0), ('f', '0.10000000000000001', 0.1, 0), ('f', '0.30000000000000004', 0.30000000000000004, 0), ('f', '1e23', 1e23, 0), ('f', '1.10', 1.1, 0), ('f', '100', 100.0, 0), ('f', '1.7976931348623157e308', 1.7976931348623157e308, 0), ('f', '5e-324', 5e-324, 0), ('f', '0', 0.0, 0), ('f', '0.000', 0.0, 0), ('f', '3.14159265358979323846', 3.141592653589793, 1), ('f', '1.0000076293945313', 1.0000076293945313, 0), ('f', '1.0000076293945312', 1.0000076293945312, 0), ('f', '1.0000076293945314', 1.0000076293945314, 1), ('f', '-1.0000076293945313', -1.0000076293945313, 0), ('f', '1.234567890123e-320', 1.234567890123e-320, 1), ('f', '2.2250738585072014e-308', 2.2250738585072014e-308, 0), ('f', '49954322897937359e-24', 4.995432289793736e-08, 1), ('f', '1e-999', 0.0, 1), ('d', '19.99', 19.99, 0), ('d', '3.14159265358979323846', '3.14159265358979323846', 1), ('d', '1e999999999', '1e999999999', 1), ('b', '340282366920938463463374607431768211456', 2**128, 0), ('b', '-340282366920938463463374607431768211456', -2**128, 0), ('i', '18446744073709551615', 2**64 - 1, 0), ('i', '-9223372036854775808', -2**63, 0), ('bu', '-1', '-1', 0), ('u', '"1e999"', '1e999', 0), ('u', '1.5', 1.5, 0), ('w', '3', 3, 0), ('w', '3.5', 3.5, 0), ('c', '100', 100, 0), ('q', '3.4e38', 3.4e38, 0), ('v', '18446744073709551615', 2**64 - 1, 0)]
-    for k, v, w, acc in nums:
-        try: got = typed(N + f'--- !{k}\n{v}\n', accept=bool(acc))[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', k, v, got)
+    TOP = 2 ** 1024 - 2 ** 970  # Halfway between binary64's largest value and 2^1024.
+    nums = [('f', '1.00000000000000011102230246251565404236316680908203125', 1.0), ('f', '1.00000000000000033306690738754696212708950042724609375', 1.0000000000000004),
+            ('f', '1.000000000000000111022302462515654042363166809082031250000001', 1.0000000000000002), ('f', '0.1', 0.1), ('f', '0.10000000000000001', 0.1),
+            ('f', '0.30000000000000004', 0.30000000000000004), ('f', '1e23', 1e23), ('f', '1.10', 1.1), ('f', '100', 100.0), ('f', '1.7976931348623157e308', 1.7976931348623157e308),
+            ('f', str(TOP - 1), 1.7976931348623157e308), ('f', '5e-324', 5e-324), ('f', '0', 0.0), ('f', '0.000', 0.0), ('f', '3.14159265358979323846', 3.141592653589793),
+            ('f', '1.0000076293945314', 1.0000076293945314), ('f', '1.234567890123e-320', 1.234567890123e-320), ('f', '49954322897937359e-24', 4.995432289793736e-08),
+            ('f', '9007199254740993', 9007199254740992.0), ('f', '9007199254740995', 9007199254740996.0), ('f', '1e-999', 0.0), ('f', '16777217', 16777217.0),
+            ('d', '19.99', 19.99), ('d', '3.14159265358979323846', '3.14159265358979323846'), ('d', '1e999999999', '1e999999999'), ('d', '1e99999999999999999999', Written('1e99999999999999999999')),
+            ('b', '340282366920938463463374607431768211456', 2**128), ('b', '-340282366920938463463374607431768211456', -2**128), ('i', '18446744073709551615', 2**64 - 1),
+            ('i', '-9223372036854775808', -2**63), ('bu', '-1', '-1'), ('u', '"1e999"', '1e999'), ('u', '1.5', 1.5), ('u', '3.14159265358979323846', 3.141592653589793),
+            ('w', '3', 3), ('w', '3.5', 3.5), ('c', '100', 100), ('q', '3.4e38', 3.4e38), ('v', '18446744073709551615', 2**64 - 1)]
+    for k, v, w in nums:
+        try: got = typed(N + f'--- !{k}\n{v}\n')[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', k, v, got)
         except REFUSED as e: f += 1; print('REFUSED', k, v, e)
-    nope = [('i', '340282366920938463463374607431768211456', 0), ('i', '18446744073709551616', 0), ('i', '-9223372036854775809', 0), ('w', '18446744073709551616', 0), ('b', '"1"', 0), ('b', '1.0', 0), ('f', '3.14159265358979323846', 0), ('f', '1.0000076293945314', 0), ('f', '1.234567890123e-320', 0), ('f', '49954322897937359e-24', 0), ('f', '9007199254740993.0', 0), ('f', '1e999', 0), ('f', '1e999', 1), ('f', '1e-999', 0), ('u', '1e999', 0), ('u', '1e999', 1), ('u', '3.14159265358979323846', 0), ('d', '"19.99"', 0), ('c', '100.01', 0), ('q', '3.5e38', 0), ('v', '18446744073709551616', 0), ('v', '-1', 0)]
-    for k, v, acc in nope:
-        try: typed(N + f'--- !{k}\n{v}\n', accept=bool(acc)); f += 1; print('NOT REFUSED', k, v)
+    nope = [('i', '340282366920938463463374607431768211456'), ('i', '18446744073709551616'), ('i', '-9223372036854775809'), ('w', '18446744073709551616'), ('b', '"1"'), ('b', '1.0'),
+            ('f', '1e999'), ('f', '-1e999'), ('f', '1.8e308'), ('f', str(TOP)), ('f', '"0.1"'), ('u', '1e999'), ('u', '-1.8e308'), ('d', '"19.99"'), ('c', '100.01'), ('q', '3.5e38'),
+            ('v', '18446744073709551616'), ('v', '-1')]
+    for k, v in nope:
+        try: typed(N + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, v)
         except REFUSED: pass
     bounds = [('!float(..0.1)', '0.1', 0.1), ('!float(0.1..)', '0.1', 0.1), ('!float(0.1..0.1)', '0.1', 0.1), ('!float(0.3..)', '0.3', 0.3), ('!float(..1.1)', '1.1', 1.1), ('!float(..0.1) | !str', '0.1', 0.1), ('!float(0.3..) | !str', '0.3', 0.3), ('!float(..0.1) | !str', '0.10000000000000001', '0.10000000000000001')]
     for tp, v, w in bounds:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n')[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    outside = [('!float(..0.1)', '0.10000000000000001', False), ('!float(0.1..)', '0.099999999999999999', True), ('!float(..0.1)', '0.100000000000000000001', True)]
-    for tp, v, acc in outside:
-        try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc); f += 1; print('NOT REFUSED', tp, v)
+    outside = [('!float(..0.1)', '0.10000000000000001'), ('!float(0.1..)', '0.099999999999999999'), ('!float(..0.1)', '0.100000000000000000001')]
+    for tp, v in outside:
+        try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
-    # Widths: by exact arithmetic, so the same on every parser.
-    both = ['0.1', '0.5', '1.1', '3.1415927', '123456.7', '1234567.8', '1.0000076293945313']
-    table64 = ['16777217', '0.30000000000000004', '3.141592653589793', '1e39']
-    table128 = ['3.14159265358979323846', '3.141592653589793238462643383279503', '1e400']
-    noneholds = ['3.14159265358979323846264338327950288419', '1e5000']
-    for row, want in ((both, (1, 1, 1)), (table64, (0, 1, 1)), (table128, (0, 0, 1)), (noneholds, (0, 0, 0))):
-        for v in row:
-            got = tuple(int(keeps(Decimal(v), n)) for n in ('float32', 'float64', 'float128'))
-            if got != want: f += 1; print('WIDTH TABLE', v, got, want)
-    # Section 4.4: !float is !float64, alone and in a union, with rounding or without.
-    alias = 0
-    for v in both + table64 + table128 + noneholds + ['1e-330', '4.9e-324', '1.8e308', '-0', '9007199254740993', '"0.1"', 'abc']:
-        for acc in (False, True):
-            r = []
-            for tp in ('!float', '!float64', '!float | !str', '!float64 | !str', '!float(0..1)', '!float64(0..1)'):
-                try: r.append(('ok', typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc)[0]))
-                except REFUSED: r.append(('refused',))
-            alias += 1
-            if r[0::2] != r[1::2]: f += 1; print('FLOAT IS NOT FLOAT64', v, acc, r)
-    widths = [('!float32', '0.1', False, 0.1), ('!float32', '16777216', False, 16777216.0), ('!float32', '3.1415927', False, 3.1415927), ('!float32', '1234567.8', False, 1234567.8), ('!float32', '1.0000076293945313', False, 1.0000076293945313), ('!float64', '16777217', False, 16777217.0), ('!float64', '0.30000000000000004', False, 0.30000000000000004), ('!float64', '1e39', False, 1e39), ('!float32(0..1)', '0.5', False, 0.5), ('!float32 | !str', 'n/a', False, 'n/a'), ('!float', '0e99999999999999999999', False, 0.0), ('!float | !str', '-0.0e-99999999999999999999', False, 0.0), ('!float(0..1) | !str', '1.5', False, '1.5'), ('!float16', '257', False, 257.0), ('!float16', '65504', False, 65504.0), ('!float16', '65519', True, 65504.0), ('!float16', '0.1', True, 0.0999755859375), ('!bfloat16', '1e5', False, 100000.0), ('!bfloat16', '257', True, 256.0), ('!bfloat16', '0.1', True, 0.10009765625), ('!bfloat16', '1e-8', False, 1e-8), ('!bfloat16', '3.38e38', False, 3.38e38), ('!float16 | !str', '-0', False, -0.0), ('!float16', '6e-8', False, 6e-8), ('!bfloat16', '1e-40', False, 1e-40), ('!float(0..1) | !str', '1e999', False, '1e999'), ('!float(..1) | !str', '3.14159265358979323846', False, '3.14159265358979323846'), ('!float32(0..1) | !str', '16777217', False, '16777217'), ('!float128(0..1) | !str', '5', False, '5'), ('!float32(0..1) | !str', '2', False, '2'), ('!float32', '16777217', True, 16777216.0), ('!float32', '16777219', True, 16777220.0), ('!float32', '3.141592653589793', True, 3.1415927410125732), ('!float64', '9007199254740993', True, 9007199254740992.0), ('!float64', '3.14159265358979323846', True, 3.141592653589793), ('!float32', '0', False, 0.0), ('!float32', '-1.5', False, -1.5), ('!float32', '1.4e-45', False, 1.4e-45), ('!float32', '340282346638528859811704183484516925440', False, 340282346638528859811704183484516925440.0), ('!float64', '9007199254740991', False, 9007199254740991.0), ('!float64', '4.9e-324', False, 4.9e-324), ('!float64', '1.7e308', False, 1.7e308), ('!float128 | !str', 'abc', False, 'abc'), ('!float128 | !str', '"0.1"', False, '0.1'), ('!float32(/[0-9]+/)', '5', False, 5.0), (r'!float32(/[0-9]*\.[0-9]+/)', '.1', False, 0.1), ('float32: !int\nn: !float32', '16777217', False, 16777217)]
-    for tp, v, acc, w in widths:
-        try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'.replace('n: float32: !int\nn: ', 'float32: !int\nn: '), accept=acc)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
+    # Section 4.4: float() rounds as exact arithmetic does, so every parser gets the same binary64 value.
+    hard = ['0.1', '1.1', '3.14159265358979323846', '9007199254740993', '9007199254740995', '1.00000000000000011102230246251565404236316680908203125',
+            '1.000000000000000111022302462515654042363166809082031250000001', '2.2250738585072011e-308', '2.4703282292062327e-324', '2.4703282292062328e-324',
+            '4.9406564584124654e-324', '1e23', '8.589973e9', str(TOP - 1), '0.' + '9' * 800, '1' + '0' * 400 + 'e-400', '7.' + '0' * 1000 + '1e-1', '-0.' + '0' * 330 + '1']
+    for v in hard:
+        want = nearest(Decimal(v))
+        try: got = typed(f'--- &\nn: !float\n--- !n\n{v}\n')[0]
+        except REFUSED as e: f += 1; print('REFUSED', v[:40], e); continue
+        if want is None or Fraction(got) != want: f += 1; print('NOT NEAREST', v[:40], got)
+    floats = [('!float(0..1) | !str', '1e999', '1e999'), ('!float(..1) | !str', '3.14159265358979323846', '3.14159265358979323846'), ('!float(0..1) | !str', '1.5', '1.5'),
+              ('!float', '0e99999999999999999999', 0.0), ('!float | !str', '-0.0e-99999999999999999999', -0.0), ('!float', '1e-99999999999999999999', 0.0),
+              ('!float | !str', '1e-99999999999999999999', 0.0), ('!float(0..1)', '1e-99999999999999999999', 0.0), ('!float(..0) | !str', '1e-99999999999999999999', '1e-99999999999999999999'),
+              ('!float(0..4)', '3.14159265358979323846', 3.141592653589793), ('!float(/[0-9.]+/)', '3.14159265358979323846', 3.141592653589793), ('!float', '1e39', 1e39),
+              ('!float', '1.7e308', 1.7e308), ('!float', '4.9e-324', 5e-324), ('!float | !str', 'n/a', 'n/a'), ('!float(..1e99999999999999999999)', '1e308', 1e308),
+              ('float: !int\nn: !float', '16777217', 16777217)]
+    for tp, v, w in floats:
+        body = tp if '\n' in tp else f'n: {tp}'
+        try: got = typed(f'--- &\n{body}\n--- !n\n{v}\n')[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    narrows = [('!bfloat16', '257', False), ('!bfloat16 | !str', '257', False), ('!float16', '1e5', False), ('!float16', '1e5', True), ('!float16', '65520', True), ('!float16', '1e-8', False), ('!float16', '2049', False), ('!bfloat16', '3.4e38', True), ('!float32 | !str', '16777217', False), ('!float32 | !float64', '16777217', False), ('!float64 | !str', '3.14159265358979323846', False), ('!float32 | !str', '1e39', False), ('!float32 | !str', '1e39', True),
-               ('!float(0..) | !str', '1e999', False), ('!float(..1) | !str', '0.314159265358979323846', False), ('!float32(0..1e10) | !str', '16777217', False), ('!float128(0..1) | !str', '0.5', False), ('!float | !str', '1e99999999999999999999', False), ('!float | !str', '0.4e0066999999999999999999999999999999', False), ('!float | !str', '1e-99999999999999999999', False), ('!float(/[0-9e]+/) | !str', '1e99999999999999999999', False), ('!float32', '16777217', False), ('!float32', '8.589973e9', False), ('!float32', '1e39', False), ('!float32', '1e39', True), ('!float32', '1e-60', False), ('!float32', '3.5e38', False), ('!float32', '3.5e38', True), ('!float32', '1e-46', False), ('!float64', '1.8e308', True), ('!float64', '1e-330', False), ('!float32', '1e-999999999', False), ('!float64', '9007199254740993', False), ('!float64', '3.14159265358979323846', False), ('!float64', '1e400', False), ('!float64', '1e400', True), ('!float32(0..1)', '1.5', False), ('!float32', '"0.1"', False), ('!float32', 'abc', False), ('!float32(/[0-9]+/)', '16777217', False), ('!float128', '0.1', False), ('!float128', '0.1', True), ('!float128 | !str', '0.1', False), ('!float128(0..1)', '5', False), ('!float32', '1e99999999999999999999', False), ('!float32', '1e-99999999999999999999', False)]
-    for tp, v, acc in narrows:
-        try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc); f += 1; print('NOT REFUSED', tp, v)
+    floatnot = [('!float', '1e999'), ('!float', '1.8e308'), ('!float', '-1e400'), ('!float', str(TOP)), ('!float | !str', '1e999'), ('!float(0..) | !str', '1e999'),
+                ('!float | !str', '1e99999999999999999999'), ('!float | !str', '0.4e0066999999999999999999999999999999'), ('!float(/[0-9e]+/) | !str', '1e99999999999999999999'),
+                ('!float(/[0-9]+/) | !str', '9' * 400), ('!float', '"0.1"'), ('!float', 'abc'), ('!float(0..1)', '1.5'), ('!float(..0)', '1e-99999999999999999999')]
+    for tp, v in floatnot:
+        try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
-    HELD.add('float128')
-    wider = [('!float128', '0.1', False, Decimal('0.1')), ('!float128', '3.14159265358979323846', False, Decimal('3.14159265358979323846')), ('!float128', '1e400', False, Decimal('1e400')), ('!float128(0..4)', '3.14159265358979323846', False, Decimal('3.14159265358979323846')), ('!float128', '10384593717069655257060992658440191', False, Decimal('10384593717069655257060992658440191')), ('!float128', '6.5e-4966', False, Decimal('6.5e-4966')), ('!float128', '1.1e4932', False, Decimal('1.1e4932'))]
-    for tp, v, acc, w in wider:
-        try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc)[0]; f += 0 if got == w else 1; got == w or print('DIFFERS', tp, v, got)
-        except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    rounded = typed('--- &\nn: !float128\n--- !n\n3.14159265358979323846264338327950288419\n', accept=True)[0]
-    if abs(rounded - Fraction('3.14159265358979323846264338327950288419')) > Fraction(1, 10 ** 33): f += 1; print('NOT ROUNDED', rounded)
-    widenot = [('!float128 | !str', '1e5000', False), ('!float', '3.14159265358979323846', False), ('!float', '1e400', False), ('!float128', '3.14159265358979323846264338327950288419', False), ('!float128', '1e5000', False), ('!float128', '1e5000', True), ('!float128', '1.2e4932', True), ('!float128', '1e-4970', False), ('!float64', '3.14159265358979323846', False), ('!float32', '16777217', False)]
-    for tp, v, acc in widenot:
-        try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', accept=acc); f += 1; print('NOT REFUSED', tp, v)
+    # The width names and round on a float are gone (the user, 2026-11-12).
+    gone = ['a: !float16', 'a: !bfloat16', 'a: !float32', 'a: !float64', 'a: !float128', 'a: !float(round)', 'a: !float(round 0..1)', 'a: !float(round /[0-9.]+/)',
+            'a: !float(round 0..1 /[0-9.]+/)', 'a: {b: !float32(round)}']
+    for g2 in gone:
+        try: typed('--- &\n' + g2 + '\n'); f += 1; print('SCHEMA NOT REFUSED', g2)
         except REFUSED: pass
-    HELD.discard('float128')
     decs = [(r'!decimal(/[-+]?[0-9]+\.[0-9]{2}/)', '+19.99', Decimal('19.99')), (r'!decimal(/\.[0-9]+/)', '.5', Decimal('0.5')), (r'!decimal(/[0-9]+\./)', '5.', Decimal('5')), (r'!decimal(/[0-9]{1,28}(\.[0-9]{1,10})?/)', '1234567890123456789012345678.1234567890', Decimal('1234567890123456789012345678.1234567890')), (r'!decimal(/0[0-9]+/)', '007', Decimal('7')), (r'!decimal(/[0-9]+e[0-9]+/)', '1e999999999', Decimal('1e999999999')), (r'!decimal(/[0-9]+\.[0-9]{2}/) | !str', '19.9', '19.9')]
     for tp, v, w in decs:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n')[0]; f += 0 if got == w else 1; got == w or print('DIFFERS', tp, v, got)
@@ -883,7 +883,7 @@ if __name__ == '__main__':
     for tp, v in decnot:
         try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
-    # Section 4.5 on !float, its widths and !null; 4.6, precision and scale; 4.7, all three together.
+    # Section 4.5 on !float, !decimal and !null; 4.6, precision and scale; 4.7, all three together.
     F = r'/[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][-+]?[0-9]+)?/'
     more = [(f'!float({F})', '.5', 0.5), (f'!float({F})', '1.', 1.0), (f'!float({F})', '+1.5e3', 1500.0), (f'!float({F})', '007', 7.0), (f'!float({F})', '-0', 0.0),
             ('!float(/[0-9]+/) | !str', 'abc', 'abc'), ('!float(/[0-9]+/) | !str', '1.5', '1.5'), (f'!float({F}) | !str', '"5"', '5'),
@@ -896,13 +896,16 @@ if __name__ == '__main__':
             ('!decimal(5:2) | !str', '1.005', '1.005'), ('[!decimal(5:2), ...]', '[1.5, 2]', [Decimal('1.5'), Decimal('2')]), ('{a: !decimal(5:2)}', '{a: 1.5}', {'a': Decimal('1.5')}),
             ('!int(0..100 /[-+][0-9]+/)', '+5', 5), ('!int(0..100 /[-+][0-9]+/)', '-0', 0), ('!int(..10 /0[0-9]+/)', '007', 7), ('!str(1..8 /[a-z]+/)', 'web', 'web'),
             ('!decimal(38:10 0..)', '19.99', Decimal('19.99')), (r'!decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)', '19.99', Decimal('19.99')), (r'!decimal(5:2 /[0-9]+\.[0-9]{2}/)', '19.99', Decimal('19.99')),
-            (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.5', 0.5), (r'!float32(0..1 /[0-9]*\.[0-9]+/)', '.1', 0.1), ('!int(1..10) | !int(20..30)', '25', 25), ('!int(1..10) | !int(20..30) | !str', '15', '15'),
-            ('!decimal(5:2 0..) | !str', '-1', '-1'), ('!decimal', '0e99999999999999999999', Decimal(0)), ('!decimal(0..1)', '-0e-99999999999999999999', Decimal(0))]
+            (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.5', 0.5), (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.1', 0.1), ('!int(1..10) | !int(20..30)', '25', 25), ('!int(1..10) | !int(20..30) | !str', '15', '15'),
+            ('!decimal(5:2 0..) | !str', '-1', '-1'), ('!decimal', '0e99999999999999999999', Written('0e99999999999999999999')), ('!decimal(0..1)', '-0e-99999999999999999999', Written('-0e-99999999999999999999')),
+            ('!decimal | !str', '1e99999999999999999999', Written('1e99999999999999999999')), ('!decimal(5:2) | !str', '1e99999999999999999999', '1e99999999999999999999'),
+            ('!decimal(/[0-9e]+/) | !str', '1e99999999999999999999', Written('1e99999999999999999999')), ('!decimal(0..) | !str', '-1e99999999999999999999', '-1e99999999999999999999'),
+            ('!decimal(/[0-9e]+/)', '007e5', Decimal('7e5')), ('!float(/[0-9.]+/) | !str', '3.14159265358979323846', 3.141592653589793)]
     for tp, v, w in more:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'.replace('n: a:\n', 'a:\n'))[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    morenot = [('!float(/[a-z]+/)', 'abc'), ('!float(/[a-z]+/) | !str', 'abc'), ('!float(/[0-9]+/)', '1.5'), ('!float(/[-+0-9.]+/) | !str', '1.2.3'), ('!decimal | !str', '1e99999999999999999999'), ('!decimal(/[a-z]+/) | !str', 'inf'), ('!decimal(/[0-9_]+/) | !str', '1_000'), ('!decimal(/[٠-٩]+/) | !str', '١٢٣'), ('!decimal(5:2) | !str', '1e99999999999999999999'), ('!decimal(/[0-9e]+/) | !str', '1e99999999999999999999'), ('!float(/[0-9]+/) | !str', '9' * 400), ('!float(/[0-9.]+/) | !str', '3.14159265358979323846'),
-               (f'!float({F})', '"5"'), ('!float128(/[0-9.]+/) | !str', '0.1'),
+    morenot = [('!float(/[a-z]+/)', 'abc'), ('!float(/[a-z]+/) | !str', 'abc'), ('!float(/[0-9]+/)', '1.5'), ('!float(/[-+0-9.]+/) | !str', '1.2.3'), ('!decimal(/[a-z]+/) | !str', 'inf'), ('!decimal(/[0-9_]+/) | !str', '1_000'), ('!decimal(/[٠-٩]+/) | !str', '١٢٣'), ('!float(/[0-9]+/) | !str', '9' * 400),
+               (f'!float({F})', '"5"'), ('!decimal(5:2)', '1e99999999999999999999'),
                ('!null(/~/)', 'null'), ('!null(/~/)', '"~"'), ('!null(/(~|null)?/)', 'x'), ('!null(/~/)', '[~]'), ('!null(/~/)', "'~'"),
                ('!decimal(5:2)', '1000'), ('!decimal(5:2)', '1.005'), ('!decimal(5:2)', '-1000'), ('!decimal(5:2)', '1e3'), ('!decimal(5:2)', '1e-3'), ('!decimal(5:2)', '1e999999999'),
                ('!decimal(5:2)', '1e-999999999'), ('!decimal(5:5)', '1'), ('!decimal(5:2)', '"1.5"'), ('!decimal(38:10)', '12345678901234567890123456789'), ('!decimal(38:10)', '0.12345678901'),
@@ -951,12 +954,13 @@ if __name__ == '__main__':
               ('--- &\nn: !str(/\\p{Lu}[a-z]*/) | !int\n--- !n\nAbc\n', 'Abc'), ('--- &\nn: !str(/[\\p{L}\\p{Nd}]+/)\n--- !n\nÀ1\n', 'À1'), ('--- &\nn: !str(/\\P{L}+/) | !str\n--- !n\n12\n', '12'),
               ('--- &\nn: !str(/[-a]+/)\n--- !n\na-a\n', 'a-a'), ('--- &\nn: !str(/[a-]+/)\n--- !n\n-a\n', '-a'), ('--- &\nn: !str(/\\.\\{\\}/)\n--- !n\n".{}"\n', '.{}'),
               ('--- &\nn: !str(1..5 /[)]+/) | !int\n--- !n\n")))"\n', ')))'), ('--- &\nn: a(/b | !int\n--- !n\na(/b\n', 'a(/b'), ('--- &\nn: f(x) | !int\n--- !n\nf(x)\n', 'f(x)'),
-              (C3.replace('circle | !int', 'circle') + '--- !shape\n{kind: square, r: 1}\n', {'kind': 'square', 'r': 1})]
+              (C3.replace('circle | !int', 'circle') + '--- !shape\n{kind: square, r: 1}\n', {'kind': 'square', 'r': 1}),
+              ('--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n3.14159265358979323846: 5\n', {'3.14159265358979323846': 5})]
     for s3, w in goods3:
         try: got = typed(s3)[0]; third += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(s3), got)
         except REFUSED as e: third += 1; print('REFUSED', repr(s3), e)
     bads3 = ['--- &\nn: !int(0..) | !str\n--- !n\n1' + '0' * 29 + '\n', '--- &\nn: !int | !str\n--- !n\n1' + '0' * 29 + '\n', T3 + '--- !t\n{}\n', '--- &\nn: !binary | !int\n--- !n\naGl=\n', '--- &\nn: !binary\n--- !n\naGk\n', '--- &\nn: !binary\n--- !n\n"aGVs\\r\\nbG8="\n',
-             '--- &\nn: !float | !str\n--- !n\n1.8e308\n', '--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n3.14159265358979323846: 5\n', C3 + '--- !shape\n{kind: square, r: 1}\n',
+             '--- &\nn: !float | !str\n--- !n\n1.8e308\n', '--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n1e999: 5\n', C3 + '--- !shape\n{kind: square, r: 1}\n',
              '--- &\nn: !str(/\\p{Lu}/)\n--- !n\na\n']
     for s3 in bads3:
         try: typed(s3); third += 1; print('NOT REFUSED', repr(s3))
@@ -973,10 +977,11 @@ if __name__ == '__main__':
         except REFUSED as e: third += 1; print('SCHEMA REFUSED', s3, e)
     for pt, n3 in [('abc|abd', 6), ('a|b|c', 3), ('(a{1000}){1000}', 10 ** 6), ('[a-z]+x?', 2), ('\\p{L}.', 2), ('x{3,}', 3), ('x{0,}y*', 2)]:
         if pattern(pt, pt)[1].count != n3: third += 1; print('COUNT', pt, pattern(pt, pt)[1].count, n3)
-    for s3, kw in [('--- &\nn: !float\n--- !n\n-0\n', {}), ('--- &\nn: !float\n--- !n\n-1e-400\n', {'accept': True}), ('--- &\nn: !float32\n--- !n\n-1e-60\n', {'accept': True})]:
-        z = typed(s3, **kw)[0]
+    for z3 in ('-0', '-1e-400', '-1e-99999999999999999999'):
+        s3 = f'--- &\nn: !float\n--- !n\n{z3}\n'
+        try: z = typed(s3)[0]
+        except REFUSED as e: third += 1; print('REFUSED', repr(s3), e); continue
         if not (z == 0 and str(z) == '-0.0'): third += 1; print('SIGN OF ZERO', repr(s3), z)
-    if typed('--- &\nn: !float32\n--- !n\n0.1\n')[0] != 0.1: third += 1; print('FLOAT32 DELIVERS THE STORE')
     def pub3(body):
         b = ('%YAML 2.0\n' + body).encode(); h = hashlib.sha256(b).hexdigest()
         return typed(f'--- !x.org/b.yes#sha256={h}\ntrue\n', store={h: b})[0]
@@ -984,7 +989,7 @@ if __name__ == '__main__':
     for body3 in ('--- &\na: !int\nb: !str\n--- &\na: !bool\n', '--- &\na: !int\nb: !bool\n...\n', '--- &\na: !int\nb: !bool\n---\nx\n'):
         try: pub3(body3); third += 1; print('PUBLISHED NOT REFUSED', repr(body3))
         except REFUSED: pass
-    third_n = len(goods3) + len(bads3) + len(schemas3) + len(loads3) + 7 + 3 + 1 + 1 + 3
+    third_n = len(goods3) + len(bads3) + len(schemas3) + len(loads3) + 7 + 3 + 1 + 3
     f += third
     # Section 11's typed count (2026-11-12), as an interface that keeps references counts it. Each stream
     # passes at its limit and is refused at one less; without keep, typed has no limit.
@@ -1024,7 +1029,7 @@ if __name__ == '__main__':
     except REFUSED: pass
     typed_n = 3 * len(counts) + 3 + 2
     f += tyd
-    # Precision (the user, 2026-11-11): RFC 3339's grammar, round and levels in the schema, an
+    # Precision (the user, 2026-11-11): RFC 3339's grammar, round and levels on dates in the schema, an
     # application naming its own, and a date a parser can't hold refusing the document.
     prec = 0
     def one(tp, v, **kw): return typed(f'--- &\nn: {tp}\n--- !n\n{v}\n', **kw)[0]
@@ -1042,20 +1047,16 @@ if __name__ == '__main__':
               ('!datetime(3)', T + '.12Z', T + '.12Z', {}), ('!datetime(3)', T + 'Z', T + 'Z', {}), ('!datetime(round 3)', T + '.1234567Z', T + '.123Z', {}),
               ('!datetime(round 3)', '1999-12-31T23:59:59.9999999Z', '1999-12-31T23:59:59.999Z', {}), ('!datetime(round 0)', T + '.9Z', T + 'Z', {}),
               ('!datetime(round 3)', '2016-12-31T23:59:60.12345Z', '2016-12-31T23:59:60.123Z', {}), ('!datetime(round 3) | !str', T + '.1234567+05:30', T + '.123+05:30', {}),
-              ('!float32(round)', '0.123456789', 0.12345679104328156, {}), ('!float32(round) | !str', '0.123456789', 0.12345679104328156, {}),
-              ('!float(round)', PI, 3.141592653589793, {}), ('!float(round 0..4)', PI, 3.141592653589793, {}), ('!float64(round /[0-9.]+/)', PI, 3.141592653589793, {}),
               ('!datetime', T + '.1234567Z', T + '.123456Z', {'override': {'datetime': 'round 6'}}),
-              ('!datetime(round 3)', T + '.1234567Z', T + '.1234567Z', {'override': {'datetime': ''}}),
-              ('!float32', '0.123456789', 0.12345679104328156, {'override': {'float32': 'round'}}), ('!float', PI, 3.141592653589793, {'override': {'float': 'round'}}),
-              ('!float64', PI, 3.141592653589793, {'override': {'float': 'round'}})]
+              ('!datetime(round 3)', T + '.1234567Z', T + '.1234567Z', {'override': {'datetime': ''}})]
     for tp, v, w, kw in goodsP:
         try: got = one(tp, v, **kw); prec += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, kw, got)
         except REFUSED as e: prec += 1; print('REFUSED', tp, v, kw, e)
-    badsP = [('!datetime(3) | !str', T + '.1234Z', {}), ('!datetime(3)', T + '.1234Z', {}), ('!float32 | !str', '0.123456789', {}), ('!float32(round)', '1e39', {}),
+    badsP = [('!datetime(3) | !str', T + '.1234Z', {}), ('!datetime(3)', T + '.1234Z', {}),
              ('!datetime', '2001-02-03 04:05:06Z', {}), ('!date', '1900-02-29', {}), ('!datetime', '1990-12-30T23:59:60Z', {}), ('!date', '2001-00-10', {}),
              ('!datetime', '1990-12-31T23:58:60Z', {}), ('!datetime', '1990-12-31T23:59:60+01:00', {}), ('!datetime', '2001-02-03T24:00:00Z', {}),
              ('!datetime', T + '+24:00', {}), ('!datetime', T + '.Z', {}), ('!datetime', T, {}), ('!date', '2001-02-29', {}), ('!datetime', '1991-01-01T00:59:60+00:30', {}),
-             ('!float32(round)', '0.123456789', {'override': {'float32': ''}}), ('!datetime(round 3) | !str', T + '.1234Z', {'override': {'datetime': '3'}})]
+             ('!datetime(round 3) | !str', T + '.1234Z', {'override': {'datetime': '3'}})]
     for tp, v, kw in badsP:
         try: one(tp, v, **kw); prec += 1; print('NOT REFUSED', tp, v, kw)
         except REFUSED: pass
@@ -1084,18 +1085,15 @@ if __name__ == '__main__':
     for sP in schemasP:
         try: typed('--- &\n' + sP + '\n'); prec += 1; print('SCHEMA NOT REFUSED', sP)
         except REFUSED: pass
-    loadsP = ['a: !float32(round)', 'a: !float(round 0..1)', 'a: !float(round /[0-9.]+/)', 'a: !float(round 0..1 /[0-9.]+/)', 'a: !datetime(0)',
-              'a: !datetime(round 9)', 'a: [!datetime(round 3), ...]', 'a: {b: !float32(round)}', 'a: !datetime(round 3) | !str']
+    loadsP = ['a: !datetime(0)', 'a: !datetime(round 9)', 'a: [!datetime(round 3), ...]', 'a: !datetime(round 3) | !str', 'a: !float(0..1 /[0-9.]+/)']
     for sP in loadsP:
         try: typed('--- &\n' + sP + '\n')
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
-    oversP = [{'int': 'round'}, {'datetime': 'round'}, {'float32': '0..1'}, {'date': '3'}, {'datetime': '/x/'}, {'str': ''}, {'float32': 'round 3'}]
+    oversP = [{'int': 'round'}, {'datetime': 'round'}, {'float': '0..1'}, {'date': '3'}, {'datetime': '/x/'}, {'str': ''}, {'float': 'round'}, {'float32': 'round'}]
     for o in oversP:
         try: one('!datetime', T + 'Z', override=o); prec += 1; print('OVERRIDE NOT REFUSED', o)
         except REFUSED: pass
-    z = one('!float32(round)', '-1e-60')
-    if not (z == 0 and str(z) == '-0.0'): prec += 1; print('SIGN OF ZERO UNDER ROUND', z)
-    prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP) + len(oversP) + 1
+    prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP) + len(oversP)
     f += prec; third_n += prec_n
-    print(f'edge cases: {alias + len(both) + len(table64) + len(table128) + len(noneholds) + len(widths) + len(narrows) + len(wider) + 1 + len(widenot) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
+    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

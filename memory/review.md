@@ -570,6 +570,7 @@ Silent: two careful readers deliver different data, and neither refuses.
    proposed delivering the stored value. That reverses the agent's earlier choice, which the user hasn't
    ruled on (rules.md, "What the agent chose in writing them"). Recommend: say it delivers the number as
    written, and that the store promises only that an application with it can keep that number.
+   *Moot since 2026-11-12: `!float` is the nearest binary64 and the width names are gone (main `4d7f934`).*
 2. **`!any` in a scalar union** (9). In the checker, `!any | !int` on `3` gives `"3"`, while `!int | !any`
    gives 3. Against a mapping, `!any | !m` types by `m`, and so does a sequence. So `!any` comes last for
    collections and in order for scalars. "Takes a node no other alternative fits" says last. Recommend:

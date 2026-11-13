@@ -723,7 +723,7 @@ to ignore this rule, so it needs a case in the test suite.
 - **A leading blank line wider than a block scalar's text is refused**, as in 1.x. The user asked whether
   an escape for a space exists. No `\s` does, in 1.x or 2.0. In double quotes a space needs none and
   `\u0020` also works; a block scalar has no escapes.
-- **A minimum precision on `!float` is still open** (part 2, section 15). `!float` never loses digits
+- **A minimum precision on `!float` is still open** (part 2, section 15). *Superseded 2026-11-12 by "Floats simplified", below.* `!float` never loses digits
   silently, but its verdict depends on the parser: `3.14159265358979323846` is refused on binary64 and
   delivered on binary128. The agent proposed width names, `!float32`, `!float64` and `!float128`, each
   meaning that a value keeps its digits in that width and a parser that can't work in it refuses. The
@@ -743,7 +743,7 @@ to ignore this rule, so it needs a case in the test suite.
   open in part 2, section 15. The agent's view: a digit cap belongs on `!decimal`, as `!decimal(32)` or a
   pattern, not on `!float`, since `!float32` and `!float(32)` would be one typo apart and mean bits and
   digits. The user hasn't ruled.
-- **Width names and patterns on `!decimal` are in `e92b1a2`** (the user, 2026-11-07). The user first
+- **Width names and patterns on `!decimal` are in `e92b1a2`** (the user, 2026-11-07). *Superseded 2026-11-12 by "Floats simplified", below.* The user first
   said they weren't keen on `!float32` and would rather have SQL's `!float(38,10)`, because `!float32` has to
   cite a standard, and floats of one size can have different layouts: IEEE binary16 and bfloat16 are both 16
   bits and hold 11 and 8 bits of mantissa. They then answered yes to adding both, and said they may be
@@ -794,7 +794,7 @@ to ignore this rule, so it needs a case in the test suite.
   noted it would affect every type. In a schema a sequence already stands for a sequence in the data, and a
   quoted scalar for that literal text, so that line is already a schema for a three-item sequence. The
   arguments stay inside the type's scalar.
-- **`!float` is short for `!float64` (the user, 2026-11-08),** binary64 on every parser, and floats keep
+- **`!float` is short for `!float64` (the user, 2026-11-08),** *Superseded 2026-11-12 by "Floats simplified", below.* binary64 on every parser, and floats keep
   accepted names. The user first asked whether `!float(11.52)`, binary64's exponent and fraction bits, could
   be `!float`; the agent offered `!float(64:52)` to match `38:10`. The user asked whether two sizes cover
   every float, and they don't: they describe a format only under IEEE 754's rules. E4M3 reaches 448, not
@@ -807,12 +807,12 @@ to ignore this rule, so it needs a case in the test suite.
   and becomes 0 in binary16. Every parser works in both, since each value is exactly a binary32 value.
   **In main `02b6acc`, with the checker in step** (part 2: 71 examples, 851 edge cases; seven mutants of the two
   formats fail).
-- **What the agent chose in writing them, which the user hasn't ruled on.** A width is a test and delivers
+- **What the agent chose in writing them, which the user hasn't ruled on.** *Superseded 2026-11-12 by "Floats simplified", below.* A width is a test and delivers
   a number, not one rounded to its store, because a binary32 value widened to binary64 would read
   `0.10000000149011612`, not `0.1`. Accepted rounding goes to the nearest value in the named store. A parser without binary128 refuses any `!float128` value spelled as a number,
   even `0.1`. `!decimal(/pattern/)` also reads `.5` and `5.`, and a match that isn't a number refuses the
   document, as on `!int`.
-- **A store too small for a value refuses the document (the user chose, 2026-11-08),** for every float
+- **A store too small for a value refuses the document (the user chose, 2026-11-08),** *Superseded 2026-11-12 by "Floats simplified", below.* for every float
   type, and isn't no match. The agent had made a width failure no match, and once `!float` was `!float64`
   that made `1e999` under `!float | !str` the text `"1e999"`, and 7 of JSONTestSuite's `i_` files, such as
   `[1.5e+9999]`, text under part 1's JSON schema. The agent's case, which the user took: a limit is a rule
@@ -821,7 +821,7 @@ to ignore this rule, so it needs a case in the test suite.
   any limit, so `!float(0..1) | !str` refused `1e999`: the agent's choice, since reversed by the user (see
   "Limit first" below). A decimal's precision stays no match, since it's a rule the schema states. **In
   `bafa4ce`.**
-- **Store sizes stay (the user, 2026-11-08).** The user asked whether to drop the widths and a decimal's
+- **Store sizes stay (the user, 2026-11-08).** *Superseded 2026-11-12 by "Floats simplified", below.* The user asked whether to drop the widths and a decimal's
   precision, leaving a number the program can't hold to fail on its own, since no schema is complete. The
   agent called it safe, because a store failure now refuses and so can't change the data, and said what it
   loses: the same check in every program, and a minimum that fails on the first value, not on the first
@@ -900,18 +900,38 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   and compare a few times. A parser without binary128 refuses `!float128` values inside the limit only.
   **In main `b840c8f`,** with the checker in step (part 2: 71 examples, 831 edge cases; four order mutants
   and the six earlier ones fail).
-- **Floats simplified** (the user, 2026-11-12, through @oylng; **Open**, being worked out with the user).
-  @oylng, weighing part 2 in C, called `!float128` the hard one (C has no portable binary128, so one parser
-  refuses what another reads) and suggested dropping it. The user went further: "Just put !float, and the
-  lanuage reads it with as much precision as it can muster. We will be here for a year and a day trying to
-  wrestle the nuances of every know type imaginable." Also: "we are then trading in what an app might need
-  b/c a particular language can't support it in the parser", and a cutoff that returns the string makes "a
-  union of type the app has to deal with". This would undo the width names (`!float16` was added the same
-  day), `round`, "keeps its digits", and an application's `round` (section 3), and reverses "store sizes
-  stay" (2026-11-08). The agent's question for the user: binary64 everywhere, or each language's widest,
-  since C's `long double` reads `3.14159265358979323846` as 3.1415926535897932385 on x86, where binary64
-  gives 3.141592653589793; and `1e999`, which Python and JavaScript read as infinity
+- **Floats simplified** (the user, 2026-11-12, through @oylng, then "yes"). @oylng, weighing part 2 in C,
+  called `!float128` the hard one (C has no portable binary128, so one parser refuses what another reads)
+  and suggested dropping it. The user went further: "Just put !float, and the lanuage reads it with as much
+  precision as it can muster. We will be here for a year and a day trying to wrestle the nuances of every
+  know type imaginable." Also: "we are then trading in what an app might need b/c a particular language
+  can't support it in the parser", and a cutoff that returns the string makes "a union of type the app has
+  to deal with"
   (`mail/received/20261112-233744Z-@oylng--floats-just-float-read-as-precisely-as-the-languag-63009b1d.md`).
+  The agent recommended binary64 everywhere over each language's widest type, since the widest brings back
+  a silent difference: `3.14159265358979323846` is 3.141592653589793 in binary64, 3.1415926535897932385
+  in x87's `long double`, and every digit in ARM64 Linux's binary128 `long double`. It also recommended
+  refusing a value too large for binary64, since JSON has no infinity. The user worried that a 32-bit
+  system couldn't read a float a computer wrote, and that a scientific application needs "bigfloat". The
+  agent answered that 32-bit machines have binary64 (a `gcc -m32` build has an 8-byte `double` with 53
+  bits; 8-bit AVR's `double` has been 32 bits, and GCC 10 added `-mdouble=64`), that the new rule refuses
+  nothing for its digits (`0.30000000000000004` was refused by `!float32`), and that `!decimal` serves as a
+  bigfloat once its "an application that can't keep the exact value refuses it" goes, since MPFR is binary
+  and can't hold `0.1`. The user: "yes".
+  So `!float` is the nearest binary64, the even one on a tie. One too large refuses the document, after
+  the limit (as "Limit first" says), and doesn't count as no match; one too small is 0 with its sign. Gone:
+  the five width names, `round` on floats, "keeps its digits", the binary128 refusal, an application's
+  float `round` (part 2, section 3), and section 15's "Which float names". `!decimal` is delivered as
+  written and what it becomes is the application's (sections 4.4 and 4.6). `round` stays on `!datetime`,
+  and dates keep "an application must hold" (section 4.8): not trimmed, since the agent said floats first.
+  This reverses "Store sizes stay" (2026-11-08) and `!float16`/`!bfloat16` (`02b6acc`). Section 10, rerun:
+  the 1,015 SchemaStore files and 93 of 95 JSONTestSuite `y_` files still match `json`; of the `i_` files,
+  5 floats too large are refused (`json` gives infinity) and 2 too small read as 0, as in `json`. **In main
+  `4d7f934`.** Part 2: 68 examples, 756 edge cases. The checker checks `float()` against exact rounding
+  (`nearest()`), delivers a `!decimal` whose exponent Python's `Decimal` can't hold as `Written`, counts
+  a precision on the text, and reads an example's JSON with `parse_float=Decimal`. Of 14 float mutants, 13
+  fail the checker; the 14th (a limit tested on the binary64 value) is masked by the second limit test at
+  the end of `scalar()`, and fails once that test is changed too.
 - **Published names** (the user, 2026-11-12). The user asked whether a name with no entry needed the
   last-entry rule "to even work" (it did), then asked to "fix our URI to a better standard", naming RFC
   6920's `ni`. The agent read RFC 6920: `ni:` can't be a 2.0 name (part 1 leaves out `:` and `;`), but its

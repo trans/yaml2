@@ -98,8 +98,8 @@ section 15 lists what is open. The user chose an answer to "wherever this occurs
 fine"), and section 15 no longer lists the second: a quoted scalar in a schema is always a literal, a
 reference is typed where it's used. The user hasn't ruled on the rest: `!int`,
 `!float`, `!bool` and `!null` match plain scalars only while the others take any scalar, and
-every named type reachable from the root is checked. `schemacheck.py` tests the draft: 71
-examples and 831 edge cases pass (2026-11-12). Breaking 152 rules on purpose failed it each time, though 6 of
+every named type reachable from the root is checked. `schemacheck.py` tests the draft: 68
+examples and 756 edge cases pass (2026-11-12, after floats were simplified in `4d7f934`). Breaking 152 rules on purpose failed it each time, though 6 of
 those only by a crash or a time-out, not a failing test. Not done yet: tests that catch those 6, and the same
 for any older rules not covered. `\p{..}` is read since the third review. @oyl
 reviewed Draft 1 on 2026-11-05, and the review is applied in `d645ce9`, with the user's answers: see
@@ -206,8 +206,14 @@ the top of part 2 "so it is clear that is not done yet. and we will mention it i
 (`mail/received/20261112-221957Z-@oylng--a-work-in-progress-notice-on-part-2-36efb35d.md`). It is in main
 `d78e55b`, and both covering notes now say so where they list part 2. @oylng's view, which isn't a ruling:
 part 1 is close to ready to show, and part 2 isn't, since no parser implements it, the third review found 6
-silent issues, section 15 has about 17 open points, and 6 of 152 broken rules are caught only by a crash or
+silent issues, section 15 has about 17 open points (16 since `4d7f934`), and 6 of 152 broken rules are caught only by a crash or
 a time-out. The user is weighing more work on part 2 before showing it.
+
+**Floats simplified (the user, 2026-11-12: "yes").** `!float` is the nearest binary64; one too large
+refuses the document, after the limit; the width names and `round` on floats are gone; `!decimal` is
+delivered as written, for money or a bigfloat. In main `4d7f934`; the reasons are in rules.md, "Floats
+simplified". The agent offered the same trimming next for dates (`!datetime(3)`, `round 3`, and "an
+application must hold") and for `!bigint`, after floats; the user hasn't answered.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
