@@ -1,6 +1,6 @@
 # The rules of YAML 2.0
 
-*Updated 2026-11-12*
+*Updated 2026-11-13*
 
 The design, rule by rule, as the user sets them. Keep the user's wording for
 each rule, and keep what the agent derived from it marked as such until the
@@ -575,6 +575,11 @@ tests settled on, all proposals, left open for the core team:
   named in the table, and in a block a space before `#` or after `:` is written `[ ]`.
   Quoting can't help, because a quoted scalar in a schema is a literal. The failures are all
   loud. The draft's examples always named a pattern first, which hid this.
+- **A pattern's groups nest at most 256 deep** (the user, 2026-11-13: "256 is plenty deep", and a
+  limit is fine). @oylng's engine refused past 256 and the checker took any depth. Every parser refuses
+  a deeper pattern when the schema loads, so all agree on what loads, unlike part 1's depth, past which
+  a parser may refuse. Section 9's count can't bound depth. The deepest of SchemaStore's 1,287 patterns
+  nests 7. In main `a8a4420` (section 4.3), and in the checker.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

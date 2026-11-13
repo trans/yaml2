@@ -172,7 +172,7 @@ class Pat:
 SINGLE = '()*+-.?[\\]^nrt{|}'
 def iregexp(p, whole):
     """RFC 9485, section 3. Returns the same pattern for Python, and its count."""
-    i, n = 0, len(p)
+    i, n, deep = 0, len(p), 0
     def bad(why='not I-Regexp'): raise SchemaError(f'{why}: {whole}')
     def esc():
         nonlocal i
@@ -196,12 +196,14 @@ def iregexp(p, whole):
             s, c = atom(); q, k = quant(); src += s + q; cnt += c * k
         return src, cnt
     def atom():
-        nonlocal i
+        nonlocal i, deep
         ch = p[i]
         if ch == '(':
+            deep += 1
+            if deep > 256: bad('groups nested past 256')
             i += 1; s, c = regexp()
             if i >= n or p[i] != ')': bad()
-            i += 1; return '(?:' + s + ')', c
+            i += 1; deep -= 1; return '(?:' + s + ')', c
         if ch == '.': i += 1; return '[^\\n\\r]', 1
         if ch == '[': return cls(), 1
         if ch == '\\':
@@ -940,11 +942,11 @@ if __name__ == '__main__':
         except REFUSED: pass
     schemas3 = ['a: !bigint(round)', 'a: !bigint(..)', 'a: !int(1:0)', 'a: !int(..)', 'a: !int |  x', 'a: x  | !int', 'a: !str(/a{,3}/)', 'a: !str(/a{/)', 'a: !str(/a}/)', 'a: !str(/\\x41/)', 'a: !str(/\\u0041/)', 'a: !str(/a**/)',
                 'a: !str(/a{2}{3}/)', 'a: !str(/[a[b]/)', 'a: !str(/[]/)', 'a: !str(/[a-b-c]/)', 'a: !str(/a{3,2}/)', 'a: !str(/\\p{Xx}/)', 'a: !str(/\\p{Cs}/)', 'a: !str(/(?:a)/)',
-                'a: !str(/a)/)', 'a: !str(/(a/)', f'a: !str(/{alts}/)', 'a: !str(/x{1025,}/)', 'a: !str(/(a|b){513}/)', maps3(600)]
+                'a: !str(/a)/)', 'a: !str(/(a/)', f'a: !str(/{alts}/)', 'a: !str(/x{1025,}/)', 'a: !str(/(a|b){513}/)', maps3(600), 'a: !str(/' + '(' * 257 + 'a' + ')' * 257 + '/)']
     for s3 in schemas3:
         try: typed('--- &\n' + s3 + '\n'); third += 1; print('SCHEMA NOT REFUSED', s3)
         except REFUSED: pass
-    loads3 = ['a: !str(/x{1024,}/)', 'a: !str(/(a|b){512}/)', 'a: !str(/a{0}b/)', 'a: !str(/(|a)/)', maps3(500)]
+    loads3 = ['a: !str(/x{1024,}/)', 'a: !str(/(a|b){512}/)', 'a: !str(/a{0}b/)', 'a: !str(/(|a)/)', maps3(500), 'a: !str(/' + '(' * 256 + 'a' + ')' * 256 + '/)']
     for s3 in loads3:
         try: typed('--- &\n' + s3 + '\n')
         except REFUSED as e: third += 1; print('SCHEMA REFUSED', s3, e)

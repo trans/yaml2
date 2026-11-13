@@ -266,17 +266,14 @@ document, the engine checks only what a document reaches. Its comparison tool ha
 shortcut, and now does so only with `--every-entry`. Without it, 141 of the 791 cases differ, each one a
 stream the checker refuses and the engine loads (the suite counts 152, after dropping repeats in another
 way). Two points for the user, **Open:**
-- **How deep a pattern's groups go.** The engine refuses groups nested past 256, as part 1 bounds a
-  document; the checker goes on until Python's recursion limit. Section 9's count doesn't bound depth,
-  since a group adds only what it holds. The agent measured SchemaStore's patterns: of 1,271, the
-  deepest nests 7 (447 have no group, 706 one level). The agent recommends one fixed limit that every
-  parser refuses past, such as 256, rather than part 1's "may refuse", since section 9 wants every parser
-  to agree on what loads.
+- **How deep a pattern's groups go.** The user chose a limit of 256 (2026-11-13), which every
+  parser refuses past. In main `a8a4420` (section 4.3) and the checker, with two edge cases. Of SchemaStore's
+  1,287 patterns, the deepest nests 7.
 - **What the count bounds.** Section 16 says the ceiling limits a pattern's size, but a part that counts 0
   (`x{0}`, an empty branch) still has to be matched. `(|||...)` with 100,000 bars counts 0 and loads, and a
   plain matcher steps through 100,000 states per character. The engine drops parts that count 0 and folds
   nested counts of 1 (`((a?)?)?`, `(a+)*`) into one, so its steps per character stay within the count.
-  10 of SchemaStore's 1,271 patterns have an empty branch, and none has `{0}`. The text could require
+  10 of SchemaStore's 1,287 patterns have an empty branch, and none has `{0}`. The text could require
   what the engine does, or count each group and branch as at least 1.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
