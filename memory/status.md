@@ -226,15 +226,16 @@ supplies, tags for subsets, and refusal paths; (2) both shadows at the current d
 verdicts: done, see [shadow/README.md](shadow/README.md); (3) what may change soon: answered from section
 15, since the third review has nothing left open (mail `20261113-100746Z`).
 
-**Part 2's suite (2026-11-13), not yet committed on main; it waits for the user.** `suiteyes.py` writes
-`suite/yes/src` from the checker's own tests: 803 tests (67 examples, 721 edge cases, 15 of typed), in part
+**Part 2's suite (2026-11-13). In main `63e86ea`, the user said do it (2026-11-13).** `suiteyes.py` writes
+`suite/yes/src` from the checker's own tests: 806 tests (67 examples, 724 edge cases, 15 of typed), in part
 1's format with `typed` events (`=INT`, `=BIG`, `=FLT`, `=DEC`, `=BOOL`, `=NULL`, `=DATE`, `=DATETIME`,
 `=BIN`), keys for what the application supplies, tags from what each root reaches, and `refused` and `at`.
-`suiteyes.py --check` reads it back and passes all 803. Writing it found two shortcuts in the checker:
+`suiteyes.py --check` reads it back and passes all 806. Writing it found two shortcuts in the checker:
 - **A table with no document.** `typed()` loads every entry, which section 2 doesn't: an entry nothing
-  reaches isn't a type. 152 checker tests rely on it, and so do two examples in part 2, in 4.3
-  (`tag: !str(/^[a-z]+$/)`) and 9 (`a: !str(/(a{1000}){1000}/)`): a parser accepts both as written.
-  The suite gives each a stamped document. **Open:** the agent proposes the same fix in part 2.
+  reaches isn't a type. 152 checker tests rely on it, and the suite gives each a stamped document. Two
+  examples in part 2, in 4.3 (`tag: !str(/^[a-z]+$/)`) and 9 (`a: !str(/(a{1000}){1000}/)`), had no
+  document, so a parser would accept them. **Fixed in main `8514686`** (the user said do it, 2026-11-13):
+  each has a document that would fit if its schema loaded, so only the schema is at fault.
 - **The limit.** `typed()` applies a test's limit to the schema and to typed, not to the stream, so
   its typed tests sit below the stream's held size (the table counts in held: 74 for section 11's
   `[*s, *s, *s]` stream, whose typed is 10). The suite leaves those 17 out and has 15 scaled ones.
