@@ -193,8 +193,8 @@ def iregexp(p, whole):
         nonlocal i
         src, cnt = '', 0
         while i < n and p[i] not in '|)':
-            s, c = atom(); q, k = quant(); src += s + q; cnt += c * k
-        return src, cnt
+            s, c = atom(); q, k = quant(); src += s + q; cnt += max(c * k, 1)
+        return src, max(cnt, 1)
     def atom():
         nonlocal i, deep
         ch = p[i]
@@ -203,7 +203,7 @@ def iregexp(p, whole):
             if deep > 256: bad('groups nested past 256')
             i += 1; s, c = regexp()
             if i >= n or p[i] != ')': bad()
-            i += 1; deep -= 1; return '(?:' + s + ')', c
+            i += 1; deep -= 1; return '(?:' + s + ')', c + 1
         if ch == '.': i += 1; return '[^\\n\\r]', 1
         if ch == '[': return cls(), 1
         if ch == '\\':
@@ -961,15 +961,18 @@ if __name__ == '__main__':
         except REFUSED: pass
     schemas3 = ['a: !bigint(round)', 'a: !bigint(..)', 'a: !int(1:0)', 'a: !int(..)', 'a: !int |  x', 'a: x  | !int', 'a: !str(/a{,3}/)', 'a: !str(/a{/)', 'a: !str(/a}/)', 'a: !str(/\\x41/)', 'a: !str(/\\u0041/)', 'a: !str(/a**/)',
                 'a: !str(/a{2}{3}/)', 'a: !str(/[a[b]/)', 'a: !str(/[]/)', 'a: !str(/[a-b-c]/)', 'a: !str(/a{3,2}/)', 'a: !str(/\\p{Xx}/)', 'a: !str(/\\p{Cs}/)', 'a: !str(/(?:a)/)',
-                'a: !str(/a)/)', 'a: !str(/(a/)', f'a: !str(/{alts}/)', 'a: !str(/x{1025,}/)', 'a: !str(/(a|b){513}/)', maps3(600), 'a: !str(/' + '(' * 257 + 'a' + ')' * 257 + '/)']
+                'a: !str(/a)/)', 'a: !str(/(a/)', f'a: !str(/{alts}/)', 'a: !str(/x{1025,}/)', 'a: !str(/(a|b|c){257}/)', maps3(600), 'a: !str(/' + '(' * 257 + 'a' + ')' * 257 + '/)']
     for s3 in schemas3:
         try: typed('--- &\n' + s3 + '\n'); third += 1; print('SCHEMA NOT REFUSED', s3)
         except REFUSED: pass
-    loads3 = ['a: !str(/x{1024,}/)', 'a: !str(/(a|b){512}/)', 'a: !str(/a{0}b/)', 'a: !str(/(|a)/)', maps3(500), 'a: !str(/' + '(' * 256 + 'a' + ')' * 256 + '/)']
+    loads3 = ['a: !str(/x{1024,}/)', 'a: !str(/(a|b|c){256}/)', 'a: !str(/a{0}b/)', 'a: !str(/(|a)/)', maps3(500), 'a: !str(/' + '(' * 256 + 'a' + ')' * 256 + '/)']
     for s3 in loads3:
         try: typed('--- &\n' + s3 + '\n')
         except REFUSED as e: third += 1; print('SCHEMA REFUSED', s3, e)
-    for pt, n3 in [('abc|abd', 6), ('a|b|c', 3), ('(a{1000}){1000}', 10 ** 6), ('[a-z]+x?', 2), ('\\p{L}.', 2), ('x{3,}', 3), ('x{0,}y*', 2)]:
+    # Section 9: a group adds 1, and each part, after its count, and each empty alternative count at least 1.
+    counts3 = [('abc|abd', 6), ('a|b|c', 3), ('(a{1000}){1000}', 1001000), ('[a-z]+x?', 2), ('\\p{L}.', 2), ('x{3,}', 3), ('x{0,}y*', 2),
+               ('x{0}', 1), ('a{0}b', 2), ('(|||)', 5), ('((a?)?)?', 3), ('(a*)*b', 3), ('(a|b|c){256}', 1024), ('(ab)', 3)]
+    for pt, n3 in counts3:
         if pattern(pt, pt)[1].count != n3: third += 1; print('COUNT', pt, pattern(pt, pt)[1].count, n3)
     for z3 in ('-0', '-1e-400', '-1e-99999999999999999999'):
         s3 = f'--- &\nn: !float\n--- !n\n{z3}\n'
@@ -983,7 +986,7 @@ if __name__ == '__main__':
     for body3 in ('--- &\na: !int\nb: !str\n--- &\na: !bool\n', '--- &\na: !int\nb: !bool\n...\n', '--- &\na: !int\nb: !bool\n---\nx\n'):
         try: pub3(body3); third += 1; print('PUBLISHED NOT REFUSED', repr(body3))
         except REFUSED: pass
-    third_n = len(goods3) + len(bads3) + len(schemas3) + len(loads3) + 7 + 3 + 1 + 3
+    third_n = len(goods3) + len(bads3) + len(schemas3) + len(loads3) + len(counts3) + 3 + 1 + 3
     f += third
     # Section 11's typed count (2026-11-12), as an interface that keeps references counts it. Each stream
     # passes at its limit and is refused at one less; without keep, typed has no limit.

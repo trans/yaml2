@@ -594,6 +594,14 @@ tests settled on, all proposals, left open for the core team:
   all anyone needs, and having the path and the key "certainly don't hurt". The user asked why the path
   can't point at the key itself: a path's last step always names a value, as a JSON Pointer's does.
   In main `5398fe7` (section 2), and the checker's `keyfaults` cases, which assert the whole message.
+- **Every part of a pattern counts, and a group adds 1** (the user, 2026-11-14: "ok", to the agent's
+  recommendation after measuring). Section 9: each part counts at least 1 after its count, so does an
+  empty alternative, and a group adds 1 to what it holds. `x{0}` 1, `(|||)` 5, `((a?)?)?` 3,
+  `(a{1000}){1000}` 1,001,000. Before, `(|||...)` with 100,000 bars counted 0 and cost a plain matcher
+  100,000 states per character. Oyl NG kept its cost down by dropping parts that count 0 and folding
+  nested counts of 1. The other rule measured, at least 1 without the group's 1, left nesting free.
+  On SchemaStore, 814 of 1,287 patterns count more, by 64 at most. The figures go from 11,831, 772 and
+  782 to 11,832, 773 and 813. In main `c6ba341` (sections 4.3, 9, 16), with the checker's `counts3`.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

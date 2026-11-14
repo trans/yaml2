@@ -266,7 +266,7 @@ compared the engine with `pattern()` and `re.fullmatch`: none differ on 50,000 p
 document, the engine checks only what a document reaches. Its comparison tool had copied the checker's
 shortcut, and now does so only with `--every-entry`. Without it, 141 of the 791 cases differ, each one a
 stream the checker refuses and the engine loads (the suite counts 152, after dropping repeats in another
-way). Two points for the user, **Open:**
+way). Two points for the user, both since answered:
 - **How deep a pattern's groups go.** The user chose a limit of 256 (2026-11-13), which every
   parser refuses past. In main `a8a4420` (section 4.3) and the checker, with two edge cases. Of SchemaStore's
   1,287 patterns, the deepest nests 7.
@@ -285,7 +285,7 @@ way). Two points for the user, **Open:**
   - *group1*: least1, and a group adds 1. `((a?)?)?` 3, `(a{1000}){1000}` 1,001,000. 814 patterns
     change, by 64 at most (the IPv6 one, 322 to 386). Figures: 11,832, 773, and the largest union
     782 to 813. Nothing new passes 1,024. Each state of a plain NFA is then within a small multiple of
-    the count. **Open:** the agent recommends group1; the user hasn't ruled.
+    the count. **Fixed in main `c6ba341`:** the user took group1 (2026-11-14; rules.md).
 
 **Oyl NG runs part 2's suite (2026-11-14)**
 (`mail/received/20261114-002124Z-@oylng--part-2-s-suite-664-pass-0-fail-the-limit-on-a-sche-fb01f98f.md`).

@@ -363,7 +363,7 @@ if not CHECK:
     # A stream with a table and no document: the checker loads every entry, but section 2 says an entry
     # nothing reaches isn't a type, so a parser accepts it. Each such test gets a document stamped with an
     # entry, and keeps the checker's answer only if the schema is still refused, or still loads.
-    CANDS = ['x', '0', '1', '0.5', 'a', 'b', 'true', 'null', '2001-02-03', '2001-02-03T04:05:06Z', 'aGk=', '[]', '{}', 'x' * 1024, 'ab' * 256]
+    CANDS = ['x', '0', '1', '0.5', 'a', 'b', 'true', 'null', '2001-02-03', '2001-02-03T04:05:06Z', 'aGk=', '[]', '{}', 'x' * 1024, 'ab' * 256, 'ab' * 128]
     def reached(r):
         try: rr = read0(r['stream'])
         except No: return r
