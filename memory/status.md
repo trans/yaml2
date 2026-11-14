@@ -255,6 +255,12 @@ of 187,909 cases, was clean. Two points for the user:
 - **Typed on a data interface.** **Open.** @oylng's point: a node is typed once per type that reaches it, and each
   type comes down a path of its own, so typed never passes full. So typed only refuses where references are
   kept, as section 11 already says. A sentence saying why is the user's to add or not.
+  **Found 2026-11-14**, testing the sentence: typed can pass full. A mapping type with a `!**` and no key
+  required takes any value, and hands a scalar or sequence to its rules, which type it again at the same
+  path: `a: {!**: !int}` on `5` is typed 4, full 2. Rules can't hold a `!**` or a collection, even through
+  a name, so only that node doubles: typed is at most twice full. Typing the checker's 381 other documents
+  as kept found 5 such cases, all of this kind, and none past twice. The user is asked: say "at most
+  twice", or not count the hand-off, so that typed never passes full (the agent's recommendation).
 
 **Oyl NG with patterns (2026-11-13)**
 (`mail/received/20261113-153724Z-@oylng--patterns-and-a-stream-with-no-document-2b7d9854.md`). The engine
