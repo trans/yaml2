@@ -28,8 +28,9 @@ YAML 1.2 list of tests with these keys:
 | `rest` | the text after a `...` that stopped the parser |
 
 `bin/suite-to-data src data` writes each test to a directory of its own, as yaml-test-suite's data
-branch has them: `===`, `in.yaml`, `test.event`, `in.json` and `error`, and `rest`, `limit`, `keep`
-and `together` where a test has them. It needs PyYAML.
+branch has them: `===`, `in.yaml`, `test.event`, `in.json` and `error`, and `rest`, `limit`, `keep`,
+`together` and `tags` where a test has them. `tags` holds the test's tags on one line, so a harness can
+skip by tag. It needs PyYAML.
 
 ## How it differs from yaml-test-suite
 

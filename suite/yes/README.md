@@ -42,7 +42,7 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   differs from the test in `at`, but not in whether the document is refused.
 
 `bin/suite-to-data yes/src yes-data` writes each test to a directory as part 1's are, with `typed.event`
-in place of `test.event`, and `schema.yaml`, `root`, `holds`, `refused`, `at`, the flags `cut`,
+in place of `test.event`, and `schema.yaml`, `root`, `holds`, `refused`, `at`, `tags`, the flags `cut`,
 `leap-second` and `year-zero`, and a `store/` with a file for each hash, where a test has them.
 
 ### Typed events

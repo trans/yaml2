@@ -37,6 +37,7 @@ def main(src, out):
             os.makedirs(d)
             write(os.path.join(d, '==='), test['name'] + '\n')
             write(os.path.join(d, 'in.yaml'), unescape(test['yaml']))
+            if test.get('tags'): write(os.path.join(d, 'tags'), test['tags'] + '\n')
             if test.get('fail'):
                 write(os.path.join(d, 'error'), '')
             else:
