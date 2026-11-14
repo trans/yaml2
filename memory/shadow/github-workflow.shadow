@@ -9,9 +9,9 @@ expr: !str
 flag: !str
 number: !str
 
-event: branch_protection_rule | check_run | check_suite | create | delete | deployment | deployment_status | discussion | discussion_comment | fork | gollum | issue_comment | issues | label | merge_group | milestone | page_build | project | project_card | project_column | public | pull_request | pull_request_review | pull_request_review_comment | pull_request_target | push | registry_package | release | status | watch | workflow_call | workflow_dispatch | workflow_run | repository_dispatch
-cache-mode: read | write | write-only | none
-permission: read | write | none
+event: {!|: [branch_protection_rule, check_run, check_suite, create, delete, deployment, deployment_status, discussion, discussion_comment, fork, gollum, issue_comment, issues, label, merge_group, milestone, page_build, project, project_card, project_column, public, pull_request, pull_request_review, pull_request_review_comment, pull_request_target, push, registry_package, release, status, watch, workflow_call, workflow_dispatch, workflow_run, repository_dispatch]}
+cache-mode: {!|: [read, write, write-only, none]}
+permission: {!|: [read, write, none]}
 
 str-map:
   !str: !str
@@ -25,18 +25,18 @@ permission-map:
   contents?: !permission
   deployments?: !permission
   discussions?: !permission
-  id-token?: write | none
+  id-token?: {!|: [write, none]}
   issues?: !permission
-  models?: read | none
+  models?: {!|: [read, none]}
   packages?: !permission
   pages?: !permission
   pull-requests?: !permission
   repository-projects?: !permission
   security-events?: !permission
   statuses?: !permission
-  vulnerability-alerts?: read | none
+  vulnerability-alerts?: {!|: [read, none]}
   copilot-requests?: write
-permissions: read-all | write-all | !permission-map
+permissions: {!|: [read-all, write-all, !permission-map]}
 
 defaults:
   run?:
@@ -46,7 +46,7 @@ defaults:
 concurrency:
   group: !str
   cancel-in-progress?: !flag
-  queue?: single | max
+  queue?: {!|: [single, max]}
 
 credentials:
   username?: !str
@@ -55,7 +55,7 @@ credentials:
 job-container:
   image: !str
   credentials?: !credentials
-  env?: !str-map | !expr
+  env?: {!|: [!str-map, !expr]}
   ports?: [!str, ...]
   volumes?: [!str, ...]
   options?: !str
@@ -76,18 +76,18 @@ snapshot:
 
 runner-group:
   group?: !str
-  labels?: !str | [!str, ...]
+  labels?: {!|: [!str, [!str, ...]]}
 
 matrix-item:
   !str: !any
 
 matrix-map:
-  include?: !expr | [!matrix-item, ...]
-  exclude?: !expr | [!matrix-item, ...]
-  !str: !expr | [!any, ...]
+  include?: {!|: [!expr, [!matrix-item, ...]]}
+  exclude?: {!|: [!expr, [!matrix-item, ...]]}
+  !str: {!|: [!expr, [!any, ...]]}
 
 strategy:
-  matrix: !expr | !matrix-map
+  matrix: {!|: [!expr, !matrix-map]}
   fail-fast?: !flag
   max-parallel?: !number
 
@@ -97,8 +97,8 @@ step-base:
   name?: !str
   working-directory?: !str
   shell?: !str
-  with?: !str-map | !expr
-  env?: !str-map | !expr
+  with?: {!|: [!str-map, !expr]}
+  env?: {!|: [!str-map, !expr]}
   continue-on-error?: !flag
   timeout-minutes?: !number
   background?: !bool
@@ -111,7 +111,7 @@ run-step:
   run: !str
 wait-step:
   <<: *step-base
-  wait: !str | [!str, ...]
+  wait: {!|: [!str, [!str, ...]]}
 wait-all-step:
   <<: *step-base
   wait-all: !str
@@ -121,42 +121,42 @@ cancel-step:
 parallel-step:
   <<: *step-base
   parallel: [!step, ...]
-step: !uses-step | !run-step | !wait-step | !wait-all-step | !cancel-step | !parallel-step
+step: {!|: [!uses-step, !run-step, !wait-step, !wait-all-step, !cancel-step, !parallel-step]}
 
 job-base:
   name?: !str
-  needs?: !str | [!str, ...]
+  needs?: {!|: [!str, [!str, ...]]}
   permissions?: !permissions
   cache-mode?: !cache-mode
   if?: !str
   strategy?: !strategy
-  concurrency?: !str | !concurrency
+  concurrency?: {!|: [!str, !concurrency]}
 
 normal-job:
   <<: *job-base
-  runs-on: !str | !runner-group | [!str, ...]
-  snapshot?: !str | !snapshot
-  environment?: !str | !environment
+  runs-on: {!|: [!str, !runner-group, [!str, ...]]}
+  snapshot?: {!|: [!str, !snapshot]}
+  environment?: {!|: [!str, !environment]}
   outputs?: !str-map
-  env?: !str-map | !expr
+  env?: {!|: [!str-map, !expr]}
   defaults?: !defaults
   steps?: [!step, ...]
   timeout-minutes?: !number
   continue-on-error?: !flag
-  container?: !str | !job-container
+  container?: {!|: [!str, !job-container]}
   services?:
     !str: !service-container
 
 reusable-job:
   <<: *job-base
   uses: !str
-  with?: !str-map | !expr
-  secrets?: !str-map | !expr | inherit
+  with?: {!|: [!str-map, !expr]}
+  secrets?: {!|: [!str-map, !expr, inherit]}
 
-job: !normal-job | !reusable-job
+job: {!|: [!normal-job, !reusable-job]}
 
 event-config:
-  types?: !str | [!str, ...]
+  types?: {!|: [!str, [!str, ...]]}
   !str: !any
 
 push-config:
@@ -169,13 +169,13 @@ push-config:
 
 pull-request-config:
   <<: *push-config
-  types?: !str | [!str, ...]
+  types?: {!|: [!str, [!str, ...]]}
 
 call-input:
   description?: !str
   deprecationMessage?: !str
   required?: !bool
-  type: boolean | number | string
+  type: {!|: [boolean, number, string]}
   default?: !any
 
 call-output:
@@ -216,7 +216,7 @@ choice-input:
   <<: *input-base
   type: choice
   options: [!str, ...]
-input: !string-input | !boolean-input | !number-input | !environment-input | !choice-input
+input: {!|: [!string-input, !boolean-input, !number-input, !environment-input, !choice-input]}
 
 workflow-dispatch:
   inputs?:
@@ -266,10 +266,10 @@ triggers:
 workflow:
   name?: !str
   run-name?: !str
-  on: !event | !triggers | [!event, ...]
-  env?: !str-map | !expr
+  on: {!|: [!event, !triggers, [!event, ...]]}
+  env?: {!|: [!str-map, !expr]}
   defaults?: !defaults
-  concurrency?: !str | !concurrency
+  concurrency?: {!|: [!str, !concurrency]}
   cache-mode?: !cache-mode
   permissions?: !permissions
   jobs:

@@ -293,31 +293,28 @@ def fits(t, p, sc):
     n = len(ds.rstrip('0')); e += len(ds) - n
     return max(0, -e) <= sc and n + e <= p - sc
 def atom(p):
-    if not p: raise SchemaError('an empty part')
-    if p == "''": return ('lit', '')
-    if p == '[]': return ('seq', [], None)
-    if p[:1] in ('"', "'"): raise SchemaError(f'a part can only start with a quote as two single quotes: {p}')
+    """Section 14: a plain scalar in a schema is one type, with its arguments, or a literal."""
     if p.startswith('!'):
         m = re.fullmatch(r'!([^ \t()\[\],|/]+)(?:\((.*)\))?', p, re.S)
         if not m: raise SchemaError(f'bad type: {p}')
         return ('name', m[1], None if m[2] is None else m[2], p)
-    if p.startswith('['):
-        if not p.endswith(']'): raise SchemaError(f'bad sequence: {p}')
-        items = [x.strip() for x in split(p[1:-1], ',')]; rest = None
-        if items[-1] == '...':
-            items.pop()
-            if not items: raise SchemaError('`...` repeats the item before it')
-            rest = parse(items.pop())
-        return ('seq', [parse(i) for i in items], rest)
-    if p.startswith('{'): raise SchemaError(f'a mapping in a union must be named: {p}')
     return ('lit', p)
 def parse(text):
-    ps = split(text, ' | ')
-    for p in ps:
-        if p != p.strip(' '): raise SchemaError(f'a part starts or ends with a space: {text!r}')
-    alts = [atom(p.strip()) for p in ps]
-    return alts[0] if len(alts) == 1 else ('alt', alts)
+    # Section 9: a union is a mapping with the key `!|`. ` | ` in a plain scalar is refused, so the old
+    # spelling fails loudly; a literal holding it is quoted.
+    if len(split(text, ' | ')) > 1: raise SchemaError(f'a union is written {{!|: [...]}}, not with ` | `: {text!r}')
+    return atom(text)
+def union(v):
+    """The alternatives if v is a `!|` mapping, else None."""
+    if not isinstance(v, dict) or not any(k == '!|' and not isinstance(k, Quoted) for k in v): return None
+    if len(v) != 1: raise SchemaError('a `!|` mapping holds no other key')
+    (alts,) = v.values()
+    if not isinstance(alts, list) or not alts: raise SchemaError('`!|` holds a sequence of one or more alternatives')
+    if any(x == '...' and not isinstance(x, Quoted) for x in alts): raise SchemaError('`...` repeats an item in a sequence, not in `!|`')
+    return alts
 def to_type(v):
+    alts = union(v)
+    if alts is not None: return ('alt', [to_type(x) for x in alts])
     if isinstance(v, dict):
         fields, rows, deep, other = {}, [], None, None
         for k, x in v.items():
@@ -340,8 +337,8 @@ def to_type(v):
 class Rules(tuple):
     """What a `!**` holds. A mapping of rules counts its keys in the full size."""
 def rule(x):
-    """What `!**` holds: named keys, type keys, and in `!*` a type for every other scalar."""
-    if isinstance(x, dict):
+    """What `!**` holds: named keys, type keys, and in `!*` a type for every other scalar; or one type."""
+    if isinstance(x, dict) and union(x) is None:
         t = to_type(x)
         if t[3] is not None: raise SchemaError('a `!**` holds no `!**`')
         r = Rules((t[1], t[2], t[4])); r.keys = True; return r
@@ -688,7 +685,7 @@ if __name__ == '__main__':
         try: typed(K + f'--- !w\n{v}\n'); f += 1; print('NOT REFUSED', repr(v))
         except REFUSED as e:
             if not (str(e) == why or why.endswith(': ') and str(e).startswith(why)): f += 1; print('WRONG PLACE', repr(v), e)
-    schemas = ['"my type": !int\na: !my type', '"my\ttype": !int\na: !my\ttype', 'a: !int | [ ]', 'a: !int | [!int, ]', 'a: !int | [, !int]', 'a: !int | [...]', 'a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !bool(/x/)', 'a: !date(/x/)', 'a: !datetime(/x/)', 'a: !binary(/x/)', 'a: !any(/x/)', 'a: !int(/(1{1000}){1000}/)', 'a: !int(/^1/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: [!a, !b] | [!c]', 'a: !x(1..)\nx: !str', 'a: !str | {b: c}', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)', 'a: !int | "none"', "a: !int | 'none'", 'a: !b | !int\nb: !a | !str', 'a: !str(/(a{1000}){1000}/)', 'a: !str(/a{1025}/)', 'a: !str(/a{513}/) | !str(/b{512}/)', 'a:\n  !str(/a{513}/): !int\n  !str(/b{512}/): !int',
+    schemas = ['"my type": !int\na: !my type', '"my\ttype": !int\na: !my\ttype', 'a: {!|: [!int, [...]]}', 'a: !nope', 'a: !str(1,2)', 'a: !bool(0..1)', 'a: !bool(/x/)', 'a: !date(/x/)', 'a: !datetime(/x/)', 'a: !binary(/x/)', 'a: !any(/x/)', 'a: !int(/(1{1000}){1000}/)', 'a: !int(/^1/)', 'a: !int(5..1)', 'a: !a', 'a: !b\nb: !a', 'a: !str(/^x/)', 'a: !str(/x$/)', 'a: !str(/\\d+/)', 'a: !str(/(?=x)/)', 'a: {!|: [[!a, !b], [!c]]}', 'a: !x(1..)\nx: !str', 'a: [...]', 'a: !a/b', 'a: !str(/x', 'a: [!int(0,100), ...]', 'a: {b: !int(0,100)}', 'a: [!str(/[a-z]+/), ...]', 'a: [!str(/(a|b),c/), ...]', 'a: [!str(/[0-9]{2}/), ...]', 'a: {b: !str(/[a-z]+/)}', 'a: {!str(/[a-z]+/): !int}', 'a: !str(/x #y/)', 'a: !str(/x: y/)', 'a: !int | !str', 'a: x | y', 'a: {!|: []}', 'a: {!|: !int}', 'a: {!|: [!int], b: !str}', 'a: {!|: [!int, ...]}', 'a:\n  !**: {!|: [!int, {x: !int}]}', 'u: {!|: [!int, !str]}\nb:\n  <<: *u\n  x: !int', 'a: {!|: [!int, {!|: []}]}', 'a: {!|: [!b, !int]}\nb: {!|: [!a, !str]}', 'a: !str(/(a{1000}){1000}/)', 'a: !str(/a{1025}/)', 'a:\n  !|:\n    - !str(/a{513}/)\n    - !str(/b{512}/)', 'a:\n  !str(/a{513}/): !int\n  !str(/b{512}/): !int',
                'a: !int(/[0-9]+/ 0..100)', 'a: !int(0..1 5..9)', 'a: !int(5:2)', 'a: !float(5:2)', 'a: !str(5:2)', 'a: !decimal(0..1 5:2)',
                'a: !decimal(2:5)', 'a: !decimal(0:0)', 'a: !decimal(05:2)', 'a: !decimal(5:02)', 'a: !decimal(5: 2)', 'a: !decimal(5,2)', 'a: !decimal(5:2 5:2)',
                'a: !decimal(5:2 /x/ 0..1)', 'a: !int(0..100  /x/)', 'a: !int(0..100/x/)', 'a: !int( 0..100)', 'a: !int(0..100 )', 'a: !null(0..1 /x/)',
@@ -697,7 +694,7 @@ if __name__ == '__main__':
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
     # A pattern on !int: it replaces the spelling, reads base 10, and a claim it can't read refuses.
-    I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: !q | !str\nh: !int(/0x[0-9a-f]+/)\nv: !h | !str\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: !str | !q\nlit: !q | never\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: !bigint | !str\nbyi: !int | !str\n'
+    I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: {!|: [!q, !str]}\nh: !int(/0x[0-9a-f]+/)\nv: {!|: [!h, !str]}\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: {!|: [!str, !q]}\nlit: {!|: [!q, never]}\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: {!|: [!bigint, !str]}\nbyi: {!|: [!int, !str]}\n'
     ints = [('q', '+5', 5), ('q', '-3', -3), ('q', '+0', 0), ('q', '-0', 0), ('q', '+007', 7), ('w', '5', 5), ('w', '007', 7), ('w', '+5', 5),
                     ('u', '+5', 5), ('u', '+5x', '+5x'), ('u', 'x+5', 'x+5'), ('u', '5', '5'), ('u', '"+5"', '+5'), ('u', "'+5'", '+5'), ('u', 'x', 'x'), ('u', '|\n  +5', '+5\n'), ('v', 'x', 'x'),
                     ('first', '+5', '+5'), ('lit', 'never', 'never'), ('lit', '+5', 5), ('k', '1000', 1000), ('mk', '+5: a\n"-3": b', {'+5': 'a', '-3': 'b'}),
@@ -711,7 +708,7 @@ if __name__ == '__main__':
         try: typed(I + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, repr(v))
         except REFUSED: pass
     # The names are the author's: renaming list and map changes nothing.
-    R = '--- &\nsigned: !int(/[-+][0-9]+/)\nfree: !signed | !str | !zig | !zag\nzig: [!free, ...]\nzag:\n  !str: !free\n--- !free\na: +5\nc: [-3, x]\n'
+    R = '--- &\nsigned: !int(/[-+][0-9]+/)\nfree: {!|: [!signed, !str, !zig, !zag]}\nzig: [!free, ...]\nzag:\n  !str: !free\n--- !free\na: +5\nc: [-3, x]\n'
     if not same(typed(R)[0], {'a': 5, 'c': [-3, 'x']}): f += 1; print('DIFFERS renamed')
     # A pattern is a plain scalar first: what still works, and quoting making a literal.
     forms = [('a: !str(/[0-9]{1,3}/)\n--- !a\n"12"\n', '12'), ('a: !str(/x[ ]#y/)\n--- !a\n"x #y"\n', 'x #y'), ('a: !str(/a#b/)\n--- !a\n"a#b"\n', 'a#b'), ('t: !str(/[a-z]+/)\na: [!t, ...]\n--- !a\n- ab\n', ['ab']), ('a: {!str(/x/): !int}\n--- !a\nx: 1\n', {'x': 1}), ('a: ["!str(/[a-z]+/)", ...]\n--- !a\n- "!str(/[a-z]+/)"\n', ['!str(/[a-z]+/)'])]
@@ -730,14 +727,19 @@ if __name__ == '__main__':
         try: typed(t, J); f += 1; print('NOT REFUSED', repr(t))
         except REFUSED: pass
     # Unions: fit is closed, each name counts once, and !any takes what nothing else fits.
-    unions = [('u: !int | []\n--- !u\n[]\n', []), ('u: !int | []\n--- !u\n5\n', 5), ('u: !int | [!int, []]\n--- !u\n[1, []]\n', [1, []]), ('e: []\n--- !e\n[]\n', []), ('"a\xa0b": !int\nu: !a\xa0b\n--- !u\n3\n', 3), ('m:\n  x: !int\nu: !m | !m\n--- !u\nx: 1\n', {'x': 1}), ('m:\n  x: !int\nv: !m | !int\nw: !m | !str\nu: !v | !w\n--- !u\nx: 1\n', {'x': 1}), ('a:\n  x?: !int\nb:\n  y?: !int\nu: !a | !b\n--- !u\nx: 1\n', {'x': 1}), ('m:\n  x: !int\nu: !m | !any\n--- !u\ny: 1\n', {'y': '1'}), ('a: !str(/a{1024}/)\n--- !a\n' + 'a' * 1024 + '\n', 'a' * 1024), ('a: !str(/a{512}/) | !str(/b{512}/)\n--- !a\n' + 'b' * 512 + '\n', 'b' * 512), ('u: !int | one | two\n--- !u\ntwo\n', 'two')]
+    unions = [('u: {!|: [!int, []]}\n--- !u\n[]\n', []), ('u: {!|: [!int, []]}\n--- !u\n5\n', 5), ('u: {!|: [!int, [!int, []]]}\n--- !u\n[1, []]\n', [1, []]), ('e: []\n--- !e\n[]\n', []), ('"a\xa0b": !int\nu: !a\xa0b\n--- !u\n3\n', 3), ('m:\n  x: !int\nu: {!|: [!m, !m]}\n--- !u\nx: 1\n', {'x': 1}), ('m:\n  x: !int\nv: {!|: [!m, !int]}\nw: {!|: [!m, !str]}\nu: {!|: [!v, !w]}\n--- !u\nx: 1\n', {'x': 1}), ('a:\n  x?: !int\nb:\n  y?: !int\nu: {!|: [!a, !b]}\n--- !u\nx: 1\n', {'x': 1}), ('m:\n  x: !int\nu: {!|: [!m, !any]}\n--- !u\ny: 1\n', {'y': '1'}), ('a: !str(/a{1024}/)\n--- !a\n' + 'a' * 1024 + '\n', 'a' * 1024), ('a:\n  !|:\n    - !str(/a{512}/)\n    - !str(/b{512}/)\n--- !a\n' + 'b' * 512 + '\n', 'b' * 512), ('u: {!|: [!int, one, two]}\n--- !u\ntwo\n', 'two'),
+              # Section 9: a union is a `!|` mapping, so an alternative is any node a schema holds.
+              ('a: {!|: [!int, "none"]}\n--- !a\nnone\n', 'none'), ("a: {!|: [!int, 'none']}\n--- !a\n5\n", 5), ('a: {!|: [!str, {b: !int}]}\n--- !a\n{b: 1}\n', {'b': 1}),
+              ('a: {!|: [!str, {b: !int}]}\n--- !a\nx\n', 'x'), ('a: {!|: [!int]}\n--- !a\n5\n', 5), ('a: {!|: [!int, {!|: [!bool, !str]}]}\n--- !a\ntrue\n', True),
+              ('a: {"!|": !int}\n--- !a\n"!|": 5\n', {'!|': 5}), ('m: {x: !int}\na: {!|: [!str, *m]}\n--- !a\n{x: 1}\n', {'x': 1}), ('a: {!|: [!int, "a | b"]}\n--- !a\na | b\n', 'a | b'),
+              ('a:\n  !|:\n    - !int\n    - [!a, ...]\n    - {x: !a}\n--- !a\n[1, {x: [2]}]\n', [1, {'x': [2]}])]
     for t, w in unions:
         try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
     # `!**`: here and below, the closest rule wins, and only the nearest `!*` counts.
     S = 'signed: !int(/[-+][0-9]+/)\n'; C = 'circle:\n  kind: circle\n  r: !float\nsquare:\n  kind: square\n  side: !float\n'
     # Section 10: a `!**` type is a mapping, and JSON's any value at the top is a union with the mapping named.
-    J = 'json: !null | !bool | !int | !float | !str | !object | [!json, ...]\nobject: {!*: !json}\n--- !json\n'
+    J = 'json: {!|: [!null, !bool, !int, !float, !str, !object, [!json, ...]]}\nobject: {!*: !json}\n--- !json\n'
     star = [('a:\n  !**: !int\n--- !a\nx: [1, [2]]\n', {'x': [1, [2]]}), (J + '5\n', 5), (J + '"x"\n', 'x'), (J + '[1, [2]]\n', [1, [2]]), (J + '[]\n', []),
             (J + '{a: [1, {b: null}], c: "2"}\n', {'a': [1, {'b': None}], 'c': '2'}),
             ('a:\n  !**: !int\n--- !a\n{}\n', {}), ('a: {!**: !int}\n--- !a\n{x: 1}\n', {'x': 1}), ('a:\n  !**:\n    n: !int\n--- !a\nx: [[{n: 1}]]\n', {'x': [[{'n': 1}]]}),
@@ -754,26 +756,26 @@ if __name__ == '__main__':
             ('addr:\n  name: !str\na:\n  home: !addr\n  !**: !int\n--- !a\nhome: {name: x, floor: 3}\n', {'home': {'name': 'x', 'floor': 3}}),
             ('"*": !int\na:\n  "*": !int\n--- !a\n"*": 5\n', {'*': 5}), ('a:\n  "!*": !int\n--- !a\n"!*": 5\n', {'!*': 5}),
             ('d:\n  n: 1\na:\n  !**:\n    n: !int\n--- !a\nx: *d\n', {'x': {'n': 1}}), ('d:\n  n: 1\na:\n  !**:\n    n: !int\n--- !a\n<<: *d\nm: 2\n', {'n': 1, 'm': '2'}),
-            (C + 'u: !circle | !square\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: square, side: 2, note: x}\n', {'s': {'kind': 'square', 'side': 2.0, 'note': 'x'}}),
-            (S + 'a:\n  !**: !signed | !str\nl: [!a, ...]\n--- !l\n- {y: +5}\n- {x: -3}\n', [{'y': 5}, {'x': -3}]),
+            (C + 'u: {!|: [!circle, !square]}\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: square, side: 2, note: x}\n', {'s': {'kind': 'square', 'side': 2.0, 'note': 'x'}}),
+            (S + 'a:\n  !**: {!|: [!signed, !str]}\nl: [!a, ...]\n--- !l\n- {y: +5}\n- {x: -3}\n', [{'y': 5}, {'x': -3}]),
             ('m:\n  x: !str\na:\n  s: [!m, ...]\n  !**: !int\n--- !a\ns: [{x: a, y: 1}]\n', {'s': [{'x': 'a', 'y': 1}]})]
-    star += [('a:\n  !*: !int\n--- !a\nx: 1\ny: 2\n', {'x': 1, 'y': 2}), ('a:\n  n: !str\n  !str(/X_.*/): !str\n  !*: !int\n--- !a\nn: 1\nX_a: 2\nz: 3\n', {'n': '1', 'X_a': '2', 'z': 3}), ('a:\n  !*: !int\n  !str(/X_.*/): !str\n--- !a\nX_a: 2\nz: 3\n', {'X_a': '2', 'z': 3}), ('a:\n  !*:\n    x: !int\n--- !a\nk: {x: 1}\n', {'k': {'x': 1}}), ('a:\n  !*: [!int, ...]\n--- !a\nk: [1]\n', {'k': [1]}), ('a:\n  !*: !int\n  !**: !str\n--- !a\nx: 1\n', {'x': 1}), ('m:\n  n: !int\n  !*: !bool\na:\n  s: !m\n  !**: !str\n--- !a\ns: {n: 1, z: true}\nq: 1\n', {'s': {'n': 1, 'z': True}, 'q': '1'}), ('p:\n  k: a\n  !*: !int\nq:\n  k: b\nu: !p | !q\n--- !u\nk: a\nz: 1\n', {'k': 'a', 'z': 1}), ('a:\n  "!**": !int\n--- !a\n"!**": 5\n', {'!**': 5})]
+    star += [('a:\n  !*: !int\n--- !a\nx: 1\ny: 2\n', {'x': 1, 'y': 2}), ('a:\n  n: !str\n  !str(/X_.*/): !str\n  !*: !int\n--- !a\nn: 1\nX_a: 2\nz: 3\n', {'n': '1', 'X_a': '2', 'z': 3}), ('a:\n  !*: !int\n  !str(/X_.*/): !str\n--- !a\nX_a: 2\nz: 3\n', {'X_a': '2', 'z': 3}), ('a:\n  !*:\n    x: !int\n--- !a\nk: {x: 1}\n', {'k': {'x': 1}}), ('a:\n  !*: [!int, ...]\n--- !a\nk: [1]\n', {'k': [1]}), ('a:\n  !*: !int\n  !**: !str\n--- !a\nx: 1\n', {'x': 1}), ('m:\n  n: !int\n  !*: !bool\na:\n  s: !m\n  !**: !str\n--- !a\ns: {n: 1, z: true}\nq: 1\n', {'s': {'n': 1, 'z': True}, 'q': '1'}), ('p:\n  k: a\n  !*: !int\nq:\n  k: b\nu: {!|: [!p, !q]}\n--- !u\nk: a\nz: 1\n', {'k': 'a', 'z': 1}), ('a:\n  "!**": !int\n--- !a\n"!**": 5\n', {'!**': 5})]
     for t, w in star:
         try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
-    notstar = ['a:\n  !**: !int\n--- !a\nx: y\n', 'a:\n  x: !str\n  !**: !int\n--- !a\n5\n', 'a:\n  x: !str\n  !**: !int\n--- !a\ny: 1\n', 'j:\n  !**: !int\nu: !j | !bool\n--- !u\n5\n',
-               'j:\n  !**: !int\nu: !j | !bool\n--- !u\n[1]\n', 'a:\n  !**:\n    n: !int\n--- !a\nn:\n', 'a:\n  !**:\n    n: !int\n--- !a\nx: {y: [{n: a}]}\n', 'a:\n  !**:\n    ports: [!int, ...]\n--- !a\nports: 1\n',
+    notstar = ['a:\n  !**: !int\n--- !a\nx: y\n', 'a:\n  x: !str\n  !**: !int\n--- !a\n5\n', 'a:\n  x: !str\n  !**: !int\n--- !a\ny: 1\n', 'j:\n  !**: !int\nu: {!|: [!j, !bool]}\n--- !u\n5\n',
+               'j:\n  !**: !int\nu: {!|: [!j, !bool]}\n--- !u\n[1]\n', 'a:\n  !**:\n    n: !int\n--- !a\nn:\n', 'a:\n  !**:\n    n: !int\n--- !a\nx: {y: [{n: a}]}\n', 'a:\n  !**:\n    ports: [!int, ...]\n--- !a\nports: 1\n',
                'a:\n  !**:\n    !str(/ts_.*/): !date\n--- !a\nts_x: soon\n', 'a:\n  !**: !int\n  b:\n    !**: !bool\n--- !a\nb: {y: 1}\n', 'a:\n  !**: !int\n  b:\n    c: !str\n--- !a\nb: {c: x, d: y}\n',
                'a:\n  "!*": !int\n--- !a\nx: 5\n', 'a:\n  "*": !int\n--- !a\nx: 5\n', 'addr:\n  name: !str\na:\n  !**: !int\n  home: !addr\n--- !addr\nname: x\nfloor: 3\n', 'a:\n  b:\n    !**: !int\n--- !a\nb: {x: 1}\nc: 2\n',
-               'p:\n  x: !int\nq:\n  x: !int\n  z: !int\nu: !p | !q\na:\n  s: !u\n  !**: !str\n--- !a\ns: {x: 1, z: 2}\n', C + 'u: !circle | !square\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: oval}\n']
+               'p:\n  x: !int\nq:\n  x: !int\n  z: !int\nu: {!|: [!p, !q]}\na:\n  s: !u\n  !**: !str\n--- !a\ns: {x: 1, z: 2}\n', C + 'u: {!|: [!circle, !square]}\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: oval}\n']
     notstar += ['a:\n  !**: !int\n--- !a\n5\n', 'a:\n  !**: !int\n--- !a\n[1, [2]]\n', 'a:\n  x?: !str\n  !**: !int\n--- !a\n5\n', 'a:\n  !**:\n    n: !int\n--- !a\n[[{n: 1}]]\n',
-                S + 'a:\n  !**: !signed | !str\nl: [!a, ...]\n--- !l\n- +5\n', 'a:\n  !**:\n    replicas: !int\n--- !a\nhello\n', 'j:\n  !**: !int\nb:\n  <<: *j\n  name?: !str\n--- !b\n5\n',
-                S + 'job:\n  image: !str\n  args?:\n    !**: !signed | !str\n--- !job\nimage: x\nargs: +5\n']
+                S + 'a:\n  !**: {!|: [!signed, !str]}\nl: [!a, ...]\n--- !l\n- +5\n', 'a:\n  !**:\n    replicas: !int\n--- !a\nhello\n', 'j:\n  !**: !int\nb:\n  <<: *j\n  name?: !str\n--- !b\n5\n',
+                S + 'job:\n  image: !str\n  args?:\n    !**: {!|: [!signed, !str]}\n--- !job\nimage: x\nargs: +5\n']
     notstar += ['a:\n  !*: !int\n--- !a\nx: {y: 1}\n', 'a:\n  !*: !int\n--- !a\n5\n', 'a:\n  !*: !int\n--- !a\n[1]\n', 'a:\n  !*: !int\n--- !a\nx: y\n', 'a:\n  "!**": !int\n--- !a\nx: 5\n']
     for t in notstar:
         try: typed('--- &\n' + t); f += 1; print('NOT REFUSED', repr(t))
         except REFUSED: pass
-    badstar = ['a:\n  !**:\n    !**: !int', 'a:\n  !ts_*: !date', 'a:\n  !***: !int', 'a:\n  !*: !stirng', 'a:\n  !**:\n    !*: [!int, ...]', 'a:\n  !**: [!int, ...]', 'a:\n  !**: !b\nb:\n  x: !int', 'a:\n  !**: !int | !b\nb:\n  x: !int', 'a:\n  !**: !a', 'a:\n  !**:\n    !*:\n      n: !int', 'a:\n  !**: !stirng', 'a:\n  !**:\n    n: !stirng', 'a:\n  !**:\n    !stirng: !int', 'a:\n  !**:\n    !str(/(a{1000}){1000}/): !int', 'a:\n  !**: !int\n  !**: !str', 'a:\n  !**:\n    !str: !stirng', 'a:\n  !**:\n    !str(/a{400}/): !int\n    !str(/b{400}/): !int\n    !str(/c{400}/): !int']
+    badstar = ['a:\n  !**:\n    !**: !int', 'a:\n  !ts_*: !date', 'a:\n  !***: !int', 'a:\n  !*: !stirng', 'a:\n  !**:\n    !*: [!int, ...]', 'a:\n  !**: [!int, ...]', 'a:\n  !**: !b\nb:\n  x: !int', 'a:\n  !**: {!|: [!int, !b]}\nb:\n  x: !int', 'a:\n  !**: !a', 'a:\n  !**:\n    !*:\n      n: !int', 'a:\n  !**: !stirng', 'a:\n  !**:\n    n: !stirng', 'a:\n  !**:\n    !stirng: !int', 'a:\n  !**:\n    !str(/(a{1000}){1000}/): !int', 'a:\n  !**: !int\n  !**: !str', 'a:\n  !**:\n    !str: !stirng', 'a:\n  !**:\n    !str(/a{400}/): !int\n    !str(/b{400}/): !int\n    !str(/c{400}/): !int']
     for t in badstar:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
@@ -798,7 +800,7 @@ if __name__ == '__main__':
         except REFUSED: pass
     Z = re.search(r'### 3\.1 .*?```yaml\n(%YAML 2\.0\n--- &\n.*?)```', spec, re.S)
     if not Z or 'address.yes#sha256=' + hashlib.sha256(Z[1].encode('utf-8')).hexdigest() not in spec: f += 1; print('THE SPEC NAMES THE WRONG HASH')
-    doubling = lambda n: '--- &\n' + ''.join(f'a{i}: !a{i+1} | !a{i+1}\n' for i in range(n)) + f'a{n}: !int\n--- !a0\n1\n'
+    doubling = lambda n: '--- &\n' + ''.join(f'a{i}: {{!|: [!a{i+1}, !a{i+1}]}}\n' for i in range(n)) + f'a{n}: !int\n--- !a0\n1\n'
     f += 0 if typed(doubling(10)) == [1] else 1
     try: typed(doubling(200)); f += 1; print('NOT REFUSED: 200 doublings')
     except SchemaError: pass
@@ -808,7 +810,7 @@ if __name__ == '__main__':
         try: got = typed(t); f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
     # Numbers: the number written, the nearest binary64 for !float, or a refusal.
-    N = '--- &\nf: !float\nd: !decimal\ni: !int\nb: !bigint\nbu: !bigint(0..) | !str\nu: !float | !str\nw: !int | !float\nc: !decimal(0..100)\nq: !float(..3.4e38)\nv: !int(0..18446744073709551615)\n'
+    N = '--- &\nf: !float\nd: !decimal\ni: !int\nb: !bigint\nbu: {!|: [!bigint(0..), !str]}\nu: {!|: [!float, !str]}\nw: {!|: [!int, !float]}\nc: !decimal(0..100)\nq: !float(..3.4e38)\nv: !int(0..18446744073709551615)\n'
     TOP = 2 ** 1024 - 2 ** 970  # Halfway between binary64's largest value and 2^1024.
     nums = [('f', '1.00000000000000011102230246251565404236316680908203125', 1.0), ('f', '1.00000000000000033306690738754696212708950042724609375', 1.0000000000000004),
             ('f', '1.000000000000000111022302462515654042363166809082031250000001', 1.0000000000000002), ('f', '0.1', 0.1), ('f', '0.10000000000000001', 0.1),
@@ -829,7 +831,7 @@ if __name__ == '__main__':
     for k, v in nope:
         try: typed(N + f'--- !{k}\n{v}\n'); f += 1; print('NOT REFUSED', k, v)
         except REFUSED: pass
-    bounds = [('!float(..0.1)', '0.1', 0.1), ('!float(0.1..)', '0.1', 0.1), ('!float(0.1..0.1)', '0.1', 0.1), ('!float(0.3..)', '0.3', 0.3), ('!float(..1.1)', '1.1', 1.1), ('!float(..0.1) | !str', '0.1', 0.1), ('!float(0.3..) | !str', '0.3', 0.3), ('!float(..0.1) | !str', '0.10000000000000001', '0.10000000000000001')]
+    bounds = [('!float(..0.1)', '0.1', 0.1), ('!float(0.1..)', '0.1', 0.1), ('!float(0.1..0.1)', '0.1', 0.1), ('!float(0.3..)', '0.3', 0.3), ('!float(..1.1)', '1.1', 1.1), ('{!|: [!float(..0.1), !str]}', '0.1', 0.1), ('{!|: [!float(0.3..), !str]}', '0.3', 0.3), ('{!|: [!float(..0.1), !str]}', '0.10000000000000001', '0.10000000000000001')]
     for tp, v, w in bounds:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n')[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
@@ -846,19 +848,19 @@ if __name__ == '__main__':
         try: got = typed(f'--- &\nn: !float\n--- !n\n{v}\n')[0]
         except REFUSED as e: f += 1; print('REFUSED', v[:40], e); continue
         if want is None or Fraction(got) != want: f += 1; print('NOT NEAREST', v[:40], got)
-    floats = [('!float(0..1) | !str', '1e999', '1e999'), ('!float(..1) | !str', '3.14159265358979323846', '3.14159265358979323846'), ('!float(0..1) | !str', '1.5', '1.5'),
-              ('!float', '0e99999999999999999999', 0.0), ('!float | !str', '-0.0e-99999999999999999999', -0.0), ('!float', '1e-99999999999999999999', 0.0),
-              ('!float | !str', '1e-99999999999999999999', 0.0), ('!float(0..1)', '1e-99999999999999999999', 0.0), ('!float(..0) | !str', '1e-99999999999999999999', '1e-99999999999999999999'),
+    floats = [('{!|: [!float(0..1), !str]}', '1e999', '1e999'), ('{!|: [!float(..1), !str]}', '3.14159265358979323846', '3.14159265358979323846'), ('{!|: [!float(0..1), !str]}', '1.5', '1.5'),
+              ('!float', '0e99999999999999999999', 0.0), ('{!|: [!float, !str]}', '-0.0e-99999999999999999999', -0.0), ('!float', '1e-99999999999999999999', 0.0),
+              ('{!|: [!float, !str]}', '1e-99999999999999999999', 0.0), ('!float(0..1)', '1e-99999999999999999999', 0.0), ('{!|: [!float(..0), !str]}', '1e-99999999999999999999', '1e-99999999999999999999'),
               ('!float(0..4)', '3.14159265358979323846', 3.141592653589793), ('!float(/[0-9.]+/)', '3.14159265358979323846', 3.141592653589793), ('!float', '1e39', 1e39),
-              ('!float', '1.7e308', 1.7e308), ('!float', '4.9e-324', 5e-324), ('!float | !str', 'n/a', 'n/a'), ('!float(..1e99999999999999999999)', '1e308', 1e308),
+              ('!float', '1.7e308', 1.7e308), ('!float', '4.9e-324', 5e-324), ('{!|: [!float, !str]}', 'n/a', 'n/a'), ('!float(..1e99999999999999999999)', '1e308', 1e308),
               ('float: !int\nn: !float', '16777217', 16777217)]
     for tp, v, w in floats:
         body = tp if '\n' in tp else f'n: {tp}'
         try: got = typed(f'--- &\n{body}\n--- !n\n{v}\n')[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    floatnot = [('!float', '1e999'), ('!float', '1.8e308'), ('!float', '-1e400'), ('!float', str(TOP)), ('!float | !str', '1e999'), ('!float(0..) | !str', '1e999'),
-                ('!float | !str', '1e99999999999999999999'), ('!float | !str', '0.4e0066999999999999999999999999999999'), ('!float(/[0-9e]+/) | !str', '1e99999999999999999999'),
-                ('!float(/[0-9]+/) | !str', '9' * 400), ('!float', '"0.1"'), ('!float', 'abc'), ('!float(0..1)', '1.5'), ('!float(..0)', '1e-99999999999999999999')]
+    floatnot = [('!float', '1e999'), ('!float', '1.8e308'), ('!float', '-1e400'), ('!float', str(TOP)), ('{!|: [!float, !str]}', '1e999'), ('{!|: [!float(0..), !str]}', '1e999'),
+                ('{!|: [!float, !str]}', '1e99999999999999999999'), ('{!|: [!float, !str]}', '0.4e0066999999999999999999999999999999'), ('\n  !|:\n    - !float(/[0-9e]+/)\n    - !str', '1e99999999999999999999'),
+                ('\n  !|:\n    - !float(/[0-9]+/)\n    - !str', '9' * 400), ('!float', '"0.1"'), ('!float', 'abc'), ('!float(0..1)', '1.5'), ('!float(..0)', '1e-99999999999999999999')]
     for tp, v in floatnot:
         try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
@@ -868,47 +870,47 @@ if __name__ == '__main__':
     for g2 in gone:
         try: typed('--- &\n' + g2 + '\n'); f += 1; print('SCHEMA NOT REFUSED', g2)
         except REFUSED: pass
-    decs = [(r'!decimal(/[-+]?[0-9]+\.[0-9]{2}/)', '+19.99', Decimal('19.99')), (r'!decimal(/\.[0-9]+/)', '.5', Decimal('0.5')), (r'!decimal(/[0-9]+\./)', '5.', Decimal('5')), (r'!decimal(/[0-9]{1,28}(\.[0-9]{1,10})?/)', '1234567890123456789012345678.1234567890', Decimal('1234567890123456789012345678.1234567890')), (r'!decimal(/0[0-9]+/)', '007', Decimal('7')), (r'!decimal(/[0-9]+e[0-9]+/)', '1e999999999', Decimal('1e999999999')), (r'!decimal(/[0-9]+\.[0-9]{2}/) | !str', '19.9', '19.9')]
+    decs = [(r'!decimal(/[-+]?[0-9]+\.[0-9]{2}/)', '+19.99', Decimal('19.99')), (r'!decimal(/\.[0-9]+/)', '.5', Decimal('0.5')), (r'!decimal(/[0-9]+\./)', '5.', Decimal('5')), (r'!decimal(/[0-9]{1,28}(\.[0-9]{1,10})?/)', '1234567890123456789012345678.1234567890', Decimal('1234567890123456789012345678.1234567890')), (r'!decimal(/0[0-9]+/)', '007', Decimal('7')), (r'!decimal(/[0-9]+e[0-9]+/)', '1e999999999', Decimal('1e999999999')), ('\n  !|:\n    - !decimal(/[0-9]+\\.[0-9]{2}/)\n    - !str', '19.9', '19.9')]
     for tp, v, w in decs:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n')[0]; f += 0 if got == w else 1; got == w or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    decnot = [(r'!decimal(/[0-9]+\.[0-9]{2}/)', '19.9'), (r'!decimal(/[0-9]+\.[0-9]{2}/)', '"19.99"'), (r'!decimal(/[0-9]+\.[0-9]{2}/)', '19.999'), ('!decimal(/[a-z]+/)', 'abc'), ('!decimal(/[a-z]+/) | !str', 'abc'), ('!decimal(/[-+]/)', '+'), (r'!decimal(/\./)', '.'), ('!decimal(/[0-9]+/)', '1.5'), ('!decimal(/[0-9]+e/)', '1e')]
+    decnot = [(r'!decimal(/[0-9]+\.[0-9]{2}/)', '19.9'), (r'!decimal(/[0-9]+\.[0-9]{2}/)', '"19.99"'), (r'!decimal(/[0-9]+\.[0-9]{2}/)', '19.999'), ('!decimal(/[a-z]+/)', 'abc'), ('\n  !|:\n    - !decimal(/[a-z]+/)\n    - !str', 'abc'), ('!decimal(/[-+]/)', '+'), (r'!decimal(/\./)', '.'), ('!decimal(/[0-9]+/)', '1.5'), ('!decimal(/[0-9]+e/)', '1e')]
     for tp, v in decnot:
         try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
     # Section 4.5 on !float, !decimal and !null; 4.6, precision and scale; 4.7, all three together.
     F = r'/[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][-+]?[0-9]+)?/'
     more = [(f'!float({F})', '.5', 0.5), (f'!float({F})', '1.', 1.0), (f'!float({F})', '+1.5e3', 1500.0), (f'!float({F})', '007', 7.0), (f'!float({F})', '-0', 0.0),
-            ('!float(/[0-9]+/) | !str', 'abc', 'abc'), ('!float(/[0-9]+/) | !str', '1.5', '1.5'), (f'!float({F}) | !str', '"5"', '5'),
-            ('!null(/(~|null)?/)', '~', None), ('!null(/(~|null)?/)', 'null', None), ('!null(/(~|null)?/)', '', None), ('!null(/~/) | !str', 'null', 'null'),
-            ('!null(/~/) | !str', '"~"', '~'), ('a:\n  !**: !null(/~/) | !int\nn: !a', 'x: ~\ny: [1, ~]', {'x': None, 'y': [1, None]}),
+            ('\n  !|:\n    - !float(/[0-9]+/)\n    - !str', 'abc', 'abc'), ('\n  !|:\n    - !float(/[0-9]+/)\n    - !str', '1.5', '1.5'), (f'\n  !|:\n    - !float({F})\n    - !str', '"5"', '5'),
+            ('!null(/(~|null)?/)', '~', None), ('!null(/(~|null)?/)', 'null', None), ('!null(/(~|null)?/)', '', None), ('{!|: [!null(/~/), !str]}', 'null', 'null'),
+            ('{!|: [!null(/~/), !str]}', '"~"', '~'), ('a:\n  !**: {!|: [!null(/~/), !int]}\nn: !a', 'x: ~\ny: [1, ~]', {'x': None, 'y': [1, None]}),
             ('!decimal(5:2)', '999.99', Decimal('999.99')), ('!decimal(5:2)', '-999.99', Decimal('-999.99')), ('!decimal(5:2)', '1.50', Decimal('1.50')),
             ('!decimal(5:2)', '0.0', Decimal('0.0')), ('!decimal(5:2)', '1e2', Decimal('1e2')), ('!decimal(5:2)', '100e-2', Decimal('1.00')), ('!decimal(5:4)', '0.0012', Decimal('0.0012')),
             ('!decimal(5:0)', '99999', Decimal('99999')), ('!decimal(5:0)', '1.0', Decimal('1.0')), ('!decimal(5:5)', '0.12345', Decimal('0.12345')),
             ('!decimal(38:10)', '1234567890123456789012345678.1234567890', Decimal('1234567890123456789012345678.1234567890')), ('!decimal(1:0)', '0e999999999', Decimal('0')),
-            ('!decimal(5:2) | !str', '1.005', '1.005'), ('[!decimal(5:2), ...]', '[1.5, 2]', [Decimal('1.5'), Decimal('2')]), ('{a: !decimal(5:2)}', '{a: 1.5}', {'a': Decimal('1.5')}),
+            ('{!|: [!decimal(5:2), !str]}', '1.005', '1.005'), ('[!decimal(5:2), ...]', '[1.5, 2]', [Decimal('1.5'), Decimal('2')]), ('{a: !decimal(5:2)}', '{a: 1.5}', {'a': Decimal('1.5')}),
             ('!int(0..100 /[-+][0-9]+/)', '+5', 5), ('!int(0..100 /[-+][0-9]+/)', '-0', 0), ('!int(..10 /0[0-9]+/)', '007', 7), ('!str(1..8 /[a-z]+/)', 'web', 'web'),
             ('!decimal(38:10 0..)', '19.99', Decimal('19.99')), (r'!decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)', '19.99', Decimal('19.99')), (r'!decimal(5:2 /[0-9]+\.[0-9]{2}/)', '19.99', Decimal('19.99')),
-            (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.5', 0.5), (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.1', 0.1), ('!int(1..10) | !int(20..30)', '25', 25), ('!int(1..10) | !int(20..30) | !str', '15', '15'),
-            ('!decimal(5:2 0..) | !str', '-1', '-1'), ('!decimal', '0e99999999999999999999', Written('0e99999999999999999999')), ('!decimal(0..1)', '-0e-99999999999999999999', Written('-0e-99999999999999999999')),
-            ('!decimal | !str', '1e99999999999999999999', Written('1e99999999999999999999')), ('!decimal(5:2) | !str', '1e99999999999999999999', '1e99999999999999999999'),
-            ('!decimal(/[0-9e]+/) | !str', '1e99999999999999999999', Written('1e99999999999999999999')), ('!decimal(0..) | !str', '-1e99999999999999999999', '-1e99999999999999999999'),
-            ('!decimal(/[0-9e]+/)', '007e5', Decimal('7e5')), ('!float(/[0-9.]+/) | !str', '3.14159265358979323846', 3.141592653589793)]
+            (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.5', 0.5), (r'!float(0..1 /[0-9]*\.[0-9]+/)', '.1', 0.1), ('{!|: [!int(1..10), !int(20..30)]}', '25', 25), ('{!|: [!int(1..10), !int(20..30), !str]}', '15', '15'),
+            ('{!|: [!decimal(5:2 0..), !str]}', '-1', '-1'), ('!decimal', '0e99999999999999999999', Written('0e99999999999999999999')), ('!decimal(0..1)', '-0e-99999999999999999999', Written('-0e-99999999999999999999')),
+            ('{!|: [!decimal, !str]}', '1e99999999999999999999', Written('1e99999999999999999999')), ('{!|: [!decimal(5:2), !str]}', '1e99999999999999999999', '1e99999999999999999999'),
+            ('\n  !|:\n    - !decimal(/[0-9e]+/)\n    - !str', '1e99999999999999999999', Written('1e99999999999999999999')), ('{!|: [!decimal(0..), !str]}', '-1e99999999999999999999', '-1e99999999999999999999'),
+            ('!decimal(/[0-9e]+/)', '007e5', Decimal('7e5')), ('\n  !|:\n    - !float(/[0-9.]+/)\n    - !str', '3.14159265358979323846', 3.141592653589793)]
     for tp, v, w in more:
         try: got = typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'.replace('n: a:\n', 'a:\n'))[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, got)
         except REFUSED as e: f += 1; print('REFUSED', tp, v, e)
-    morenot = [('!float(/[a-z]+/)', 'abc'), ('!float(/[a-z]+/) | !str', 'abc'), ('!float(/[0-9]+/)', '1.5'), ('!float(/[-+0-9.]+/) | !str', '1.2.3'), ('!decimal(/[a-z]+/) | !str', 'inf'), ('!decimal(/[0-9_]+/) | !str', '1_000'), ('!decimal(/[٠-٩]+/) | !str', '١٢٣'), ('!float(/[0-9]+/) | !str', '9' * 400),
+    morenot = [('!float(/[a-z]+/)', 'abc'), ('\n  !|:\n    - !float(/[a-z]+/)\n    - !str', 'abc'), ('!float(/[0-9]+/)', '1.5'), ('\n  !|:\n    - !float(/[-+0-9.]+/)\n    - !str', '1.2.3'), ('\n  !|:\n    - !decimal(/[a-z]+/)\n    - !str', 'inf'), ('\n  !|:\n    - !decimal(/[0-9_]+/)\n    - !str', '1_000'), ('\n  !|:\n    - !decimal(/[٠-٩]+/)\n    - !str', '١٢٣'), ('\n  !|:\n    - !float(/[0-9]+/)\n    - !str', '9' * 400),
                (f'!float({F})', '"5"'), ('!decimal(5:2)', '1e99999999999999999999'),
                ('!null(/~/)', 'null'), ('!null(/~/)', '"~"'), ('!null(/(~|null)?/)', 'x'), ('!null(/~/)', '[~]'), ('!null(/~/)', "'~'"),
                ('!decimal(5:2)', '1000'), ('!decimal(5:2)', '1.005'), ('!decimal(5:2)', '-1000'), ('!decimal(5:2)', '1e3'), ('!decimal(5:2)', '1e-3'), ('!decimal(5:2)', '1e999999999'),
                ('!decimal(5:2)', '1e-999999999'), ('!decimal(5:5)', '1'), ('!decimal(5:2)', '"1.5"'), ('!decimal(38:10)', '12345678901234567890123456789'), ('!decimal(38:10)', '0.12345678901'),
                ('!int(0..100 /[-+][0-9]+/)', '+101'), ('!int(0..100 /[-+][0-9]+/)', '5'), ('!int(0..100 /[-+][0-9]+/)', '-1'), ('!int(..10 /0[0-9]+/)', '011'),
                ('!str(1..8 /[a-z]+/)', 'abcdefghi'), ('!str(1..8 /[a-z]*/)', "''"), ('!decimal(38:10 0..)', '-1'), (r'!decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)', '19.9'),
-               (r'!decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)', '1000.00'), ('!int(1..10) | !int(20..30)', '15'), ('!decimal(5:2 /[a-z]+/) | !str', 'abc')]
+               (r'!decimal(5:2 0.. /[0-9]+\.[0-9]{2}/)', '1000.00'), ('{!|: [!int(1..10), !int(20..30)]}', '15'), ('\n  !|:\n    - !decimal(5:2 /[a-z]+/)\n    - !str', 'abc')]
     for tp, v in morenot:
         try: typed(f'--- &\nn: {tp}\n--- !n\n{v}\n'); f += 1; print('NOT REFUSED', tp, v)
         except REFUSED: pass
-    fulls = [('a: !str\n', 'a', 1), ('a: !int | x\n', 'a', 2), ('big: !int | !str\na: !big | x\n', 'a', 6), ('m:\n  x: !int\n  y?: !str\nu: !m | !int\n', 'u', 10), ('a: !str(/ab{3}/)\n', 'a', 4), ('a: !b | !b\nb: !int\n', 'a', 5), ('a: [!int, ...]\n', 'a', 2), ('a:\n  !**:\n    n: !int\n    !str(/x/): !int\n    !*: !str\n', 'a', 9), ('a:\n  n: !int\n  !*: !str\n', 'a', 5), ('a:\n  !**: !int\n', 'a', 3), ('a: !b\nb: !c\nc: !str\n', 'a', 6)]
+    fulls = [('a: !str\n', 'a', 1), ('a: {!|: [!int, x]}\n', 'a', 2), ('big: {!|: [!int, !str]}\na: {!|: [!big, x]}\n', 'a', 6), ('m:\n  x: !int\n  y?: !str\nu: {!|: [!m, !int]}\n', 'u', 10), ('a: !str(/ab{3}/)\n', 'a', 4), ('a: {!|: [!b, !b]}\nb: !int\n', 'a', 5), ('a: [!int, ...]\n', 'a', 2), ('a:\n  !**:\n    n: !int\n    !str(/x/): !int\n    !*: !str\n', 'a', 9), ('a:\n  n: !int\n  !*: !str\n', 'a', 5), ('a:\n  !**: !int\n', 'a', 3), ('a: !b\nb: !c\nc: !str\n', 'a', 6)]
     for t, root, n in fulls:
         tb = read('%YAML 2.0\n--- &\n' + t).table
         try:
@@ -916,16 +918,16 @@ if __name__ == '__main__':
             try: Schema(tb, root, limit=n - 1); f += 1; print('NOT REFUSED AT', n - 1, repr(t))
             except SchemaError: pass
         except SchemaError as e: f += 1; print('REFUSED AT', n, repr(t), e)
-    chain = '%YAML 2.0\n--- &\n' + ''.join(f'a{i}: !a{i + 1} | !a{i + 2}\n' for i in range(60)) + 'a60: !str\na61: !int\n'
+    chain = '%YAML 2.0\n--- &\n' + ''.join(f'a{i}: {{!|: [!a{i + 1}, !a{i + 2}]}}\n' for i in range(60)) + 'a60: !str\na61: !int\n'
     try: Schema(read(chain).table, 'a0'); f += 1; print('NOT REFUSED: a chain that doubles')
     except SchemaError: pass
-    wide = '%YAML 2.0\n--- &\nbig: !str(/a{1022}/)\nr:\n' + ''.join(f'  k{i}: !a{i}\n' for i in range(2000)) + ''.join(f'a{i}: !big | !int\n' for i in range(2000))
+    wide = '%YAML 2.0\n--- &\nbig: !str(/a{1022}/)\nr:\n' + ''.join(f'  k{i}: !a{i}\n' for i in range(2000)) + ''.join(f'a{i}: {{!|: [!big, !int]}}\n' for i in range(2000))
     try:
         Schema(read(wide).table, 'r')
         try: Schema(read(wide).table, 'r', limit=2000000); f += 1; print('NOT REFUSED: many unions at the ceiling')
         except SchemaError: pass
     except SchemaError as e: f += 1; print('REFUSED', e)
-    try: typed('%YAML 2.0\n--- &\na: !int | !str\n--- !a\n1\n', limit=1); f += 1; print('NOT REFUSED: a stamp past the limit')
+    try: typed('%YAML 2.0\n--- &\na: {!|: [!int, !str]}\n--- !a\n1\n', limit=1); f += 1; print('NOT REFUSED: a stamp past the limit')
     except SchemaError: pass
     # Section 3: part 1's limit applies to an application's schema. `a: !str` holds 7 as text, and its full size is 1.
     try: typed('%YAML 2.0\n', ('--- &\na: !str\n', 'a'), limit=7)
@@ -934,31 +936,31 @@ if __name__ == '__main__':
     except No: pass
     emptyseq = ['[""]', '[a]', 'abc', '{}']
     for v in emptyseq:
-        try: typed(f'%YAML 2.0\n--- &\nu: !int | []\n--- !u\n{v}\n'); f += 1; print('NOT REFUSED', v)
+        try: typed(f'%YAML 2.0\n--- &\nu: {{!|: [!int, []]}}\n--- !u\n{v}\n'); f += 1; print('NOT REFUSED', v)
         except REFUSED: pass
     # The third review (2026-11-11): each point as the text now says it.
     third = 0
     T3 = '--- &\nbase: {why?: !int}\nt:\n  <<: *base\n  "why?": !str\n  !*: !int\n'
     T3b = '--- &\nbase: {"why?": !int}\nt:\n  <<: *base\n  why?: !str\n  !*: !int\n'
-    C3 = '--- &\ncircle:\n  kind: circle | !int\n  r: !int\nsquare:\n  kind: square\n  r: !int\nshape: !circle | !square\n'
+    C3 = '--- &\ncircle:\n  kind: {!|: [circle, !int]}\n  r: !int\nsquare:\n  kind: square\n  r: !int\nshape: {!|: [!circle, !square]}\n'
     alts = '|'.join(chr(0x4E00 + i) for i in range(1100))
-    def maps3(w): return f'm1:\n  !str(/a{{{w}}}/): !str\nm2:\n  !str(/b{{{w}}}/): !str\nu: !m1 | !m2\n'
-    goods3 = [('--- &\nn: !any | !int\n--- !n\n3\n', 3), ('--- &\nn: !any | !int\n--- !n\nabc\n', 'abc'), ('--- &\nn: !any | x\n--- !n\nx\n', 'x'),
+    def maps3(w): return f'm1:\n  !str(/a{{{w}}}/): !str\nm2:\n  !str(/b{{{w}}}/): !str\nu: {{!|: [!m1, !m2]}}\n'
+    goods3 = [('--- &\nn: {!|: [!any, !int]}\n--- !n\n3\n', 3), ('--- &\nn: {!|: [!any, !int]}\n--- !n\nabc\n', 'abc'), ('--- &\nn: {!|: [!any, x]}\n--- !n\nx\n', 'x'),
               (T3 + '--- !t\nwhy?: 5\n', {'why?': '5'}), (T3b + '--- !t\nwhy?: 5\n', {'why?': 5}), (T3b + '--- !t\n{}\n', {}),
               ('--- &\nt:\n  a: !int\n  a?: !str\n--- !t\n{}\n', {}), ('--- &\nn: !binary\n--- !n\naGk=\n', 'aGk='), ('--- &\nn: !binary\n--- !n\n""\n', ''),
-              ('--- &\nn: !float | !str\n--- !n\n1E5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1e+5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1.79769313486231570815e308\n', 1.7976931348623157e308),
-              ('--- &\nn: !decimal(5:2)\n--- !n\n1.500\n', Decimal('1.500')), ('--- &\nn: !int(0..10) | !str\n--- !n\n11\n', '11'), ('--- &\nn: !int(0..10) | !str\n--- !n\n1' + '0' * 29 + '\n', '1' + '0' * 29), ('--- &\nn: !bigint(/[-+][0-9]+/)\n--- !n\n+0012\n', 12), ('--- &\nn: !bigint(0..10) | !str\n--- !n\n1' + '0' * 29 + '\n', '1' + '0' * 29),
+              ('--- &\nn: {!|: [!float, !str]}\n--- !n\n1E5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1e+5\n', 100000.0), ('--- &\nn: !float\n--- !n\n1.79769313486231570815e308\n', 1.7976931348623157e308),
+              ('--- &\nn: !decimal(5:2)\n--- !n\n1.500\n', Decimal('1.500')), ('--- &\nn: {!|: [!int(0..10), !str]}\n--- !n\n11\n', '11'), ('--- &\nn: {!|: [!int(0..10), !str]}\n--- !n\n1' + '0' * 29 + '\n', '1' + '0' * 29), ('--- &\nn: !bigint(/[-+][0-9]+/)\n--- !n\n+0012\n', 12), ('--- &\nn: {!|: [!bigint(0..10), !str]}\n--- !n\n1' + '0' * 29 + '\n', '1' + '0' * 29),
               ('--- &\nm:\n  !str(/a.b/): !int\n  !*: !str\n--- !m\n"a\\rb": 1\n', {'a\rb': '1'}), ('--- &\nm:\n  !str(/a.b/): !int\n  !*: !str\n--- !m\naxb: 1\n', {'axb': 1}),
-              ('--- &\nn: !str(/\\p{Lu}[a-z]*/) | !int\n--- !n\nAbc\n', 'Abc'), ('--- &\nn: !str(/[\\p{L}\\p{Nd}]+/)\n--- !n\nÀ1\n', 'À1'), ('--- &\nn: !str(/\\P{L}+/) | !str\n--- !n\n12\n', '12'),
+              ('--- &\nn:\n  !|:\n    - !str(/\\p{Lu}[a-z]*/)\n    - !int\n--- !n\nAbc\n', 'Abc'), ('--- &\nn: !str(/[\\p{L}\\p{Nd}]+/)\n--- !n\nÀ1\n', 'À1'), ('--- &\nn:\n  !|:\n    - !str(/\\P{L}+/)\n    - !str\n--- !n\n12\n', '12'),
               ('--- &\nn: !str(/[-a]+/)\n--- !n\na-a\n', 'a-a'), ('--- &\nn: !str(/[a-]+/)\n--- !n\n-a\n', '-a'), ('--- &\nn: !str(/\\.\\{\\}/)\n--- !n\n".{}"\n', '.{}'),
-              ('--- &\nn: !str(1..5 /[)]+/) | !int\n--- !n\n")))"\n', ')))'), ('--- &\nn: a(/b | !int\n--- !n\na(/b\n', 'a(/b'), ('--- &\nn: f(x) | !int\n--- !n\nf(x)\n', 'f(x)'),
-              (C3.replace('circle | !int', 'circle') + '--- !shape\n{kind: square, r: 1}\n', {'kind': 'square', 'r': 1}),
+              ('--- &\nn:\n  !|:\n    - !str(1..5 /[)]+/)\n    - !int\n--- !n\n")))"\n', ')))'), ('--- &\nn: {!|: [a(/b, !int]}\n--- !n\na(/b\n', 'a(/b'), ('--- &\nn: !str(/x|y | z/)\n--- !n\nx\n', 'x'), ('--- &\nn: {!|: [f(x), !int]}\n--- !n\nf(x)\n', 'f(x)'),
+              (C3.replace('{!|: [circle, !int]}', 'circle') + '--- !shape\n{kind: square, r: 1}\n', {'kind': 'square', 'r': 1}),
               ('--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n3.14159265358979323846: 5\n', {'3.14159265358979323846': 5})]
     for s3, w in goods3:
         try: got = typed(s3)[0]; third += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(s3), got)
         except REFUSED as e: third += 1; print('REFUSED', repr(s3), e)
-    bads3 = ['--- &\nn: !int(0..) | !str\n--- !n\n1' + '0' * 29 + '\n', '--- &\nn: !int | !str\n--- !n\n1' + '0' * 29 + '\n', T3 + '--- !t\n{}\n', '--- &\nn: !binary | !int\n--- !n\naGl=\n', '--- &\nn: !binary\n--- !n\naGk\n', '--- &\nn: !binary\n--- !n\n"aGVs\\r\\nbG8="\n',
-             '--- &\nn: !float | !str\n--- !n\n1.8e308\n', '--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n1e999: 5\n', C3 + '--- !shape\n{kind: square, r: 1}\n',
+    bads3 = ['--- &\nn: {!|: [!int(0..), !str]}\n--- !n\n1' + '0' * 29 + '\n', '--- &\nn: {!|: [!int, !str]}\n--- !n\n1' + '0' * 29 + '\n', T3 + '--- !t\n{}\n', '--- &\nn: {!|: [!binary, !int]}\n--- !n\naGl=\n', '--- &\nn: !binary\n--- !n\naGk\n', '--- &\nn: !binary\n--- !n\n"aGVs\\r\\nbG8="\n',
+             '--- &\nn: {!|: [!float, !str]}\n--- !n\n1.8e308\n', '--- &\nm:\n  !float: !int\n  !*: !str\n--- !m\n1e999: 5\n', C3 + '--- !shape\n{kind: square, r: 1}\n',
              '--- &\nn: !str(/\\p{Lu}/)\n--- !n\na\n']
     for s3 in bads3:
         try: typed(s3); third += 1; print('NOT REFUSED', repr(s3))
@@ -1042,11 +1044,11 @@ if __name__ == '__main__':
               ('!datetime', '1991-01-01T00:59:60+01:00', '1991-01-01T00:59:60+01:00', {}), ('!datetime', '2016-12-31T23:59:60.5Z', '2016-12-31T23:59:60.5Z', {}),
               ('!datetime', T + '-00:00', T + '-00:00', {}), ('!datetime', T + '+23:59', T + '+23:59', {}), ('!date', '2000-02-29', '2000-02-29', {}),
               ('!date', '0000-02-29', '0000-02-29', {}), ('!date', '0000-01-01', '0000-01-01', {}),
-              ('!datetime | !str', '2001-02-03 04:05:06Z', '2001-02-03 04:05:06Z', {}), ('!date | !str', '2001-02-29', '2001-02-29', {}),
-              ('!date | !str', '1900-02-29', '1900-02-29', {}), ('!datetime | !str', '1990-12-30T23:59:60Z', '1990-12-30T23:59:60Z', {}),
-              ('!datetime | !str', '1990-12-31T23:58:60Z', '1990-12-31T23:58:60Z', {}), ('!datetime | !str', '1990-12-31T23:59:60+01:00', '1990-12-31T23:59:60+01:00', {}),
-              ('!datetime | !str', '2001-02-03T24:00:00Z', '2001-02-03T24:00:00Z', {}), ('!datetime | !str', T + '+24:00', T + '+24:00', {}),
-              ('!datetime | !str', T + '.Z', T + '.Z', {}), ('!datetime | !str', T, T, {}), ('!datetime', T + '.123456789012Z', T + '.123456789012Z', {}),
+              ('{!|: [!datetime, !str]}', '2001-02-03 04:05:06Z', '2001-02-03 04:05:06Z', {}), ('{!|: [!date, !str]}', '2001-02-29', '2001-02-29', {}),
+              ('{!|: [!date, !str]}', '1900-02-29', '1900-02-29', {}), ('{!|: [!datetime, !str]}', '1990-12-30T23:59:60Z', '1990-12-30T23:59:60Z', {}),
+              ('{!|: [!datetime, !str]}', '1990-12-31T23:58:60Z', '1990-12-31T23:58:60Z', {}), ('{!|: [!datetime, !str]}', '1990-12-31T23:59:60+01:00', '1990-12-31T23:59:60+01:00', {}),
+              ('{!|: [!datetime, !str]}', '2001-02-03T24:00:00Z', '2001-02-03T24:00:00Z', {}), ('{!|: [!datetime, !str]}', T + '+24:00', T + '+24:00', {}),
+              ('{!|: [!datetime, !str]}', T + '.Z', T + '.Z', {}), ('{!|: [!datetime, !str]}', T, T, {}), ('!datetime', T + '.123456789012Z', T + '.123456789012Z', {}),
               ('!datetime', T + '.1234567Z', T + '.1234567Z', {'cut': True}), ('[!datetime, ...]', f'[{T}.5Z]', [T + '.5Z'], {})]
     for tp, v, w, kw in goodsP:
         try: got = one(tp, v, **kw); prec += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', tp, v, kw, got)
@@ -1060,15 +1062,15 @@ if __name__ == '__main__':
         except REFUSED: pass
     # A parser that holds what Python's datetime does, then JavaScript's Date, then one that holds no fraction.
     C = {'cut': True}
-    holds = [((6, False, False), [('!datetime', T + '.123456Z', T + '.123456Z', {}), ('!datetime | !str', T + 'x', T + 'x', {}), ('!datetime', T + '.1234567Z', T + '.123456Z', C),
-                                  ('!datetime', '1999-12-31T23:59:59.9999999Z', '1999-12-31T23:59:59.999999Z', C), ('!datetime | !str', T + '.1234567+05:30', T + '.123456+05:30', C),
+    holds = [((6, False, False), [('!datetime', T + '.123456Z', T + '.123456Z', {}), ('{!|: [!datetime, !str]}', T + 'x', T + 'x', {}), ('!datetime', T + '.1234567Z', T + '.123456Z', C),
+                                  ('!datetime', '1999-12-31T23:59:59.9999999Z', '1999-12-31T23:59:59.999999Z', C), ('{!|: [!datetime, !str]}', T + '.1234567+05:30', T + '.123456+05:30', C),
                                   ('!datetime', T + '.12Z', T + '.12Z', C)],
-              [('!datetime | !str', T + '.1234567Z', {}), ('!datetime', T + '.1234567Z', {}), ('!datetime | !str', '1990-12-31T23:59:60Z', {}), ('!date | !str', '0000-01-01', {}),
+              [('{!|: [!datetime, !str]}', T + '.1234567Z', {}), ('!datetime', T + '.1234567Z', {}), ('{!|: [!datetime, !str]}', '1990-12-31T23:59:60Z', {}), ('{!|: [!date, !str]}', '0000-01-01', {}),
                ('!datetime', '1990-12-31T23:59:60Z', C), ('!date', '0000-01-01', C), ('!datetime', '0000-01-01T00:00:00.1234567Z', C)]),
              ((3, False, True), [('!date', '0000-01-01', '0000-01-01', {}), ('!datetime', T + '.98765Z', T + '.987Z', C), ('!datetime', T + '.123Z', T + '.123Z', {})],
-              [('!datetime', T + '.1234Z', {}), ('!datetime | !str', '2016-12-31T23:59:60Z', {}), ('!datetime', '2016-12-31T23:59:60.12345Z', C)]),
+              [('!datetime', T + '.1234Z', {}), ('{!|: [!datetime, !str]}', '2016-12-31T23:59:60Z', {}), ('!datetime', '2016-12-31T23:59:60.12345Z', C)]),
              ((0, True, True), [('!datetime', T + '.9Z', T + 'Z', C), ('!datetime', '2016-12-31T23:59:60.5Z', '2016-12-31T23:59:60Z', C), ('!datetime', T + 'Z', T + 'Z', {})],
-              [('!datetime', T + '.9Z', {}), ('!datetime | !str', T + '.0Z', {})])]
+              [('!datetime', T + '.9Z', {}), ('{!|: [!datetime, !str]}', T + '.0Z', {})])]
     nholds = 0
     for hold, oks, nos in holds:
         DATEHOLD = hold
@@ -1082,7 +1084,7 @@ if __name__ == '__main__':
             except REFUSED: pass
     DATEHOLD = None
     # Levels and round on dates are gone (the user, 2026-11-12), and round was already gone on floats.
-    schemasP = ['a: !datetime(3)', 'a: !datetime(0)', 'a: !datetime(round 3)', 'a: !datetime(round 9)', 'a: [!datetime(round 3), ...]', 'a: !datetime(round 3) | !str',
+    schemasP = ['a: !datetime(3)', 'a: !datetime(0)', 'a: !datetime(round 3)', 'a: !datetime(round 9)', 'a: [!datetime(round 3), ...]', 'a: {!|: [!datetime(round 3), !str]}',
                 'a: !datetime(round)', 'a: !date(3)', 'a: !date(round)', 'a: !int(round)', 'a: !decimal(round 5:2)', 'a: !str(round)', 'a: !null(round)',
                 'a: !bool(round)', 'a: !datetime(3 3)', 'a: !datetime(03)', 'a: !datetime(0..1)', 'a: !datetime(3 0..1)', 'a: !float(round round)',
                 'a: !float(round  0..1)', 'a: !float( round)', 'a: !float(0..1 round)', 'a: !datetime(-1)', 'a: !datetime(round 3 /x/)',
@@ -1090,7 +1092,7 @@ if __name__ == '__main__':
     for sP in schemasP:
         try: typed('--- &\n' + sP + '\n'); prec += 1; print('SCHEMA NOT REFUSED', sP)
         except REFUSED: pass
-    loadsP = ['a: !datetime', 'a: [!datetime, ...]', 'a: !datetime | !str', 'a: !float(0..1 /[0-9.]+/)', 'a: !decimal(5:2 0..1 /[0-9.]+/)']
+    loadsP = ['a: !datetime', 'a: [!datetime, ...]', 'a: {!|: [!datetime, !str]}', 'a: !float(0..1 /[0-9.]+/)', 'a: !decimal(5:2 0..1 /[0-9.]+/)']
     for sP in loadsP:
         try: typed('--- &\n' + sP + '\n')
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)

@@ -132,6 +132,10 @@ limits (`!int(0..100)`) were added, with `x-*` replaced by `!str(/^x-/)`. Every
 result above came out the same. The schema language in `rules.md` is current;
 results above were first produced with the older notation.
 
+On 2026-11-14 both were converted again, from `!a | !b` to a `!|` key, `{!|: [!a, !b]}` (part 2,
+section 9), mechanically, by part 1's reading of each plain scalar. `verdicts.py`'s grammar, shadow
+and path columns came out the same on all 801 files (490 workflows, 311 Compose).
+
 ## Roots and standard names (2026-11-04)
 
 Each shadow's root is now a table entry (`workflow`, `compose`, `document` in

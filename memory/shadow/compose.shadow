@@ -17,13 +17,13 @@ str-map:
   !str: !str
 any-map:
   !str: !any
-list-or-dict: !str-map | [!str, ...]
-str-or-list: !str | [!str, ...]
-command: !str | [!str, ...]
+list-or-dict: {!|: [!str-map, [!str, ...]]}
+str-or-list: {!|: [!str, [!str, ...]]}
+command: {!|: [!str, [!str, ...]]}
 
 extra-hosts-map:
-  !str: !str | [!str, ...]
-extra-hosts: !extra-hosts-map | [!str, ...]
+  !str: {!|: [!str, [!str, ...]]}
+extra-hosts: {!|: [!extra-hosts-map, [!str, ...]]}
 
 blkio-limit:
   path?: !str
@@ -50,7 +50,7 @@ device-map:
   source: !str
   target?: !str
   permissions?: !str
-device: !str | !device-map
+device: {!|: [!str, !device-map]}
 
 logging:
   <<: *ext
@@ -62,7 +62,7 @@ service-model:
   endpoint_var?: !str
   model_var?: !str
 service-models-map:
-  !str: !service-model | ''
+  !str: {!|: [!service-model, '']}
 
 service-network:
   <<: *ext
@@ -77,14 +77,14 @@ service-network:
   gw_priority?: !number
   use_service_name_alias?: !flag
 service-networks-map:
-  !str: !service-network | !null | ''
+  !str: {!|: [!service-network, !null, '']}
 
 volume-bind:
   <<: *ext
   propagation?: !str
   create_host_path?: !flag
-  recursive?: enabled | disabled | writable | readonly
-  selinux?: z | Z
+  recursive?: {!|: [enabled, disabled, writable, readonly]}
+  selinux?: {!|: [z, Z]}
 volume-volume:
   <<: *ext
   labels?: !list-or-dict
@@ -99,7 +99,7 @@ volume-image:
   subpath?: !str
 service-volume-map:
   <<: *ext
-  type: bind | volume | tmpfs | cluster | npipe | image
+  type: {!|: [bind, volume, tmpfs, cluster, npipe, image]}
   source?: !str
   target?: !str
   read_only?: !flag
@@ -108,7 +108,7 @@ service-volume-map:
   volume?: !volume-volume
   tmpfs?: !volume-tmpfs
   image?: !volume-image
-service-volume: !str | !service-volume-map
+service-volume: {!|: [!str, !service-volume-map]}
 
 config-ref-map:
   <<: *ext
@@ -117,21 +117,21 @@ config-ref-map:
   uid?: !str
   gid?: !str
   mode?: !number
-config-ref: !str | !config-ref-map
+config-ref: {!|: [!str, !config-ref-map]}
 
 ulimit:
   <<: *ext
   hard: !number
   soft: !number
 ulimits:
-  !str: !number | !ulimit
+  !str: {!|: [!number, !ulimit]}
 
 env-file-map:
   path: !str
   format?: !str
   required?: !flag
-env-file-item: !str | !env-file-map
-env-file: !str | [!env-file-item, ...]
+env-file-item: {!|: [!str, !env-file-map]}
+env-file: {!|: [!str, [!env-file-item, ...]]}
 
 device-request:
   <<: *ext
@@ -140,7 +140,7 @@ device-request:
   device_ids?: [!str, ...]
   driver?: !str
   options?: !list-or-dict
-gpus: all | [!device-request, ...]
+gpus: {!|: [all, [!device-request, ...]]}
 
 container-spec:
   <<: *ext
@@ -148,7 +148,7 @@ container-spec:
   blkio_config?: !blkio-config
   cap_add?: [!str, ...]
   cap_drop?: [!str, ...]
-  cgroup?: host | private
+  cgroup?: {!|: [host, private]}
   cgroup_parent?: !str
   command?: !command
   configs?: [!config-ref, ...]
@@ -170,7 +170,7 @@ container-spec:
   domainname?: !str
   entrypoint?: !command
   env_file?: !env-file
-  label_file?: !str | [!str, ...]
+  label_file?: {!|: [!str, [!str, ...]]}
   environment?: !list-or-dict
   extra_hosts?: !extra-hosts
   gpus?: !gpus
@@ -188,8 +188,8 @@ container-spec:
   mem_swappiness?: !number
   memswap_limit?: !number
   network_mode?: !str
-  models?: !service-models-map | [!str, ...]
-  networks?: !service-networks-map | [!str, ...]
+  models?: {!|: [!service-models-map, [!str, ...]]}
+  networks?: {!|: [!service-networks-map, [!str, ...]]}
   oom_kill_disable?: !flag
   oom_score_adj?: !number
   pid?: !str
@@ -250,7 +250,7 @@ depends-condition:
   <<: *ext
   restart?: !flag
   required?: !bool
-  condition: service_started | service_healthy | service_completed_successfully
+  condition: {!|: [service_started, service_healthy, service_completed_successfully]}
 depends-map:
   !str: !depends-condition
 
@@ -259,7 +259,7 @@ healthcheck:
   disable?: !flag
   interval?: !str
   retries?: !number
-  test?: !str | [!str, ...]
+  test?: {!|: [!str, [!str, ...]]}
   timeout?: !str
   start_period?: !str
   start_interval?: !str
@@ -273,12 +273,12 @@ port-map:
   published?: !str
   protocol?: !str
   app_protocol?: !str
-port: !str | !port-map
+port: {!|: [!str, !port-map]}
 
 workload-spec:
   <<: *ext
-  build?: !str | !build-map
-  depends_on?: !depends-map | [!str, ...]
+  build?: {!|: [!str, !build-map]}
+  depends_on?: {!|: [!depends-map, [!str, ...]]}
   healthcheck?: !healthcheck
   ports?: [!port, ...]
   expose?: [!str, ...]
@@ -292,7 +292,7 @@ update-config:
   failure_action?: !str
   monitor?: !str
   max_failure_ratio?: !number
-  order?: start-first | stop-first
+  order?: {!|: [start-first, stop-first]}
 
 resource-limits:
   <<: *ext
@@ -374,7 +374,7 @@ watch:
   ignore?: !str-or-list
   include?: !str-or-list
   path: !str
-  action: rebuild | sync | restart | sync+restart | sync+exec
+  action: {!|: [rebuild, sync, restart, sync+restart, sync+exec]}
   target?: !str
   exec?: !service-hook
   initial_sync?: !bool
@@ -403,7 +403,7 @@ service:
   attach?: !flag
   container_name?: !str
   provider?: !provider-map
-  extends?: !str | !extends-map
+  extends?: {!|: [!str, !extends-map]}
   links?: [!str, ...]
   external_links?: [!str, ...]
   pre_start?: [!pre-start-hook, ...]
@@ -414,9 +414,9 @@ schedule-map:
   <<: *ext
   cron: !str
   timezone?: !str
-  concurrency?: forbid | queue
-  missed_fires?: one | skip
-schedule-item: !str | !schedule-map
+  concurrency?: {!|: [forbid, queue]}
+  missed_fires?: {!|: [one, skip]}
+schedule-item: {!|: [!str, !schedule-map]}
 
 triggers:
   <<: *ext
@@ -427,13 +427,13 @@ job:
   <<: *container-spec
   <<: *workload-spec
   profiles?: [!str, ...]
-  extends?: !str | !extends-map
+  extends?: {!|: [!str, !extends-map]}
   triggers: !triggers
 
 external-map:
   <<: *ext
   name?: !str
-external: !str | !external-map
+external: {!|: [!str, !external-map]}
 
 ipam-config:
   <<: *ext
@@ -498,10 +498,10 @@ model:
   runtime_flags?: [!str, ...]
 
 include-map:
-  path?: !str | [!str, ...]
-  env_file?: !str | [!str, ...]
+  path?: {!|: [!str, [!str, ...]]}
+  env_file?: {!|: [!str, [!str, ...]]}
   project_directory?: !str
-include: !str | !include-map
+include: {!|: [!str, !include-map]}
 # The root: a data document says `--- !compose`, or the app names it.
 compose:
   <<: *ext
@@ -513,9 +513,9 @@ compose:
   models?:
     !str: !model
   networks?:
-    !str: !network | !null | ''
+    !str: {!|: [!network, !null, '']}
   volumes?:
-    !str: !volume | !null | ''
+    !str: {!|: [!volume, !null, '']}
   secrets?:
     !str: !secret
   configs?:

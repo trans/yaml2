@@ -221,9 +221,17 @@ def section(r):
     if re.search(r'!str\([^\n]*/', t): return '4.3'
     if re.search(r'\([^\n)]*\.\.', t): return '4.2'
     if re.search(r'!(int|bigint|float|decimal)\b', t): return '4.4'
-    if ' | ' in t: return '9'
+    if UNION.search(t) or piped(t): return '9'
     if re.search(r'!(binary|bool|null|str|any)\b', t): return '4.1'
     return '14'
+def piped(text):
+    """` | ` in a line outside a type's parentheses: the spelling section 14 refuses."""
+    for l in text.split('\n'):
+        try:
+            if len(ns['split'](l, ' | ')) > 1: return True
+        except ns['SchemaError']: pass
+    return False
+UNION = re.compile(r'(?<!["\'])!\|:[ \t]*\[?')  # a `!|` key, and the bracket of its flow sequence
 TYPES = ('str', 'int', 'bigint', 'float', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary')
 TABLE = re.compile(r'^--- &[ \t]*\n((?:(?!---|\.\.\.).*\n?)*)', re.M)
 def chunks(text):
@@ -268,8 +276,9 @@ def tags(r, sec, fail):
     if re.search(r'!(str|int|bigint|float|decimal|null)\([^\n]*/', t): out.append('pattern')
     if re.search(r'\([^\n)]*\.\.', t): out.append('range')
     if re.search(r'!decimal\([^\n)]*[0-9]:[0-9]', t): out.append('precision')
-    if ' | ' in t: out.append('union')
-    if '[' in table: out.append('sequence')
+    # A `!|` key, or ` | ` in a plain scalar outside a type's parentheses, which section 14 refuses.
+    if UNION.search(t) or piped(table): out.append('union')
+    if '[' in UNION.sub('', table): out.append('sequence')
     if re.search(r'!\*(?!\*)', t): out.append('star')
     if '!**' in t: out.append('double-star')
     if '<<' in t: out.append('merge')

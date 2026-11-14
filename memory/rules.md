@@ -612,6 +612,22 @@ tests settled on, all proposals, left open for the core team:
   inside `|` (section 9), since `: ` ends the plain scalar, so it is named. Same figures: 1,015 of 1,015
   SchemaStore, 93 of 95 JSONTestSuite, `i_` unchanged. Section 11 gets the sentence on interfaces that
   deliver full data, which the user had asked for. **In main `e75a203`;** suite 827.
+- **A union is a `!|` key** (the user, 2026-11-14). On "a mapping can't sit inside `|`", the user: "The
+  idea that we need a special small type language inside our structure language does not bode well for the
+  format. If we can't even represent our own type system..." 2.0 carries type by structure and key names,
+  so the user proposed a reserved key holding a list (written `!any:`). The agent measured and recommended
+  `!|` instead (`!any` is the untyped type, and as a key already matches every key; section 14 bans `|`
+  from names), and dropping ` | ` from scalars; the user: "`!|` is good by me". A union is a mapping whose
+  only key is `!|`, its value a sequence of one or more alternatives, each any node a schema holds, so a
+  mapping sits in place: `json: {!|: [!null, !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}`. A
+  plain scalar holds one type or one literal; one holding ` | ` outside a type's parentheses is refused,
+  so the old spelling fails loudly. Quoted alternatives are literals, a reference may sit in a union, `...`
+  may not, a `!|` mapping under `!**` is a union and not rules, and a union adds its alternatives' full
+  size. Cost: short unions are longer (90 of the shadows' 107 unions have 2 alternatives), and a pattern
+  holding `, [ ] { }` needs the block form. In the shadows, 34 of 128 entries were mappings named only to
+  sit in one union. Converted mechanically from part 1's reading of each plain scalar: 817 earlier suite
+  tests keep their answers and tags, both shadows their verdicts on all 801 files. **In main `0b88244`;**
+  suite 842.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 
