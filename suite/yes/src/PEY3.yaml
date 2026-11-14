@@ -1,0 +1,19 @@
+---
+- name: 'The path of a refused key: `!w` on `person: {age: 3}; list: [{name: Bo}]`'
+  from: part 2, section 2
+  tags: str int sequence error
+  fail: true
+  refused: document
+  at: '/person'
+  yaml: |
+    %YAML 2.0
+    --- &
+    k:
+      name: !str
+      age?: !int
+    w:
+      person: !k
+      list: [!k, ...]
+    --- !w
+    person: {age: 3}
+    list: [{name: Bo}]

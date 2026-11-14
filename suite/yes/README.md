@@ -2,10 +2,10 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 808:
+these tests will change with it. There are 815:
 
 - the draft's 67 examples, tagged `spec`;
-- 704 edge cases from the draft's checker;
+- 711 edge cases from the draft's checker;
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
   (see below).
 
@@ -36,8 +36,9 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   `year-zero` match its own, and skips the tests tagged for what it doesn't hold (below).
 - **`refused`.** A refused test without it is also refused by part 1, through a syntax error or the
   size limit on the stream. The suite doesn't fix which refusal comes first.
-- **`at`.** The path is `/` for the root, then each key or index after a `/`, unescaped. It is the
-  first fault the checker meets. A parser that reports another fault in the same document first
+- **`at`.** The path is `/` for the root, then each key or index after a `/`, unescaped. For a key
+  the mapping doesn't take, or one it needs and doesn't have, it is the mapping's path (section 2). It
+  is the first fault the checker meets. A parser that reports another fault in the same document first
   differs from the test in `at`, but not in whether the document is refused.
 
 `bin/suite-to-data yes/src yes-data` writes each test to a directory as part 1's are, with `typed.event`
