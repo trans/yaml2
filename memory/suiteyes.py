@@ -186,7 +186,7 @@ GROUPS = {
     'forms': ('4.3', 'A pattern is a plain scalar'), 'says': ('3', 'Who says how to read a document'),
     'unions': ('9', 'Alternatives'), 'star': (None, 'Keys not named'), 'notstar': (None, 'Keys not named'),
     'badstar': (None, 'A schema refused'), 'pub': ('3.1', 'A published name'), 'notpub': ('3.1', 'A published name'),
-    'reach': ('2', 'What the root reaches'), 'nums': ('4.4', 'Numbers'), 'nope': ('4.4', 'Numbers'),
+    'reach': ('2', 'What the root reaches'), 'keyfaults': ('2', 'The path of a refused key'), 'nums': ('4.4', 'Numbers'), 'nope': ('4.4', 'Numbers'),
     'bounds': ('4.2', 'A limit on the number as written'), 'outside': ('4.2', 'A limit on the number as written'),
     'hard': ('4.4', 'The nearest binary64'), 'floats': ('4.4', 'Floats'), 'floatnot': ('4.4', 'Floats'),
     'gone': ('4.4', 'A float width or round'), 'decs': ('4.5', 'A pattern on !decimal'), 'decnot': ('4.5', 'A pattern on !decimal'),

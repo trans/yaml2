@@ -587,6 +587,13 @@ tests settled on, all proposals, left open for the core team:
   `a: !str` holds 7 as text, though its full size is 1. @oylng asked, since its engine read it so and the
   suite didn't. In main `425db57` (section 3), and the suite's full-size tests are rebuilt above the text
   in `a7e2df6`.
+- **A refused key gives the mapping's path** (the user, 2026-11-14: "which ever", leaving it to the
+  agent, who recommended this). An unknown key, or a missing one, gives the path of the mapping that
+  holds it, and the refusal names the key: `/: unknown key nmae`, not `/nmae`. Line and column point
+  at the key. A missing key has no value to point at. The user's view: line and column are probably
+  all anyone needs, and having the path and the key "certainly don't hurt". The user asked why the path
+  can't point at the key itself: a path's last step always names a value, as a JSON Pointer's does.
+  In main `5398fe7` (section 2), and the checker's `keyfaults` cases, which assert the whole message.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

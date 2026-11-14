@@ -248,11 +248,11 @@ limit shortcut above too. It applies one limit to held, full and typed, and its 
 checker's at every limit and one under. For `!binary` in a block, the checker delivers the text without its
 breaks and the engine the bytes; the suite writes bytes. Its fuzzer now types streams too. Its first run
 found an engine bug (a union picking a literal or `!any` left a field unset), which is fixed. A second run,
-of 187,909 cases, was clean. Two points for the user, **Open:**
-- **The path of a key's refusal.** The checker gives an unknown key its mapping's path (`/` for
-  `nmae` at the root), and the engine now does too. Section 2 says "the path to the value", which
-  doesn't settle whether that means the mapping or `/nmae`.
-- **Typed on a data interface.** @oylng's point: a node is typed once per type that reaches it, and each
+of 187,909 cases, was clean. Two points for the user:
+- **The path of a key's refusal.** **Fixed in main `5398fe7`.** The user left it to the agent
+  (2026-11-14), and section 2 now gives an unknown or missing key the mapping's path, naming the key
+  (rules.md). The suite has 7 tests of it below the root (815 tests).
+- **Typed on a data interface.** **Open.** @oylng's point: a node is typed once per type that reaches it, and each
   type comes down a path of its own, so typed never passes full. So typed only refuses where references are
   kept, as section 11 already says. A sentence saying why is the user's to add or not.
 
