@@ -252,6 +252,18 @@ of 187,909 cases, was clean. Two points for the user:
 - **The path of a key's refusal.** **Fixed in main `5398fe7`.** The user left it to the agent
   (2026-11-14), and section 2 now gives an unknown or missing key the mapping's path, naming the key
   (rules.md). The suite has 7 tests of it below the root (815 tests).
+- **Unions as a reserved key** (the user, 2026-11-14). **Open.** The user, on the rule that a mapping
+  can't sit inside `|`: "The idea that we need a special small type language inside our structure language
+  does not bode well for the format. If we can't even represent our own type system..." 2.0 carries type
+  by structure and key names, so a union could be a reserved key holding a list of alternatives (the user
+  wrote `!any:`). Measured: part 1 reads it with no change, flow or block, and the table stays plain data:
+  `json: {!|: [!null, !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}`. In the workflow and
+  Compose shadows, 107 unions: 90 have 2 alternatives, 87 hold a collection, 20 only scalars and
+  literals; 34 of the 128 entries are mappings named only to sit in one union (used once). No type key
+  holds a union. `!any` clashes twice: it is the untyped standard type, and as a key it already matches
+  every key. The agent suggests `!|` (section 14 bans `|` in names), dropping `|` from scalars, so a
+  scalar holds one atom: a type with its arguments, or a literal. Part 2 has 22 examples and 54 prose
+  mentions with a union; the shadows 75 lines.
 - **Typed on a data interface.** **Fixed in main `e75a203`.** @oylng's point: each type that reaches a
   node comes down a path of its own, so typed never passes full, and only an interface that keeps
   references needs to limit it. Testing the sentence (2026-11-14) found typed could pass full, up to
