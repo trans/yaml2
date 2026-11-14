@@ -1,5 +1,5 @@
 ---
-- name: 'Keys not named: `[!a, ...]` on `- +5; - {x: -3}`'
+- name: 'Keys not named: `[!a, ...]` on `- {y: +5}; - {x: -3}`'
   from: part 2, section 10
   tags: str int pattern union sequence double-star
   yaml: |
@@ -10,13 +10,16 @@
       !**: !signed | !str
     l: [!a, ...]
     --- !l
-    - +5
+    - {y: +5}
     - {x: -3}
   typed: |
     +STR
      +DOC !l
       +SEQ
-       =INT :5
+       +MAP
+        =VAL :y
+        =INT :5
+       -MAP
        +MAP
         =VAL :x
         =INT :-3
@@ -25,4 +28,4 @@
      -DOC
     -STR
   json: |
-    [5, {"x": -3}]
+    [{"y": 5}, {"x": -3}]

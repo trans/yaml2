@@ -1093,13 +1093,13 @@ list: [!a, ...]
 
 `!**` as a key means here and at every level below. It takes every key the mapping doesn't name, at
 this level and under it, and a sequence adds no level. Collections are walked and its type applies
-to the scalars it reaches, so that type can't hold a sequence or a mapping. This is JSON:
+to the scalars it reaches, so that type can't hold a sequence or a mapping. This is a JSON object:
 
 ```yaml
 --- &
-json:
+object:
   !**: !null | !bool | !int | !float | !str
---- !json
+--- !object
 {"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
 ```
 
@@ -1107,19 +1107,32 @@ json:
 {"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
 ```
 
-Read by a parser built from part 1's grammar, this schema matched a JSON parser exactly on 1,015
+A type with `!**` is still a mapping, so `5` and `[1, 2]` are refused here. JSON allows any value
+at the top, and a union takes them all, with the mapping named, since a mapping can't sit inside `|`
+(section 9):
+
+```yaml
+--- &
+json: !null | !bool | !int | !float | !str | !object | [!json, ...]
+object: {!*: !json}
+--- !json
+[1, "1", null, {"d": [true, {"e": 1.5}]}]
+```
+
+```json
+[1, "1", null, {"d": [true, {"e": 1.5}]}]
+```
+
+Read by a parser built from part 1's grammar, `json` matched a JSON parser exactly on 1,015
 real JSON files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept.
-The other 2 are repeated keys, which part 1 refuses.
+The other 2 are repeated keys, which part 1 refuses. All 1,015 are objects, and the first schema
+matches them too.
 
 An integer outside `!int`'s range refuses the document here. None of those 1,015 files holds one, and
 3 of JSONTestSuite's `i_` files do, which RFC 8259 lets a parser read or refuse. With `!bigint` in place
 of `!int`, they are read. A float too large for binary64 refuses the document too (section 4.4). None of the
 1,015 files holds one, and 5 `i_` files do, which Python's `json` reads as infinity. The 2 `i_` files
 whose float is too small for binary64 read as 0, as `json` reads them.
-
-`!**` covers the node it sits on as well, so a type with `!**` and no required keys also takes a
-scalar or a sequence: `5` and `[1, 2]` are JSON here too. In a union the node's shape chooses first
-(section 9), so there it takes mappings only.
 
 `!**` can pick out a value by how it looks. Here any plain scalar with a sign is an integer, at any
 depth, and everything else stays a string:
@@ -1304,7 +1317,9 @@ size is added to typed: what held counts for the node alone, which is 1 with a s
 mapping's keys, and not the values or items below it, which add their own when they are typed. Each
 type written in the schema is one type, and a name is its entry's, so `!job` in two places is one type
 and `!str` in two places is two. Typed counts the document being typed. An interface that keeps
-references applies the limit to typed as well as held. A type changes nothing in held or full.
+references applies the limit to typed as well as held. One that delivers full data needn't: each type
+that reaches a node comes down a path of its own, so typed never passes full, which that interface
+already limits. A type changes nothing in held or full.
 
 ```yaml
 --- &

@@ -1,0 +1,27 @@
+---
+- name: 'Keys not named: `!a` on `x: [1, [2]]`'
+  from: part 2, section 10
+  tags: int double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**: !int
+    --- !a
+    x: [1, [2]]
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       +SEQ
+        =INT :1
+        +SEQ
+         =INT :2
+        -SEQ
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": [1, [2]]}

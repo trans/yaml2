@@ -1,0 +1,17 @@
+---
+- name: 'Keys not named: `!b` on `5`'
+  from: part 2, section 11
+  tags: str merge reference error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    j:
+      !**: !int
+    b:
+      <<: *j
+      name?: !str
+    --- !b
+    5

@@ -1,5 +1,5 @@
 ---
-- name: Wherever this occurs, example 5
+- name: Wherever this occurs, example 6
   from: part 2, section 10
   tags: spec str date pattern range double-star error
   fail: true

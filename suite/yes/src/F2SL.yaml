@@ -1,7 +1,10 @@
 ---
 - name: 'Keys not named: `!a` on `5`'
   from: part 2, section 10
-  tags: str int double-star
+  tags: str int double-star error
+  fail: true
+  refused: document
+  at: '/'
   yaml: |
     %YAML 2.0
     --- &
@@ -9,12 +12,4 @@
       x?: !str
       !**: !int
     --- !a
-    5
-  typed: |
-    +STR
-     +DOC !a
-      =INT :5
-     -DOC
-    -STR
-  json: |
     5

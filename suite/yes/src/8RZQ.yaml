@@ -5,13 +5,13 @@
   yaml: |
     %YAML 2.0
     --- &
-    json:
+    object:
       !**: !null | !bool | !int | !float | !str
-    --- !json
+    --- !object
     {"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
   typed: |
     +STR
-     +DOC !json
+     +DOC !object
       +MAP
        =VAL :a
        =INT :1

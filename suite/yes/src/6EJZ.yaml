@@ -1,0 +1,18 @@
+---
+- name: 'Keys not named: `!job` on `image: x; args: +5`'
+  from: part 2, section 10
+  tags: str int pattern union sequence double-star error
+  fail: true
+  refused: document
+  at: '/args'
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    job:
+      image: !str
+      args?:
+        !**: !signed | !str
+    --- !job
+    image: x
+    args: +5

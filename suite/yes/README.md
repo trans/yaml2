@@ -2,10 +2,10 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 815:
+these tests will change with it. There are 827:
 
-- the draft's 67 examples, tagged `spec`;
-- 711 edge cases from the draft's checker;
+- the draft's 68 examples, tagged `spec`;
+- 722 edge cases from the draft's checker;
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
   (see below).
 
