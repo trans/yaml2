@@ -345,15 +345,20 @@ of main `0b88244` are in the engine's working tree, not committed then. Over the
 pass, none fail (skipped: 25 times, 24 `keep`, 23 store). Against the checker: 832 agree, none differ. All
 70 examples pass, and the converted shadows give the same verdict and path on all 801 files. It found no
 test of a name that only names itself through a nested or pasted union (its engine passed the suite with
-that check broken); both of its cases are now in the checker's `schemas`, refused as `a only names
-itself`. **Not in the suite yet: adding them needs main.** It also noted that a union pasted into itself
+that check broken); both of its cases are refused as `a only names itself`, in the checker's `cycles`
+(section 8), and **in the suite since main `e8fe146`**. It also noted that a union pasted into itself
 level on level doubles at each level; the engine drops literals it meets again, and loads what the checker
 loads. The checker expands it in full (20 levels of two literals: 11 s), bounded by part 1's full size.
-**Open (found checking that):** section 9 says "Each name counts once in a union", and section 14 makes a
+**Fixed in main `e8fe146`:** section 9 said "Each name counts once in a union", and section 14 makes a
 standard type a name, but the checker counts a repeated standard type each time (`!str(/a{1023}/)`,
-`!int`, `!int` is refused at 1,025) and a repeated entry once. The engine agrees with the checker. The
-user is asked whether the text should say an entry's name (the agent's recommendation: it matches both,
-and the count then follows what a matcher tries).
+`!int`, `!int` is refused at 1,025) and a repeated entry once, and the engine agrees with the checker. The
+user agreed (2026-11-14) that the text say an entry's name counts once; the ceiling paragraph now says a
+type counts each time it is written (`{!|: [!int, !int]}` holds 2). Two tests pin it, in the checker's
+`ceiling` (refused at 1,025) and `unions` (an entry's name twice, 1,024, loads). Suite: 846 tests (69
+examples, 740 edge cases, 158 with a document added). **Open, minor:** `suiteyes.py` guesses the section
+of a test in `schemas` by the types it holds before its union, so 8 older refused-union tests say section
+4.x: `2LBS`, `5LKH`, `6PKU`, `6S72`, `8KXM`, `9BTF` and `JZ82` mean 9, and `Q9B2`, a cycle, means 8. The
+new ones have lists of their own.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a

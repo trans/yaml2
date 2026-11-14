@@ -689,10 +689,18 @@ if __name__ == '__main__':
                'a: !int(/[0-9]+/ 0..100)', 'a: !int(0..1 5..9)', 'a: !int(5:2)', 'a: !float(5:2)', 'a: !str(5:2)', 'a: !decimal(0..1 5:2)',
                'a: !decimal(2:5)', 'a: !decimal(0:0)', 'a: !decimal(05:2)', 'a: !decimal(5:02)', 'a: !decimal(5: 2)', 'a: !decimal(5,2)', 'a: !decimal(5:2 5:2)',
                'a: !decimal(5:2 /x/ 0..1)', 'a: !int(0..100  /x/)', 'a: !int(0..100/x/)', 'a: !int( 0..100)', 'a: !int(0..100 )', 'a: !null(0..1 /x/)',
-               'a: !null(0..1)', 'a: !int()', 'a: [!decimal(5,2), ...]', 'a: {b: !decimal(5,2)}', 'a: !decimal(5:2 /^x/)', 'a: !float(/x/ 0..1)',
-               # @oylng: a name that only names itself through a nested union, and through a pasted one.
-               'a: {!|: [{!|: [!a]}, !int]}\n--- !a\n5', 'u: {!|: [!a]}\na: {!|: [*u, !int]}\n--- !a\n5']
+               'a: !null(0..1)', 'a: !int()', 'a: [!decimal(5,2), ...]', 'a: {b: !decimal(5,2)}', 'a: !decimal(5:2 /^x/)', 'a: !float(/x/ 0..1)']
     for t in schemas:
+        try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
+        except REFUSED: pass
+    # Section 8, from @oylng: a name that only names itself through a nested union, and through a pasted one.
+    cycles = ['a: {!|: [{!|: [!a]}, !int]}\n--- !a\n5', 'u: {!|: [!a]}\na: {!|: [*u, !int]}\n--- !a\n5']
+    for t in cycles:
+        try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
+        except REFUSED: pass
+    # Section 9: a standard type counts each time it is written, so this is 1,025 (unions has 1,024 with an entry's name twice).
+    ceiling = ['a:\n  !|:\n    - !str(/a{1023}/)\n    - !int\n    - !int']
+    for t in ceiling:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
     # A pattern on !int: it replaces the spelling, reads base 10, and a claim it can't read refuses.
@@ -734,7 +742,9 @@ if __name__ == '__main__':
               ('a: {!|: [!int, "none"]}\n--- !a\nnone\n', 'none'), ("a: {!|: [!int, 'none']}\n--- !a\n5\n", 5), ('a: {!|: [!str, {b: !int}]}\n--- !a\n{b: 1}\n', {'b': 1}),
               ('a: {!|: [!str, {b: !int}]}\n--- !a\nx\n', 'x'), ('a: {!|: [!int]}\n--- !a\n5\n', 5), ('a: {!|: [!int, {!|: [!bool, !str]}]}\n--- !a\ntrue\n', True),
               ('a: {"!|": !int}\n--- !a\n"!|": 5\n', {'!|': 5}), ('m: {x: !int}\na: {!|: [!str, *m]}\n--- !a\n{x: 1}\n', {'x': 1}), ('a: {!|: [!int, "a | b"]}\n--- !a\na | b\n', 'a | b'),
-              ('a:\n  !|:\n    - !int\n    - [!a, ...]\n    - {x: !a}\n--- !a\n[1, {x: [2]}]\n', [1, {'x': [2]}])]
+              ('a:\n  !|:\n    - !int\n    - [!a, ...]\n    - {x: !a}\n--- !a\n[1, {x: [2]}]\n', [1, {'x': [2]}]),
+              # Section 9: an entry's name counts once, so this is 1,024.
+              ('b: !int\na:\n  !|:\n    - !str(/a{1023}/)\n    - !b\n    - !b\n--- !a\n5\n', 5)]
     for t, w in unions:
         try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
@@ -1100,5 +1110,5 @@ if __name__ == '__main__':
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
     prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP)
     f += prec; third_n += prec_n
-    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
+    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

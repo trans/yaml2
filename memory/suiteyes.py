@@ -184,7 +184,7 @@ GROUPS = {
     'good': (None, 'A standard type'), 'no': (None, 'A standard type'), 'schemas': (None, 'A schema refused'),
     'ints': ('4.5', 'A pattern on !int'), 'notints': ('4.5', 'A pattern on !int'),
     'forms': ('4.3', 'A pattern is a plain scalar'), 'says': ('3', 'Who says how to read a document'),
-    'unions': ('9', 'Alternatives'), 'star': (None, 'Keys not named'), 'notstar': (None, 'Keys not named'),
+    'unions': ('9', 'Alternatives'), 'cycles': ('8', 'A cycle of names'), 'ceiling': ('9', 'Unions at the ceiling'), 'star': (None, 'Keys not named'), 'notstar': (None, 'Keys not named'),
     'badstar': (None, 'A schema refused'), 'pub': ('3.1', 'A published name'), 'notpub': ('3.1', 'A published name'),
     'reach': ('2', 'What the root reaches'), 'keyfaults': ('2', 'The path of a refused key'), 'nums': ('4.4', 'Numbers'), 'nope': ('4.4', 'Numbers'),
     'bounds': ('4.2', 'A limit on the number as written'), 'outside': ('4.2', 'A limit on the number as written'),
