@@ -2,11 +2,12 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 806:
+these tests will change with it. There are 808:
 
 - the draft's 67 examples, tagged `spec`;
-- 724 edge cases from the draft's checker;
-- 15 tests of section 11's typed count, at limits a parser can reach (see below).
+- 704 edge cases from the draft's checker;
+- 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
+  (see below).
 
 ## Keys
 
@@ -38,6 +39,10 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
 - **`at`.** The path is `/` for the root, then each key or index after a `/`, unescaped. It is the
   first fault the checker meets. A parser that reports another fault in the same document first
   differs from the test in `at`, but not in whether the document is refused.
+
+`bin/suite-to-data yes/src yes-data` writes each test to a directory as part 1's are, with `typed.event`
+in place of `test.event`, and `schema.yaml`, `root`, `holds`, `refused`, `at`, the flags `cut`,
+`leap-second` and `year-zero`, and a `store/` with a file for each hash, where a test has them.
 
 ### Typed events
 
@@ -102,17 +107,24 @@ The checker takes three shortcuts, and the suite doesn't:
   nothing reaches isn't a type (section 2), so a parser accepts the stream. 152 of these tests have a
   document added, stamped with an entry, and each one still gets the checker's answer: the schema is
   still refused, or still loads.
-- **The size limit.** The checker applies a test's limit to the schema and to typed, but not to the
-  stream. Part 1 applies it to the stream as well (part 1, section 10). So the suite also reads each
-  stream under part 1's limit. It leaves out 17 tests that part 1 would refuse and the checker
-  accepts. All 17 are section 11's tests of typed, and their limits are below the stream's held size,
-  table included.
-- **Typed.** In their place are 15 tests made from the same 11 streams, scaled so that typed can
-  exceed held. They use a 400-character string or key where the checker uses 8 characters, and they
-  turn the checker's 1 MB test into 1,000 types of a 1 KB string. Each one is set at the lowest limit
-  that both held and typed allow. In the 4 where typed is what binds, it is also set at one less.
+- **The size limit on a stream.** The checker applies a test's limit to the schema and to typed, but
+  not to the stream. Part 1 applies it to the stream as well (part 1, section 10). So the suite also
+  reads each stream under part 1's limit. It leaves out 17 tests that part 1 would refuse and the
+  checker accepts. All 17 are section 11's tests of typed, and their limits are below the stream's
+  held size, table included. In their place are 15 tests made from the same 11 streams, scaled so that
+  typed can exceed held. They use a 400-character string or key where the checker uses 8 characters,
+  and they turn the checker's 1 MB test into 1,000 types of a 1 KB string. Each one is set at the
+  lowest limit that both held and typed allow. In the 4 where typed is what binds, it is also set at
+  one less.
+- **The size limit on a schema.** A schema from outside the stream is read under part 1's limit too
+  (section 3), so `a: !str` holds 7 as text. The checker's 22 tests of a schema's full size load the
+  schema without reading its text that way, at limits from 0 to 10, which no parser can pass. The
+  suite leaves them out. In their place are 22 tests made from the same 11 schemas. Each is reached
+  beside a mapping that names a 20-key mapping 40 times, and each name counts what it stands for, so
+  full size passes what the text holds: about 1,010 against 510. Each is set at its full size, where
+  it loads, and at one less.
 
-The suite also leaves out 3 tests over 200 KB, and 8 that repeat another test.
+The suite also leaves out 3 tests over 200 KB, and 7 that repeat another test.
 
 ## Not covered yet
 

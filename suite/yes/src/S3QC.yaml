@@ -1,8 +1,8 @@
 ---
-- name: 'A schema''s full size: the schema `a: !str` from `a`'
-  from: part 2, section 9
+- name: 'Part 1''s limit on an application''s schema: the schema `a: !str` from `a`, at a limit of 7'
+  from: part 2, section 3
   tags: str application size
-  limit: 1
+  limit: 7
   schema: |
     %YAML 2.0
     --- &

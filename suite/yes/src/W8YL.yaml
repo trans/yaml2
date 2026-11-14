@@ -1,9 +1,9 @@
 ---
-- name: 'Typed: `s: abcdefgh; ---; [*s, *s, *s]; ---; [*s, *s, *s]`, at a limit of 9'
+- name: 'Typed: `s: abcdefghabcdefgh; ---; [*s, *s, *s]; ---; [*s, *s, *s]`, at a limit of 17'
   from: part 2, section 11
   tags: str sequence reference application typed size error
   fail: true
-  limit: 9
+  limit: 17
   keep: true
   schema: |
     %YAML 2.0
@@ -13,7 +13,7 @@
   yaml: |
     %YAML 2.0
     --- &
-    s: abcdefgh
+    s: abcdefghabcdefgh
     ---
     [*s, *s, *s]
     ---

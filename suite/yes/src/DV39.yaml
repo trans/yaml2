@@ -1,5 +1,5 @@
 ---
-- name: 'Unions at the ceiling: the schema `big: !str(/a{1022}/); r:;   k0: !a0;   k1: !a1;  …` from `r`'
+- name: 'Unions at the ceiling: the schema `big: !str(/a{1022}/); r:;   k0: !a0;   k1: !a1;  …` from `r`, at a limit of 2000000'
   from: part 2, section 9
   tags: str int pattern union application size error
   fail: true

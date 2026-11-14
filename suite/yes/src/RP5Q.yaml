@@ -1,7 +1,7 @@
 ---
 - name: 'A standard type: `!null` on `null`'
   from: part 2, section 4.1
-  tags: null
+  tags: 'null'
   yaml: |
     %YAML 2.0
     --- &
