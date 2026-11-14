@@ -319,6 +319,16 @@ All 68 examples give their JSON or the refusal the text gives. Its reading of `!
 everywhere the tests reach; the mail lists it rule by rule. This mail crossed ours on the refused key's
 path, so the 7 new tests (815) weren't in its run.
 
+**Oyl NG with the new count (2026-11-14)**
+(`mail/received/20261114-110513Z-@oylng--section-9-s-new-count-is-in-the-engine-e1aabe57.md`). The
+engine counts as main `c6ba341` says, in its working tree. It gives all 14 of `counts3`. Over the suite
+at `c6ba341`: 743 pass and none fail, `E6UA` and `LZL6` included. Against the checker: 805 agree, none
+differ. Over 20,000 generated patterns (79,810 cases), its counts and matches agree with the checker's
+reading under Python's `re`. It still drops `x{0}`, by the repeat rather than the count, and what loads
+is decided by the count alone. **Waiting on our push:** its CI pins our main at `590d0a7`, whose `K8BW`
+(`(a|b){512}`) the new count refuses, so its push waits for ours of `c6ba341`, and it asked for a word
+when that is pushed.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
