@@ -579,7 +579,8 @@ tests settled on, all proposals, left open for the core team:
   limit is fine). @oylng's engine refused past 256 and the checker took any depth. Every parser refuses
   a deeper pattern when the schema loads, so all agree on what loads, unlike part 1's depth, past which
   a parser may refuse. Section 9's count can't bound depth. The deepest of SchemaStore's 1,287 patterns
-  nests 7. In main `a8a4420` (section 4.3), and in the checker.
+  nests 7. In main `a8a4420` (section 4.3), and in the checker. Told it differs from part 1's minimum,
+  the user kept it fixed (2026-11-13): "I think it is fine".
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 
