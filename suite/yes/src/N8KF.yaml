@@ -1,0 +1,21 @@
+---
+- name: 'From the third review: `!n` on `12`'
+  from: part 2, section 4.3
+  tags: str pattern union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n:
+      !|:
+        - !str(/\P{L}+/)
+        - !str
+    --- !n
+    12
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :12
+     -DOC
+    -STR
+  json: |
+    "12"

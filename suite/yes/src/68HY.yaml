@@ -1,0 +1,22 @@
+---
+- name: 'Numbers: `!float(..3.4e38)` on `3.5e38`'
+  from: part 2, section 4.4
+  tags: float range error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    f: !float
+    d: !decimal
+    i: !int
+    b: !bigint
+    bu: {!|: [!bigint(0..), !str]}
+    u: {!|: [!float, !str]}
+    w: {!|: [!int, !float]}
+    c: !decimal(0..100)
+    q: !float(..3.4e38)
+    v: !int(0..18446744073709551615)
+    --- !q
+    3.5e38

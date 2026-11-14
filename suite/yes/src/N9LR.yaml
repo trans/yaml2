@@ -1,0 +1,18 @@
+---
+- name: 'Alternatives: `{!|: [!int, {!|: [!bool, !str]}]}` on `true`'
+  from: part 2, section 9
+  tags: str int bool union
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {!|: [!int, {!|: [!bool, !str]}]}
+    --- !a
+    true
+  typed: |
+    +STR
+     +DOC !a
+      =BOOL :true
+     -DOC
+    -STR
+  json: |
+    true

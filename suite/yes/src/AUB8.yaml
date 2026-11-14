@@ -1,0 +1,30 @@
+---
+- name: Alternatives, example 1
+  from: part 2, section 9
+  tags: spec float union
+  yaml: |
+    %YAML 2.0
+    --- &
+    circle:
+      kind: circle
+      r: !float
+    square:
+      kind: square
+      side: !float
+    shape: {!|: [!circle, !square]}
+    --- !shape
+    kind: square
+    side: 2
+  typed: |
+    +STR
+     +DOC !shape
+      +MAP
+       =VAL :kind
+       =VAL :square
+       =VAL :side
+       =FLT :2.0
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"kind": "square", "side": 2.0}

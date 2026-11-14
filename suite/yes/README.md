@@ -2,10 +2,10 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 827:
+these tests will change with it. There are 842:
 
-- the draft's 68 examples, tagged `spec`;
-- 722 edge cases from the draft's checker;
+- the draft's 69 examples, tagged `spec`;
+- 736 edge cases from the draft's checker;
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
   (see below).
 
@@ -73,7 +73,7 @@ following that it uses, so that a parser that does only part of the draft can sk
 | `pattern` | a pattern (sections 4.3 and 4.5) |
 | `range` | a limit such as `0..10` (section 4.2) |
 | `precision` | precision and scale on `!decimal` (section 4.6) |
-| `union` | alternatives (section 9) |
+| `union` | a union (section 9), or ` \| ` in a plain scalar, which section 14 refuses |
 | `sequence` | a sequence type (section 6) |
 | `star` | `!*` (section 7) |
 | `double-star` | `!**` (section 10) |
@@ -105,7 +105,7 @@ disagrees with a test has found a mistake in the test, the checker or the draft.
 The checker takes three shortcuts, and the suite doesn't:
 
 - **A table with no document.** The checker loads every entry of such a stream. But an entry that
-  nothing reaches isn't a type (section 2), so a parser accepts the stream. 152 of these tests have a
+  nothing reaches isn't a type (section 2), so a parser accepts the stream. 157 of these tests have a
   document added, stamped with an entry, and each one still gets the checker's answer: the schema is
   still refused, or still loads.
 - **The size limit on a stream.** The checker applies a test's limit to the schema and to typed, but

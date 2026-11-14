@@ -1,0 +1,14 @@
+---
+- name: 'What a parser holds of a date: `{!|: [!date, !str]}` on `0000-01-01`'
+  from: part 2, section 4.8
+  tags: str date union holds error
+  fail: true
+  refused: document
+  at: '/'
+  holds: 6
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!date, !str]}
+    --- !n
+    0000-01-01

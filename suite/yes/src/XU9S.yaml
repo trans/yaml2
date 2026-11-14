@@ -1,0 +1,18 @@
+---
+- name: 'From the third review: `{!|: [!any, !int]}` on `abc`'
+  from: part 2, section 4.4
+  tags: int any union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!any, !int]}
+    --- !n
+    abc
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :abc
+     -DOC
+    -STR
+  json: |
+    "abc"

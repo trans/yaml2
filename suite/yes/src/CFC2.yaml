@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `{!|: []}` on `x`'
+  from: part 2, section 9
+  tags: union error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {!|: []}
+    --- !a
+    x

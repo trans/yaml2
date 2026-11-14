@@ -1,0 +1,30 @@
+---
+- name: 'Alternatives: `!a` on `[1, {x: [2]}]`'
+  from: part 2, section 9
+  tags: int union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !|:
+        - !int
+        - [!a, ...]
+        - {x: !a}
+    --- !a
+    [1, {x: [2]}]
+  typed: |
+    +STR
+     +DOC !a
+      +SEQ
+       =INT :1
+       +MAP
+        =VAL :x
+        +SEQ
+         =INT :2
+        -SEQ
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [1, {"x": [2]}]

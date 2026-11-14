@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `{!|: [!decimal(5:2 0..), !str]}` on `-1`'
+  from: part 2, section 4.7
+  tags: str decimal range precision union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!decimal(5:2 0..), !str]}
+    --- !n
+    -1
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :-1
+     -DOC
+    -STR
+  json: |
+    "-1"

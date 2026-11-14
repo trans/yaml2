@@ -18,7 +18,7 @@ put a type where each value would be.
 job:
   name: !str
   timeout?: !int(0..3600)
-  mode: fast | safe
+  mode: {!|: [fast, safe]}
   steps:
     - run: !str
       retries: !int
@@ -38,7 +38,7 @@ steps:
 {"name": "build", "timeout": 30, "mode": "safe", "steps": [{"run": "make", "retries": 2}, {"run": "test", "retries": 0}]}
 ```
 
-That is the whole idea. `?` marks an optional key, `|` gives a choice and `...` repeats the item
+That is the whole idea. `?` marks an optional key, `!|` gives a choice and `...` repeats the item
 before it. Everything else that shortens a schema is a way of compressing this form.
 
 **Table definitions.** An entry names a type, so a shape used twice is written once (section 8).
@@ -388,7 +388,7 @@ tag: !str(/^[a-z]+$/)
 web
 ```
 
-A type expression is a plain scalar first, so it ends where any plain scalar ends (part 1,
+A type is a plain scalar first, so it ends where any plain scalar ends (part 1,
 section 6.1). A pattern can't get around that, and quoting one makes it a literal (section 5).
 In a block, a space before `#` or after `:` is written `[ ]`. In a flow collection, a pattern
 can't hold any of `, [ ] { }`, so a pattern that needs one is named in the table, as `tag` is
@@ -429,13 +429,14 @@ A value too large for binary64 refuses the document. Too large means it would ro
 that value, and `1.8e308` is too large. JSON has no infinity, so a parser can't deliver one. A value too
 large doesn't count as no match, so a number never becomes text because of its size. As with `!int`
 (below), a limit is tested first, on the number as written, and the size only on a value inside it, so
-`!float(0..1) | !str` gives `1e999` as text, as it gives `2`, and `!float(0..) | !str` refuses it. A
+`{!|: [!float(0..1), !str]}` gives `1e999` as text, as it gives `2`, and `{!|: [!float(0..), !str]}`
+refuses it. A
 value too small for binary64 is 0 and keeps its sign, as IEEE 754 has it: `1e-999` is 0, and `-1e-999`
 and `-0` are negative zero.
 
 ```yaml
 --- &
-n: !float(0..1) | !str
+n: {!|: [!float(0..1), !str]}
 --- !n
 1e999
 ```
@@ -446,7 +447,7 @@ n: !float(0..1) | !str
 
 ```yaml refused
 --- &
-n: !float | !str
+n: {!|: [!float, !str]}
 --- !n
 1e999
 ```
@@ -486,9 +487,9 @@ decimal: 3.14159265358979323846
 ```
 
 An integer outside `!int`'s range refuses the document, as a float too large for binary64 does. It
-doesn't count as no match, so `!int | !str` refuses `1` followed by 29 zeros, and doesn't give text. A
+doesn't count as no match, so `{!|: [!int, !str]}` refuses `1` followed by 29 zeros, and doesn't give text. A
 limit is tested first, on the number as written, and the range only on a value inside it,
-so `!int(0..10) | !str` gives that value as text, as it gives `11`. Every parser holds the whole range
+so `{!|: [!int(0..10), !str]}` gives that value as text, as it gives `11`. Every parser holds the whole range
 without losing digits. So a JavaScript parser can't deliver a value past 2^53 as
 a `number`, which is what JavaScript's own `JSON.parse` does: it reads `9007199254740993` as
 9007199254740992, and `18446744073709551615` as 18446744073709552000.
@@ -522,7 +523,7 @@ serial: 123456789012345678901234567890
 
 ```yaml refused
 --- &
-id: !int | !str
+id: {!|: [!int, !str]}
 --- !id
 18446744073709551616
 ```
@@ -560,7 +561,7 @@ none: !null(/(~|null)?/)
 item:
   price: !cents
   ratio: !float(/[0-9]*\.[0-9]+/)
-  note: !none | !str
+  note: {!|: [!none, !str]}
 --- !item
 price: 19.99
 ratio: .5
@@ -595,7 +596,7 @@ can't be held does. It doesn't count as no match, because the schema has said it
 ```yaml refused
 --- &
 hex: !int(/0x[0-9a-f]+/)
-n: !hex | !str
+n: {!|: [!hex, !str]}
 --- !n
 0x1f
 ```
@@ -674,7 +675,7 @@ ranges is a union (section 9).
 
 ```yaml
 --- &
-n: !int(1..10) | !int(20..30)
+n: {!|: [!int(1..10), !int(20..30)]}
 --- !n
 25
 ```
@@ -685,7 +686,7 @@ n: !int(1..10) | !int(20..30)
 
 ```yaml refused
 --- &
-n: !int(1..10) | !int(20..30)
+n: {!|: [!int(1..10), !int(20..30)]}
 --- !n
 15
 ```
@@ -707,7 +708,7 @@ offset is taken off. So `1990-12-31T23:59:60Z` and `1990-12-31T18:59:60-05:00` a
 `1990-12-30T23:59:60Z` is no match.
 
 A parser delivers the value written, or refuses. One it can't hold refuses the document. It doesn't
-count as no match, so `!datetime | !str` can't give text on one parser only. Python's `datetime` holds no
+count as no match, so `{!|: [!datetime, !str]}` can't give text on one parser only. Python's `datetime` holds no
 second `60`, no year `0000` and 6 fraction digits, and JavaScript's `Date` no second `60` and 3 fraction
 digits. Python's `fromisoformat` and JavaScript's `Date` drop the digits past those without saying so,
 which a parser mustn't do unless the application asks.
@@ -749,7 +750,7 @@ string, so it matches however the value is written.
 
 ```yaml
 --- &
-access: read | write | none
+access: {!|: [read, write, none]}
 --- !access
 "write"
 ```
@@ -777,11 +778,11 @@ mark: "!important"
 A sequence is written as a sequence, and `...` repeats the item before it, any number of times,
 none included. `[!int, !str]` is exactly those two, and `[!str, !int, ...]` is a string and then
 any number of integers. `[!x, !x, ...]` is one or more. `[]` is a sequence with nothing in it, so
-`!int | []` is an integer or an empty sequence.
+`{!|: [!int, []]}` is an integer or an empty sequence.
 
 ```yaml
 --- &
-u: !int | []
+u: {!|: [!int, []]}
 --- !u
 []
 ```
@@ -910,7 +911,7 @@ An entry in the table is a type, and `!name` uses it. A name in the table wins o
 one, so a later standard name can't change a schema. A name that is neither is an error.
 
 Use `!name` to use a type, and `<<: *name` to paste a shape. A reference pastes the entry and
-loses the name, and it can't sit inside a union or name itself.
+loses the name, and it can't name itself.
 
 ```yaml
 --- &
@@ -947,8 +948,8 @@ children:
 ```
 
 A named type can't take a limit: `!port(1..)` is refused. A cycle of names with no collection in
-it is refused, since going round it never reaches a value: `a: !a`, and `a: !b | !int` with
-`b: !a | !str`.
+it is refused, since going round it never reaches a value: `a: !a`, and `a: {!|: [!b, !int]}` with
+`b: {!|: [!a, !str]}`.
 
 An entry a type has reached can't be replaced until `...`, because a replacement never changes what
 came before it (part 1, section 8.1).
@@ -967,7 +968,9 @@ true
 
 ## 9. Alternatives
 
-`|` joins alternatives. The node's shape chooses first: a mapping looks among the mappings,
+`!|` as a key makes a union. Its value is a sequence of the alternatives, and the mapping holds no
+other key. An alternative is anything a schema holds at a value: a type, a literal, a sequence or a
+mapping. The node's shape chooses first: a mapping looks among the mappings,
 and a sequence among the sequences. There is at most one sequence. Exactly one mapping must
 fit. A mapping fits by its own keys: it has the required keys, the value of each key whose type is
 only literals, and no key it doesn't take. A choice never looks below those keys, and no alternative
@@ -981,7 +984,7 @@ circle:
 square:
   kind: square
   side: !float
-shape: !circle | !square
+shape: {!|: [!circle, !square]}
 --- !shape
 kind: square
 side: 2
@@ -996,7 +999,7 @@ wins.
 
 ```yaml
 --- &
-limit: !int | never
+limit: {!|: [!int, never]}
 limits: [!limit, ...]
 --- !limits
 - 30
@@ -1009,7 +1012,7 @@ limits: [!limit, ...]
 
 ```yaml refused
 --- &
-limit: !int | never
+limit: {!|: [!int, never]}
 --- !limit
 "30"
 ```
@@ -1020,7 +1023,7 @@ and a quoted value stays a string.
 
 ```yaml
 --- &
-version: !float | !str
+version: {!|: [!float, !str]}
 versions:
   a: !version
   b: !version
@@ -1033,12 +1036,30 @@ b: "1.10"
 {"a": 1.1, "b": "1.10"}
 ```
 
-Inside `|`, a mapping must be named, since `: ` can't sit in a plain scalar, and a sequence
-must come last, since a plain scalar can't start with `[`.
+The block form is the same union. Here a step is a command, or a mapping written in place:
 
-Each name counts once in a union, at its first place, so `!m | !m` is `!m`, and so is a union that
+```yaml
+--- &
+step:
+  !|:
+    - !str
+    - run: !str
+      retries?: !int
+steps: [!step, ...]
+--- !steps
+- make
+- {run: test, retries: 2}
+```
+
+```json
+["make", {"run": "test", "retries": 2}]
+```
+
+A pattern holding `, [ ] { }` can't sit in the flow form (section 4.3), and can in the block form.
+
+Each name counts once in a union, at its first place, so `{!|: [!m, !m]}` is `!m`, and so is a union that
 reaches `m` by two paths. `!any` in a union is tried last, wherever it is written, so it takes a node
-no other alternative fits: `!any | !int` reads `3` as 3.
+no other alternative fits: `{!|: [!any, !int]}` reads `3` as 3.
 
 ```yaml
 --- &
@@ -1047,7 +1068,7 @@ p:
 q:
   x: !int
   z: !int
-u: !p | !q | !p
+u: {!|: [!p, !q, !p]}
 list: [!u, ...]
 --- !list
 - {x: 1}
@@ -1076,9 +1097,9 @@ A schema has a full size too, and it can't pass the size limit (part 1, section 
 it is worked out by addition before anything is built. Each entry a schema reaches, and each place
 in those entries that holds a type, adds what its type expands to: 1 for a literal, a standard type,
 a sequence or a name, the count above for a pattern, 1 for a mapping plus 1 for each key it names, a `!**`'s among
-them, and for a name also what the name stands for. A mapping's values and a sequence's items are places of
+them, for a name also what the name stands for, and for a union what its alternatives add. A mapping's values and a sequence's items are places of
 their own, so they aren't counted in it, and a type that contains itself still has a full size.
-Unlike the ceiling, this counts a name every time it is written. So 2 million lines of `aN: !big | !int` are refused, though each union is within the ceiling.
+Unlike the ceiling, this counts a name every time it is written. So 2 million lines of `aN: {!|: [!big, !int]}` are refused, though each union is within the ceiling.
 All 721 schema families on SchemaStore together declare 90,006 keys, so no real schema comes near it.
 
 ```yaml refused
@@ -1098,7 +1119,7 @@ to the scalars it reaches, so that type can't hold a sequence or a mapping. This
 ```yaml
 --- &
 object:
-  !**: !null | !bool | !int | !float | !str
+  !**: {!|: [!null, !bool, !int, !float, !str]}
 --- !object
 {"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
 ```
@@ -1108,13 +1129,11 @@ object:
 ```
 
 A type with `!**` is still a mapping, so `5` and `[1, 2]` are refused here. JSON allows any value
-at the top, and a union takes them all, with the mapping named, since a mapping can't sit inside `|`
-(section 9):
+at the top, and a union takes them all (section 9):
 
 ```yaml
 --- &
-json: !null | !bool | !int | !float | !str | !object | [!json, ...]
-object: {!*: !json}
+json: {!|: [!null, !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}
 --- !json
 [1, "1", null, {"d": [true, {"e": 1.5}]}]
 ```
@@ -1141,7 +1160,7 @@ depth, and everything else stays a string:
 --- &
 signed: !int(/[-+][0-9]+/)
 free:
-  !**: !signed | !str
+  !**: {!|: [!signed, !str]}
 --- !free
 a: +5
 b: 5
@@ -1190,7 +1209,7 @@ cfg:
     street?: !str(..100)
   !**:
     !str(/ts_.*/): !date
-    !*: !signed | !str
+    !*: {!|: [!signed, !str]}
 --- !cfg
 address: {name: Ann, ts_moved: 2026-11-06, floor: +3}
 count: +5
@@ -1232,7 +1251,7 @@ square:
   kind: square
   side: !float
 cfg:
-  shape: !circle | !square
+  shape: {!|: [!circle, !square]}
   !**: !str
 --- !cfg
 shape: {kind: square, side: 2, note: x}
@@ -1251,7 +1270,7 @@ signed: !int(/[-+][0-9]+/)
 job:
   image: !str
   args?:
-    !**: !signed | !str
+    !**: {!|: [!signed, !str]}
 --- !job
 image: +5
 args: {n: +5}
@@ -1381,7 +1400,7 @@ point:
   y: !int
 sweep:
   target: !int
-shape: !point | !sweep
+shape: {!|: [!point, !sweep]}
 shapes: [!shape, ...]
 --- !shapes
 - {x: 1, y: 2}
@@ -1402,7 +1421,7 @@ such as `true` or `${{ expression }}`, is a named string and a few lines of code
 ## 13. Emitting and documenting
 
 An emitter of typed data needs the same schema. It quotes a string that the type at that place
-would read as something else: under `!int | !str`, the string `3` is written `"3"`. It writes an
+would read as something else: under `{!|: [!int, !str]}`, the string `3` is written `"3"`. It writes an
 integer in a spelling the type reads back as that number, so under `!signed` (section 4.5), 5 is
 written `+5`, and it refuses if it has none. A bound value
 needs the way back too: the application gives code that turns a `Point` into the mapping its entry
@@ -1413,13 +1432,12 @@ that keeps comments can show it. Part 1, section 11, says which key a comment be
 
 ## 14. Grammar
 
-A type expression is what a plain scalar in a schema holds, so `pattern` and `literal` below can
-only hold what a plain scalar can hold where it is written (section 4.3). The block and flow forms
-of sequences and mappings are part 1's.
+A plain scalar in a schema holds one type or one literal, so `pattern` and `literal` below can
+only hold what a plain scalar can hold where it is written (section 4.3). Sequences, mappings and
+unions are YAML, in part 1's block and flow forms.
 
 ```ebnf
-expression ::= part (" | " part)*
-part       ::= type | sequence | "''" | literal
+scalar     ::= type | literal
 type       ::= "!" name args?
 args       ::= "(" body ")"
 body       ::= (precision " ")? (range " ")? regex | (precision " ")? range | precision
@@ -1428,22 +1446,24 @@ whole      ::= "0" | digit+ not starting with "0"
 range      ::= number ".." number? | ".." number, the first no larger than the second
 regex      ::= "/" pattern "/"
 number     ::= "-"? digit+ ("." digit+)? (("e" | "E") ("-" | "+")? digit+)?
-sequence   ::= "[]" | "[" expression ("," " "* expression)* ("," " "* "...")? "]"
 literal    ::= one or more characters, not starting with "!", "[", "{", '"', "'" or a space, not
                ending with a space, holding no " | "
 name       ::= a table key, or a standard type, with no space, tab, "/", "(", ")", "[", "]", "," or "|"
 pattern    ::= I-Regexp, RFC 9485, holding no "/)"
 ```
 
-A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is section 7's key, and
-`!**` is section 10's. Otherwise it is literal, and a plain key ending in `?` is optional.
+A key in a schema mapping is a type if it is plain and starts with `!`. `!*` is section 7's key,
+`!|` section 9's and `!**` section 10's. Otherwise it is literal, and a plain key ending in `?` is
+optional. A union is a mapping with the key `!|` and no other, whose value is a sequence of one or
+more alternatives. A plain scalar holding ` | ` outside a type's parentheses is refused, so
+`!int | !str` is never read as text.
 
 ## 15. Open points
 
 - **Marking optional or required.** `?` marks optional keys, and 78% of the keys in the GitHub
   workflow schema are optional, so it is noisy there. Marking required keys may read better.
 - **Quoted scalars as literals.** Section 5 removes two warts, and hasn't been tried on a real
-  schema. It means a type expression can't be quoted.
+  schema. It means a type can't be quoted.
 - **Spelling precision and scale.** `!decimal(38:10)` follows SQL's `NUMERIC(38,10)`: the digits in all,
   then those after the point. SQL's comma can't stay (section 4.6). A picture would give the digits
   before and after the point, `!decimal(28.10)`, as COBOL's `PIC S9(28)V9(10)` does. That reads as a

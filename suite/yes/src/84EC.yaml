@@ -1,0 +1,32 @@
+---
+- name: Alternatives, example 5
+  from: part 2, section 9
+  tags: spec str int union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    step:
+      !|:
+        - !str
+        - run: !str
+          retries?: !int
+    steps: [!step, ...]
+    --- !steps
+    - make
+    - {run: test, retries: 2}
+  typed: |
+    +STR
+     +DOC !steps
+      +SEQ
+       =VAL :make
+       +MAP
+        =VAL :run
+        =VAL :test
+        =VAL :retries
+        =INT :2
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["make", {"run": "test", "retries": 2}]

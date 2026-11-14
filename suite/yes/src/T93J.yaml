@@ -1,0 +1,27 @@
+---
+- name: 'Numbers: `!decimal` on `19.99`'
+  from: part 2, section 4.4
+  tags: decimal
+  yaml: |
+    %YAML 2.0
+    --- &
+    f: !float
+    d: !decimal
+    i: !int
+    b: !bigint
+    bu: {!|: [!bigint(0..), !str]}
+    u: {!|: [!float, !str]}
+    w: {!|: [!int, !float]}
+    c: !decimal(0..100)
+    q: !float(..3.4e38)
+    v: !int(0..18446744073709551615)
+    --- !d
+    19.99
+  typed: |
+    +STR
+     +DOC !d
+      =DEC :19.99
+     -DOC
+    -STR
+  json: |
+    19.99

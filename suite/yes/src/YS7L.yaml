@@ -1,0 +1,18 @@
+---
+- name: 'Floats: `{!|: [!float(0..1), !str]}` on `1.5`'
+  from: part 2, section 4.4
+  tags: str float range union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!float(0..1), !str]}
+    --- !n
+    1.5
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :1.5
+     -DOC
+    -STR
+  json: |
+    "1.5"

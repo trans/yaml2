@@ -1,5 +1,5 @@
 ---
-- name: Alternatives, example 6
+- name: Alternatives, example 7
   from: part 2, section 9
   tags: spec str pattern sequence error
   fail: true

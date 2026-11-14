@@ -1,0 +1,16 @@
+---
+- name: 'Patterns, precision and limits: `!n` on `abc`'
+  from: part 2, section 4.5
+  tags: str float pattern union sequence error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n:␣
+      !|:
+        - !float(/[a-z]+/)
+        - !str
+    --- !n
+    abc

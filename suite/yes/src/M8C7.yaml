@@ -1,0 +1,27 @@
+---
+- name: 'Numbers: `{!|: [!bigint(0..), !str]}` on `-1`'
+  from: part 2, section 4.4
+  tags: str bigint range union
+  yaml: |
+    %YAML 2.0
+    --- &
+    f: !float
+    d: !decimal
+    i: !int
+    b: !bigint
+    bu: {!|: [!bigint(0..), !str]}
+    u: {!|: [!float, !str]}
+    w: {!|: [!int, !float]}
+    c: !decimal(0..100)
+    q: !float(..3.4e38)
+    v: !int(0..18446744073709551615)
+    --- !bu
+    -1
+  typed: |
+    +STR
+     +DOC !bu
+      =VAL :-1
+     -DOC
+    -STR
+  json: |
+    "-1"

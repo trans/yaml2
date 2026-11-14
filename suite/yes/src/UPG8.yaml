@@ -1,0 +1,36 @@
+---
+- name: Alternatives, example 6
+  from: part 2, section 9
+  tags: spec int union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    p:
+      x: !int
+    q:
+      x: !int
+      z: !int
+    u: {!|: [!p, !q, !p]}
+    list: [!u, ...]
+    --- !list
+    - {x: 1}
+    - {x: 1, z: 2}
+  typed: |
+    +STR
+     +DOC !list
+      +SEQ
+       +MAP
+        =VAL :x
+        =INT :1
+       -MAP
+       +MAP
+        =VAL :x
+        =INT :1
+        =VAL :z
+        =INT :2
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"x": 1}, {"x": 1, "z": 2}]

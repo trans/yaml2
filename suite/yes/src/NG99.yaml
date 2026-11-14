@@ -1,0 +1,21 @@
+---
+- name: 'Patterns, precision and limits: `!n` on `1e99999999999999999999`'
+  from: part 2, section 4.5
+  tags: str decimal pattern union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n:␣
+      !|:
+        - !decimal(/[0-9e]+/)
+        - !str
+    --- !n
+    1e99999999999999999999
+  typed: |
+    +STR
+     +DOC !n
+      =DEC :1e99999999999999999999
+     -DOC
+    -STR
+  json: |
+    1e99999999999999999999

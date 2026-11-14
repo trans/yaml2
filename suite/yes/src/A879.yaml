@@ -1,0 +1,21 @@
+---
+- name: 'From the third review: `!n` on `Abc`'
+  from: part 2, section 4.3
+  tags: str int pattern union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n:
+      !|:
+        - !str(/\p{Lu}[a-z]*/)
+        - !int
+    --- !n
+    Abc
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :Abc
+     -DOC
+    -STR
+  json: |
+    "Abc"

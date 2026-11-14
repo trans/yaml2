@@ -1,0 +1,21 @@
+---
+- name: 'Keys not named: `!a` on `s: {x: 1, z: 2}`'
+  from: part 2, section 10
+  tags: str int union double-star error
+  fail: true
+  refused: document
+  at: '/s'
+  yaml: |
+    %YAML 2.0
+    --- &
+    p:
+      x: !int
+    q:
+      x: !int
+      z: !int
+    u: {!|: [!p, !q]}
+    a:
+      s: !u
+      !**: !str
+    --- !a
+    s: {x: 1, z: 2}

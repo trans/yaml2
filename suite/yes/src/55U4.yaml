@@ -1,0 +1,37 @@
+---
+- name: 'Keys not named: `!a` on `s: {kind: square, side: 2, note: x}`'
+  from: part 2, section 10
+  tags: str float union double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    circle:
+      kind: circle
+      r: !float
+    square:
+      kind: square
+      side: !float
+    u: {!|: [!circle, !square]}
+    a:
+      s: !u
+      !**: !str
+    --- !a
+    s: {kind: square, side: 2, note: x}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :s
+       +MAP
+        =VAL :kind
+        =VAL :square
+        =VAL :side
+        =FLT :2.0
+        =VAL :note
+        =VAL :x
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"s": {"kind": "square", "side": 2.0, "note": "x"}}

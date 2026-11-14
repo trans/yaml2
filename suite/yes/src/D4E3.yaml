@@ -1,0 +1,44 @@
+---
+- name: Wherever this occurs, example 3
+  from: part 2, section 10
+  tags: spec str int pattern union sequence double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    free:
+      !**: {!|: [!signed, !str]}
+    --- !free
+    a: +5
+    b: 5
+    c: [-3, x]
+    d: {e: {f: +7}}
+    g: "+5"
+  typed: |
+    +STR
+     +DOC !free
+      +MAP
+       =VAL :a
+       =INT :5
+       =VAL :b
+       =VAL :5
+       =VAL :c
+       +SEQ
+        =INT :-3
+        =VAL :x
+       -SEQ
+       =VAL :d
+       +MAP
+        =VAL :e
+        +MAP
+         =VAL :f
+         =INT :7
+        -MAP
+       -MAP
+       =VAL :g
+       =VAL :+5
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": 5, "b": "5", "c": [-3, "x"], "d": {"e": {"f": 7}}, "g": "+5"}

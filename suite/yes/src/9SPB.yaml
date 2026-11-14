@@ -1,0 +1,13 @@
+---
+- name: Precision, limit and pattern together, example 4
+  from: part 2, section 4.7
+  tags: spec int range union error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!int(1..10), !int(20..30)]}
+    --- !n
+    15

@@ -1,0 +1,16 @@
+---
+- name: 'Patterns, precision and limits: `!n` on `abc`'
+  from: part 2, section 4.7
+  tags: str decimal pattern precision union sequence error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n:␣
+      !|:
+        - !decimal(5:2 /[a-z]+/)
+        - !str
+    --- !n
+    abc

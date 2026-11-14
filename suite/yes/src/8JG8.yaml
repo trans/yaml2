@@ -1,0 +1,21 @@
+---
+- name: 'Alternatives: `{!|: [!str, {b: !int}]}` on `{b: 1}`'
+  from: part 2, section 9
+  tags: str int union
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {!|: [!str, {b: !int}]}
+    --- !a
+    {b: 1}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :b
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"b": 1}

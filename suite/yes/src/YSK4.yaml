@@ -1,0 +1,15 @@
+---
+- name: 'A schema refused: `!b` on `x`'
+  from: part 2, section 11
+  tags: int merge reference error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    u: {!|: [!int, !str]}
+    b:
+      <<: *u
+      x: !int
+    --- !b
+    x

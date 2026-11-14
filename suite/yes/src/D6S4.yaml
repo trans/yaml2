@@ -1,0 +1,16 @@
+---
+- name: 'Patterns, precision and limits: `!n` on `1_000`'
+  from: part 2, section 4.5
+  tags: str decimal pattern union sequence error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n:␣
+      !|:
+        - !decimal(/[0-9_]+/)
+        - !str
+    --- !n
+    1_000

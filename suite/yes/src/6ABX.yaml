@@ -1,0 +1,22 @@
+---
+- name: 'Keys not named: `!a` on `s: {kind: oval}`'
+  from: part 2, section 10
+  tags: str float union double-star error
+  fail: true
+  refused: document
+  at: '/s'
+  yaml: |
+    %YAML 2.0
+    --- &
+    circle:
+      kind: circle
+      r: !float
+    square:
+      kind: square
+      side: !float
+    u: {!|: [!circle, !square]}
+    a:
+      s: !u
+      !**: !str
+    --- !a
+    s: {kind: oval}

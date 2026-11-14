@@ -1,0 +1,18 @@
+---
+- name: 'Alternatives: `{!|: [!int, "a | b"]}` on `a | b`'
+  from: part 2, section 9
+  tags: int union
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {!|: [!int, "a | b"]}
+    --- !a
+    a | b
+  typed: |
+    +STR
+     +DOC !a
+      =VAL :a | b
+     -DOC
+    -STR
+  json: |
+    "a | b"

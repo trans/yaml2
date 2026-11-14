@@ -1,0 +1,36 @@
+---
+- name: Application types, example 2
+  from: part 2, section 12
+  tags: spec int union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    point:
+      x: !int
+      y: !int
+    sweep:
+      target: !int
+    shape: {!|: [!point, !sweep]}
+    shapes: [!shape, ...]
+    --- !shapes
+    - {x: 1, y: 2}
+    - target: 3
+  typed: |
+    +STR
+     +DOC !shapes
+      +SEQ
+       +MAP
+        =VAL :x
+        =INT :1
+        =VAL :y
+        =INT :2
+       -MAP
+       +MAP
+        =VAL :target
+        =INT :3
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"x": 1, "y": 2}, {"target": 3}]

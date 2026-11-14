@@ -1,0 +1,20 @@
+---
+- name: 'Keys not named: `{!|: [!null, !bool, !int, !float, !str,…` on `[]`'
+  from: part 2, section 7
+  tags: str int float bool null union sequence star
+  yaml: |
+    %YAML 2.0
+    --- &
+    json: {!|: [!null, !bool, !int, !float, !str, !object, [!json, ...]]}
+    object: {!*: !json}
+    --- !json
+    []
+  typed: |
+    +STR
+     +DOC !json
+      +SEQ
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    []

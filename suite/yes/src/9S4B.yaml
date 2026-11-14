@@ -1,0 +1,18 @@
+---
+- name: 'Alternatives: `{!|: [!int, ''none'']}` on `5`'
+  from: part 2, section 9
+  tags: int union
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {!|: [!int, 'none']}
+    --- !a
+    5
+  typed: |
+    +STR
+     +DOC !a
+      =INT :5
+     -DOC
+    -STR
+  json: |
+    5

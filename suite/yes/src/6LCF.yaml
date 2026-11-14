@@ -1,0 +1,18 @@
+---
+- name: 'Floats: `{!|: [!float, !str]}` on `n/a`'
+  from: part 2, section 4.4
+  tags: str float union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!float, !str]}
+    --- !n
+    n/a
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :n/a
+     -DOC
+    -STR
+  json: |
+    "n/a"

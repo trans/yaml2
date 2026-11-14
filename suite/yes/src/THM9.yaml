@@ -1,0 +1,14 @@
+---
+- name: A pattern on another type, example 5
+  from: part 2, section 4.5
+  tags: spec str int pattern union sequence error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    hex: !int(/0x[0-9a-f]+/)
+    n: {!|: [!hex, !str]}
+    --- !n
+    0x1f

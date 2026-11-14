@@ -1,0 +1,27 @@
+---
+- name: Alternatives, example 4
+  from: part 2, section 9
+  tags: spec str float union
+  yaml: |
+    %YAML 2.0
+    --- &
+    version: {!|: [!float, !str]}
+    versions:
+      a: !version
+      b: !version
+    --- !versions
+    a: 1.10
+    b: "1.10"
+  typed: |
+    +STR
+     +DOC !versions
+      +MAP
+       =VAL :a
+       =FLT :1.1
+       =VAL :b
+       =VAL :1.10
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": 1.1, "b": "1.10"}

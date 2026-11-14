@@ -1,0 +1,22 @@
+---
+- name: 'Alternatives: `{!|: [!str, *m]}` on `{x: 1}`'
+  from: part 2, section 9
+  tags: str union reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    m: {x: !int}
+    a: {!|: [!str, *m]}
+    --- !a
+    {x: 1}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": 1}

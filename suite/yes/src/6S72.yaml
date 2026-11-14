@@ -1,0 +1,15 @@
+---
+- name: 'A schema refused: `!a` on `x`'
+  from: part 2, section 4.3
+  tags: str pattern union error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !|:
+        - !str(/a{513}/)
+        - !str(/b{512}/)
+    --- !a
+    x

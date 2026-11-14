@@ -1,0 +1,21 @@
+---
+- name: 'Alternatives: `{"!|": !int}` on `"!|": 5`'
+  from: part 2, section 9
+  tags: int
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {"!|": !int}
+    --- !a
+    "!|": 5
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :!|
+       =INT :5
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"!|": 5}
