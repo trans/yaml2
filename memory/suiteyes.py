@@ -16,6 +16,8 @@ specfile, suite = sys.argv[2:4] if CHECK else sys.argv[1:3]
 sn = {'__name__': 'sn', '__file__': here + '/suitenew.py'}
 exec(open(here + '/suitenew.py', encoding='utf-8').read().split("\nif __name__ == '__main__':")[0], sn)
 esc, field, quoted, ident, ESCAPED = (sn[k] for k in 'esc field quoted ident ESCAPED'.split())
+# A tag line that YAML 1.1 or 1.2 would read as something other than a string, such as the tag `null` alone.
+def plain(t): return f"'{t}'" if t.lower() in ('null', '~', 'true', 'false', 'yes', 'no', 'on', 'off', 'y', 'n') else t
 whole = open(here + '/schemacheck.py', encoding='utf-8').read()
 src, main = whole.split("\nif __name__ == '__main__':")
 ns = {'__name__': 'sc', '__file__': here + '/schemacheck.py'}
@@ -377,7 +379,7 @@ if not CHECK:
             sec = sec or section(r); name = f'{title}: {describe(r)}'
             if r['keep'] and r['limit'] != LIMIT: name += f', at a limit of {r["limit"]}'
         fail = not ok
-        t = ['---', f'- name: {quoted(name)}', f'  from: part 2, section {sec}', f'  tags: {tags(r, sec, fail)}']
+        t = ['---', f'- name: {quoted(name)}', f'  from: part 2, section {sec}', f'  tags: {plain(tags(r, sec, fail))}']
         if fail:
             t.append('  fail: true')
             where, at = refused(r, r['res'][1])

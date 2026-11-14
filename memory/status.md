@@ -277,6 +277,25 @@ way). Two points for the user, **Open:**
   10 of SchemaStore's 1,287 patterns have an empty branch, and none has `{0}`. The text could require
   what the engine does, or count each group and branch as at least 1.
 
+**Oyl NG runs part 2's suite (2026-11-14)**
+(`mail/received/20261114-002124Z-@oylng--part-2-s-suite-664-pass-0-fail-the-limit-on-a-sche-fb01f98f.md`).
+A C harness (`make test-yes`) over `suite-to-data`'s output at `63e86ea`: 664 of 806 pass and none fail.
+It skips 69 with `!**`, 25 that hold times otherwise (`holds`, `long-fraction`), 24 with `keep`, 23 with a
+store, and 1 with a limit of 0, which its API reads as the default. No refusal comes at a path other than
+`at`, and `-0.0` counts: all six fail when made `0.0`. Two points:
+- **Part 1's limit on an application's schema. Open, for the user.** The engine reads the schema an
+  application hands over as a part 1 stream, under the limit, table counted. The draft doesn't say
+  whether it should (section 3 says only that a schema "is YAML too"). The suite holds it to its full size
+  alone, so 23 of its tests have a limit below the schema text's held size (7 to 38 against limits of 0 to
+  10): 21 fail in the engine, and it skips the other 2. Those 23 are the checker's tests of a schema's
+  full size, and their full size never exceeds the text. The agent recommends that the limit apply, since
+  a schema is a stream like any other and a file's own table already counts in its held size. The suite
+  would then test full size with schemas whose names expand past their text, as was done for typed.
+- **A `tags` file per test.** `suite-to-data` now writes one, for both parts, so a harness can skip by
+  tag. Doing it found `tags: null` in `RP5Q`, which PyYAML reads as no tags. `suiteyes.py` now quotes a
+  tag line YAML would read as other than a string. In the working tree on main, not committed: it waits
+  for the user.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
