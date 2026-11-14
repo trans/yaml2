@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-13*
+*Updated 2026-11-14*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -283,18 +283,19 @@ A C harness (`make test-yes`) over `suite-to-data`'s output at `63e86ea`: 664 of
 It skips 69 with `!**`, 25 that hold times otherwise (`holds`, `long-fraction`), 24 with `keep`, 23 with a
 store, and 1 with a limit of 0, which its API reads as the default. No refusal comes at a path other than
 `at`, and `-0.0` counts: all six fail when made `0.0`. Two points:
-- **Part 1's limit on an application's schema. Open, for the user.** The engine reads the schema an
-  application hands over as a part 1 stream, under the limit, table counted. The draft doesn't say
-  whether it should (section 3 says only that a schema "is YAML too"). The suite holds it to its full size
-  alone, so 23 of its tests have a limit below the schema text's held size (7 to 38 against limits of 0 to
-  10): 21 fail in the engine, and it skips the other 2. Those 23 are the checker's tests of a schema's
-  full size, and their full size never exceeds the text. The agent recommends that the limit apply, since
-  a schema is a stream like any other and a file's own table already counts in its held size. The suite
-  would then test full size with schemas whose names expand past their text, as was done for typed.
+- **Part 1's limit on an application's schema.** The engine reads the schema an application hands over
+  as a part 1 stream, under the limit, table counted; the draft didn't say, and the suite held it to its
+  full size alone, so 23 tests sat below the text (held 7 to 38 against limits of 0 to 10). The user took
+  the agent's recommendation (2026-11-14): the limit applies (rules.md). In main `425db57` (section 3).
+  The checker now reads an application's and a published schema under the limit, and its typed test
+  across documents moved to 18 and 17. The suite (`a7e2df6`, 808 tests) leaves out the checker's 22
+  full-size tests and has 22 in their place, each schema reached beside a mapping that names a 20-key
+  mapping 40 times, so full size (about 1,010) passes the text (about 510); and 2 tests of `a: !str`
+  at limits 7 and 6.
 - **A `tags` file per test.** `suite-to-data` now writes one, for both parts, so a harness can skip by
   tag. Doing it found `tags: null` in `RP5Q`, which PyYAML reads as no tags. `suiteyes.py` now quotes a
-  tag line YAML would read as other than a string. In the working tree on main, not committed: it waits
-  for the user.
+  tag line YAML would read as other than a string; that fix is in `a7e2df6`. The `tags` file itself is
+  in the working tree on main, not committed: it waits for the user.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a

@@ -1,6 +1,6 @@
 # The rules of YAML 2.0
 
-*Updated 2026-11-13*
+*Updated 2026-11-14*
 
 The design, rule by rule, as the user sets them. Keep the user's wording for
 each rule, and keep what the agent derived from it marked as such until the
@@ -581,6 +581,12 @@ tests settled on, all proposals, left open for the core team:
   a parser may refuse. Section 9's count can't bound depth. The deepest of SchemaStore's 1,287 patterns
   nests 7. In main `a8a4420` (section 4.3), and in the checker. Told it differs from part 1's minimum,
   the user kept it fixed (2026-11-13): "I think it is fine".
+- **Part 1's limit applies to a schema from outside the stream** (the user, 2026-11-14, taking the
+  agent's recommendation). An application's schema, or a published one, is a stream of its own, read
+  under the size limit, table counted, and its full size (section 9) is held to the same limit. So
+  `a: !str` holds 7 as text, though its full size is 1. @oylng asked, since its engine read it so and the
+  suite didn't. In main `425db57` (section 3), and the suite's full-size tests are rebuilt above the text
+  in `a7e2df6`.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

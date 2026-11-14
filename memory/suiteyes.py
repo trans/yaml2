@@ -59,6 +59,9 @@ def typed(stream, app=None, store=None, limit=LIMIT, cut=False, keep=False):
     try: return typed0(stream, app, store, limit, cut, keep)
     finally: state['depth'] -= 1
 texts = {}
+def part1text(t, limit):
+    try: read0(t, limit); return True
+    except No: return False
 def read(t, *a, **k):
     r = read0(t, *a, **k)
     if state['depth'] == 0: texts[id(r.table)] = (t, r.table)
@@ -69,7 +72,8 @@ def Schema(table, root, cut=False, limit=LIMIT, kept=False):
     if state['depth'] == 0 and id(table) in texts:
         direct = outcome(lambda: SchemaCls(table, root, cut, limit, kept))
         res = record(line(), '%YAML 2.0\n', (texts[id(table)][0], root), None, limit, cut, kept)
-        if (direct[0], type(direct[1])) != (res[0], type(res[1])) and not (direct[0] == res[0] == 'ok'):
+        # Section 3: typed() also reads the schema's text under part 1's limit, which Schema() doesn't.
+        if part1text(texts[id(table)][0], limit) and (direct[0], type(direct[1])) != (res[0], type(res[1])) and not (direct[0] == res[0] == 'ok'):
             sys.exit(f'Schema() and typed() differ on {root}: {direct} {res}')
     state['depth'] += 1
     try: return SchemaCls(table, root, cut, limit, kept)
@@ -130,9 +134,30 @@ if not CHECK:
         if t > h: record(-1, st, app, None, t - 1, False, True)
     print('typed tests, (held, typed):', bounds)
 
+    # Section 9's full size, on a schema an application hands over. Part 1's limit applies to the schema's
+    # text too (section 3), and the checker's tests of full size sit below what the text holds. Here each
+    # of their schemas is reached beside a mapping that names a 20-key mapping 40 times, since each name
+    # counts what it stands for, so that full size passes what the text holds. Each is tested at its full
+    # size, where it loads, and at one less.
+    W = 'wm: {' + ', '.join(f'k{i}: !str' for i in range(20)) + '}\nw: {' + ', '.join(f'v{i}: !wm' for i in range(40)) + '}\n'
+    def app_ok(text, root, n):
+        state['depth'] += 1
+        try: typed0('%YAML 2.0\n', (text, root), None, n, False, False); return True
+        except REFUSED: return False
+        finally: state['depth'] -= 1
+    fbounds = []
+    for t, root, n in ns['fulls']:
+        text = '--- &\n' + t + W + f'r: {{t: !{root}, w: !w}}\n'
+        h = lowest(lambda m: part1text(text, m)); F = lowest(lambda m: app_ok(text, 'r', m))
+        if F <= h: sys.exit(f'full size does not pass the text: {t!r}')
+        fbounds.append((h, F)); record(-2, '%YAML 2.0\n', (text, 'r'), None, F, False, False)
+        record(-2, '%YAML 2.0\n', (text, 'r'), None, F - 1, False, False)
+    print('full size tests, (held, full):', fbounds)
+
 lines = whole.split('\n')
 def group(n):
     """The list a test comes from: the nearest enclosing `for`, or the line itself."""
+    if n == -2: return 'extrafull'
     if n < 0: return 'extra'
     ind = len(lines[n - 1]) - len(lines[n - 1].lstrip())
     for k in range(n - 2, 0, -1):
@@ -170,12 +195,12 @@ GROUPS = {
     'goods3': (None, 'From the third review'), 'bads3': (None, 'From the third review'), 'schemas3': (None, 'A schema refused'),
     'loads3': (None, 'A schema that loads'), 'counts': ('11', 'Typed'), 'goodsP': ('4.8', 'Dates'), 'badsP': ('4.8', 'Dates'),
     'oks': ('4.8', 'What a parser holds of a date'), 'nos': ('4.8', 'What a parser holds of a date'),
-    'schemasP': ('4.8', 'A date level or round'), 'loadsP': (None, 'A schema that loads'), 'extra': ('11', 'Typed'),
+    'schemasP': ('4.8', 'A date level or round'), 'loadsP': (None, 'A schema that loads'), 'extra': ('11', 'Typed'), 'extrafull': ('9', "A schema's full size"),
 }
 # Tests outside a list, found by what their line holds.
 SINGLES = [('DIFFERS renamed', '8', "The names are the author's"), ('QUOTED PATTERN NOT A LITERAL', '5', 'A quoted pattern is a literal'),
            ('doubling(', '9', 'Names that double'), ('read(chain)', '9', "A schema's full size"), ('read(wide)', '9', 'Unions at the ceiling'),
-           ('a stamp past the limit', '9', "A schema's full size"), ('pub3(', '3.1', 'A published schema'), ("for t in ('retries: abc", '3', 'Who says how to read a document'),
+           ('a stamp past the limit', '9', "A schema's full size"), ("('--- &\\na: !str\\n', 'a'), limit=", '3', "Part 1's limit on an application's schema"), ('pub3(', '3.1', 'A published schema'), ("for t in ('retries: abc", '3', 'Who says how to read a document'),
            ('for z3 in', '4.4', 'The sign of zero'), ('for body3 in', '3.1', 'A published schema is one table'), ('many', '11', 'Typed'), ('app=app2', '11', 'Typed')]
 def single(g):
     l = lines[int(g[5:]) - 1]
@@ -367,6 +392,8 @@ if not CHECK:
         if r['store']: r['store'] = {h: b.decode('utf-8') for h, b in r['store'].items()}
         if len(r['stream']) > 200000: skipped['over 200 KB'] += 1; continue
         ok = r['res'][0] == 'ok'
+        if r['app'] and group(r['line']) == 'fulls' and not part1text(r['app'][0], r['limit']):
+            skipped["a test of full size below its schema's text, which part 1's limit counts"] += 1; continue
         if not part1(r):
             if ok: skipped["refused by part 1's limit, accepted by typed()"] += 1; lost.append(r); continue
         g = 'spec' if r['line'] in range(first, last) else group(r['line'])
@@ -377,7 +404,7 @@ if not CHECK:
             sec, title = single(g) if g.startswith('line ') else GROUPS.get(g, (None, None))
             if title is None: sys.exit(f'no group for line {r["line"]} ({g})')
             sec = sec or section(r); name = f'{title}: {describe(r)}'
-            if r['keep'] and r['limit'] != LIMIT: name += f', at a limit of {r["limit"]}'
+            if (r['keep'] or r['app']) and r['limit'] != LIMIT: name += f', at a limit of {r["limit"]}'
         fail = not ok
         t = ['---', f'- name: {quoted(name)}', f'  from: part 2, section {sec}', f'  tags: {plain(tags(r, sec, fail))}']
         if fail:

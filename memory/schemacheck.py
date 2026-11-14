@@ -602,7 +602,7 @@ def published(name, store, cut, limit=LIMIT, keep=False):
     root, h = PUB.fullmatch(name).groups(); b = store.get(h)
     if b is None: raise Cant(f'{name}: the file is not to be had')
     if hashlib.sha256(b).hexdigest() != h: raise Cant(f'{name}: the file does not hash to its name')
-    text = b.decode('utf-8'); r = read(text)
+    text = b.decode('utf-8'); r = read(text, limit)
     marks = re.findall(r'^(?:---|\.\.\.)(?=[ \t\n]|$).*', text, re.M)
     if r.docs or not r.table or len(marks) != 1 or not marks[0].startswith('--- &'):
         raise SchemaError(f'{name}: a published schema is one table and nothing else')
@@ -615,7 +615,8 @@ def typed(stream, app=None, store=None, limit=LIMIT, cut=False, keep=False):
     means the application looks published names up. Cut is an application cutting a time to what this parser holds (sections 3 and 4.8). Keep
     types as an interface that keeps references does, counting typed (section 11)."""
     r = read(stream); out = []; reached = {}; live = None
-    own = None if app is None else Schema(read(app[0]).table, app[1], cut, limit, keep)
+    # Section 3: a schema from outside the stream is a stream too, read under part 1's limit.
+    own = None if app is None else Schema(read(app[0], limit).table, app[1], cut, limit, keep)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
         if obj is not live: reached, live = {}, obj
         for k, e in reached.items():
@@ -909,6 +910,11 @@ if __name__ == '__main__':
     except SchemaError as e: f += 1; print('REFUSED', e)
     try: typed('%YAML 2.0\n--- &\na: !int | !str\n--- !a\n1\n', limit=1); f += 1; print('NOT REFUSED: a stamp past the limit')
     except SchemaError: pass
+    # Section 3: part 1's limit applies to an application's schema. `a: !str` holds 7 as text, and its full size is 1.
+    try: typed('%YAML 2.0\n', ('--- &\na: !str\n', 'a'), limit=7)
+    except REFUSED as e: f += 1; print('REFUSED: an application schema at its held size', e)
+    try: typed('%YAML 2.0\n', ('--- &\na: !str\n', 'a'), limit=6); f += 1; print("NOT REFUSED: an application schema past part 1's limit")
+    except No: pass
     emptyseq = ['[""]', '[a]', 'abc', '{}']
     for v in emptyseq:
         try: typed(f'%YAML 2.0\n--- &\nu: !int | []\n--- !u\n{v}\n'); f += 1; print('NOT REFUSED', v)
@@ -996,12 +1002,14 @@ if __name__ == '__main__':
     for st, kw in ((many, {}), (same1, {'keep': True})):
         try: typed(st, **kw)
         except REFUSED as e: tyd += 1; print('TYPED REFUSED', kw, e)
-    # An application's schema serves both documents, and typed counts each one on its own.
-    app2 = ('--- &\none: [!str, ...]\n', 'one'); two = '--- &\ns: abcdefgh\n---\n[*s, *s, *s]\n---\n[*s, *s, *s]\n'
-    try: typed(two, app=app2, keep=True, limit=10)
+    # An application's schema serves both documents, and typed counts each one on its own: 18 each, so
+    # 18 allows both. The schema's text holds 14 under part 1's limit (section 3), so typed binds first.
+    app2 = ('--- &\none: [!str, ...]\n', 'one'); two = '--- &\ns: abcdefghabcdefgh\n---\n[*s, *s, *s]\n---\n[*s, *s, *s]\n'
+    try: typed(two, app=app2, keep=True, limit=18)
     except REFUSED as e: tyd += 1; print('TYPED COUNTS ACROSS DOCUMENTS', e)
-    try: typed(two, app=app2, keep=True, limit=9); tyd += 1; print('TYPED NOT REFUSED AT 9, APP')
-    except REFUSED: pass
+    try: typed(two, app=app2, keep=True, limit=17); tyd += 1; print('TYPED NOT REFUSED AT 17, APP')
+    except REFUSED as e:
+        if 'typed passes' not in str(e): tyd += 1; print('NOT REFUSED BY TYPED AT 17, APP', e)
     typed_n = 3 * len(counts) + 3 + 2
     f += tyd
     # Dates (the user, 2026-11-11 and 2026-11-12): RFC 3339's grammar, a date a parser can't hold refusing
@@ -1068,5 +1076,5 @@ if __name__ == '__main__':
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
     prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP)
     f += prec; third_n += prec_n
-    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 5 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
+    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(schemas) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)
