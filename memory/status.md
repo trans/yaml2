@@ -276,6 +276,16 @@ way). Two points for the user, **Open:**
   nested counts of 1 (`((a?)?)?`, `(a+)*`) into one, so its steps per character stay within the count.
   10 of SchemaStore's 1,287 patterns have an empty branch, and none has `{0}`. The text could require
   what the engine does, or count each group and branch as at least 1.
+  **Measured 2026-11-14** (the user asked), on SchemaStore at `1e82d8a` with section 9's counter as an
+  ECMAScript reader (anchors, `\b` and lookarounds dropped, as conversion drops them). Two rules:
+  - *least1*: each part counts at least 1 after its count, and so does an empty alternative.
+    `x{0}` 1, `(|||)` 4. 28 of 1,287 patterns change, by 2 at most. Section 9's figures don't move
+    (11,831, 772, 782). But nesting stays free: `((a?)?)?` counts 1, so 1,024 alternatives each nested
+    256 deep cost about 262,000 states per character.
+  - *group1*: least1, and a group adds 1. `((a?)?)?` 3, `(a{1000}){1000}` 1,001,000. 814 patterns
+    change, by 64 at most (the IPv6 one, 322 to 386). Figures: 11,832, 773, and the largest union
+    782 to 813. Nothing new passes 1,024. Each state of a plain NFA is then within a small multiple of
+    the count. **Open:** the agent recommends group1; the user hasn't ruled.
 
 **Oyl NG runs part 2's suite (2026-11-14)**
 (`mail/received/20261114-002124Z-@oylng--part-2-s-suite-664-pass-0-fail-the-limit-on-a-sche-fb01f98f.md`).
