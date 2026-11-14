@@ -295,7 +295,7 @@ store, and 1 with a limit of 0, which its API reads as the default. No refusal c
 - **A `tags` file per test.** `suite-to-data` now writes one, for both parts, so a harness can skip by
   tag. Doing it found `tags: null` in `RP5Q`, which PyYAML reads as no tags. `suiteyes.py` now quotes a
   tag line YAML would read as other than a string; that fix is in `a7e2df6`. The `tags` file itself is
-  in the working tree on main, not committed: it waits for the user.
+  **Fixed in main `590d0a7`** (the user: "commit", 2026-11-14).
 
 **Oyl NG with `!**` (2026-11-14)**
 (`mail/received/20261114-093223Z-@oylng--is-in-the-engine-part-2s-suite-736-pass-0-fail-c7337088.md`).
