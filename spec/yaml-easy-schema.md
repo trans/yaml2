@@ -150,6 +150,11 @@ name the table doesn't have. A document with neither stays strings.
 A library may let an application ignore a file's schema and read the document as it is, or hand it
 the schema, which is YAML too.
 
+A schema from outside the stream, the application's own or a published one (section 3.1), is a
+stream of its own. A parser reads it under the size limit (part 1, section 10), as it reads any
+stream, and then holds its full size (section 9) to the same limit. So `a: !str` holds 7 as text,
+and its full size is 1: a limit of 6 refuses it.
+
 A library may also let an application cut a time to the fraction digits its language holds, rather than
 refuse it (section 4.8). It is off unless the application turns it on.
 
