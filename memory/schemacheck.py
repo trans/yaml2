@@ -525,9 +525,7 @@ class Schema:
         return [s.conv(x[1][i] if i < len(x[1]) else x[2], y, f'{path}/{i}', scope) for i, y in enumerate(v)]
     def map(s, x, v, path, scope=None):
         if x[3]: scope = x[3]
-        if not isinstance(v, dict):
-            if x[3] and all(o for _, o in x[1].values()): return s.anywhere(v, path, scope)
-            raise Bad(path, 'expected a mapping')
+        if not isinstance(v, dict): raise Bad(path, 'expected a mapping')
         for k, (_, opt) in x[1].items():
             if k not in v and not opt: raise Bad(path, f'missing {k}')
         out = {}
@@ -738,8 +736,11 @@ if __name__ == '__main__':
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
     # `!**`: here and below, the closest rule wins, and only the nearest `!*` counts.
     S = 'signed: !int(/[-+][0-9]+/)\n'; C = 'circle:\n  kind: circle\n  r: !float\nsquare:\n  kind: square\n  side: !float\n'
-    star = [('a:\n  !**: !int\n--- !a\n5\n', 5), ('a:\n  !**: !int\n--- !a\n[1, [2]]\n', [1, [2]]), ('a:\n  x?: !str\n  !**: !int\n--- !a\n5\n', 5),
-            ('a:\n  !**: !int\n--- !a\n{}\n', {}), ('a: {!**: !int}\n--- !a\n{x: 1}\n', {'x': 1}), ('a:\n  !**:\n    n: !int\n--- !a\n[[{n: 1}]]\n', [[{'n': 1}]]),
+    # Section 10: a `!**` type is a mapping, and JSON's any value at the top is a union with the mapping named.
+    J = 'json: !null | !bool | !int | !float | !str | !object | [!json, ...]\nobject: {!*: !json}\n--- !json\n'
+    star = [('a:\n  !**: !int\n--- !a\nx: [1, [2]]\n', {'x': [1, [2]]}), (J + '5\n', 5), (J + '"x"\n', 'x'), (J + '[1, [2]]\n', [1, [2]]), (J + '[]\n', []),
+            (J + '{a: [1, {b: null}], c: "2"}\n', {'a': [1, {'b': None}], 'c': '2'}),
+            ('a:\n  !**: !int\n--- !a\n{}\n', {}), ('a: {!**: !int}\n--- !a\n{x: 1}\n', {'x': 1}), ('a:\n  !**:\n    n: !int\n--- !a\nx: [[{n: 1}]]\n', {'x': [[{'n': 1}]]}),
             ('a:\n  !**:\n    n: !int\n--- !a\nm: 5\n', {'m': '5'}), ('a:\n  !**:\n    n: !int\n--- !a\n{}\n', {}), ('a:\n  !**:\n    n?: !int\n--- !a\nn:\n', {'n': None}),
             ('a:\n  !**:\n    ports: [!int, ...]\n--- !a\nx: {ports: [1]}\n', {'x': {'ports': [1]}}),
             ('a:\n  !**:\n    db:\n      host: !str\n--- !a\nx: {db: {host: h, more: 1}}\n', {'x': {'db': {'host': 'h', 'more': '1'}}}),
@@ -754,7 +755,7 @@ if __name__ == '__main__':
             ('"*": !int\na:\n  "*": !int\n--- !a\n"*": 5\n', {'*': 5}), ('a:\n  "!*": !int\n--- !a\n"!*": 5\n', {'!*': 5}),
             ('d:\n  n: 1\na:\n  !**:\n    n: !int\n--- !a\nx: *d\n', {'x': {'n': 1}}), ('d:\n  n: 1\na:\n  !**:\n    n: !int\n--- !a\n<<: *d\nm: 2\n', {'n': 1, 'm': '2'}),
             (C + 'u: !circle | !square\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: square, side: 2, note: x}\n', {'s': {'kind': 'square', 'side': 2.0, 'note': 'x'}}),
-            (S + 'a:\n  !**: !signed | !str\nl: [!a, ...]\n--- !l\n- +5\n- {x: -3}\n', [5, {'x': -3}]),
+            (S + 'a:\n  !**: !signed | !str\nl: [!a, ...]\n--- !l\n- {y: +5}\n- {x: -3}\n', [{'y': 5}, {'x': -3}]),
             ('m:\n  x: !str\na:\n  s: [!m, ...]\n  !**: !int\n--- !a\ns: [{x: a, y: 1}]\n', {'s': [{'x': 'a', 'y': 1}]})]
     star += [('a:\n  !*: !int\n--- !a\nx: 1\ny: 2\n', {'x': 1, 'y': 2}), ('a:\n  n: !str\n  !str(/X_.*/): !str\n  !*: !int\n--- !a\nn: 1\nX_a: 2\nz: 3\n', {'n': '1', 'X_a': '2', 'z': 3}), ('a:\n  !*: !int\n  !str(/X_.*/): !str\n--- !a\nX_a: 2\nz: 3\n', {'X_a': '2', 'z': 3}), ('a:\n  !*:\n    x: !int\n--- !a\nk: {x: 1}\n', {'k': {'x': 1}}), ('a:\n  !*: [!int, ...]\n--- !a\nk: [1]\n', {'k': [1]}), ('a:\n  !*: !int\n  !**: !str\n--- !a\nx: 1\n', {'x': 1}), ('m:\n  n: !int\n  !*: !bool\na:\n  s: !m\n  !**: !str\n--- !a\ns: {n: 1, z: true}\nq: 1\n', {'s': {'n': 1, 'z': True}, 'q': '1'}), ('p:\n  k: a\n  !*: !int\nq:\n  k: b\nu: !p | !q\n--- !u\nk: a\nz: 1\n', {'k': 'a', 'z': 1}), ('a:\n  "!**": !int\n--- !a\n"!**": 5\n', {'!**': 5})]
     for t, w in star:
@@ -765,6 +766,9 @@ if __name__ == '__main__':
                'a:\n  !**:\n    !str(/ts_.*/): !date\n--- !a\nts_x: soon\n', 'a:\n  !**: !int\n  b:\n    !**: !bool\n--- !a\nb: {y: 1}\n', 'a:\n  !**: !int\n  b:\n    c: !str\n--- !a\nb: {c: x, d: y}\n',
                'a:\n  "!*": !int\n--- !a\nx: 5\n', 'a:\n  "*": !int\n--- !a\nx: 5\n', 'addr:\n  name: !str\na:\n  !**: !int\n  home: !addr\n--- !addr\nname: x\nfloor: 3\n', 'a:\n  b:\n    !**: !int\n--- !a\nb: {x: 1}\nc: 2\n',
                'p:\n  x: !int\nq:\n  x: !int\n  z: !int\nu: !p | !q\na:\n  s: !u\n  !**: !str\n--- !a\ns: {x: 1, z: 2}\n', C + 'u: !circle | !square\na:\n  s: !u\n  !**: !str\n--- !a\ns: {kind: oval}\n']
+    notstar += ['a:\n  !**: !int\n--- !a\n5\n', 'a:\n  !**: !int\n--- !a\n[1, [2]]\n', 'a:\n  x?: !str\n  !**: !int\n--- !a\n5\n', 'a:\n  !**:\n    n: !int\n--- !a\n[[{n: 1}]]\n',
+                S + 'a:\n  !**: !signed | !str\nl: [!a, ...]\n--- !l\n- +5\n', 'a:\n  !**:\n    replicas: !int\n--- !a\nhello\n', 'j:\n  !**: !int\nb:\n  <<: *j\n  name?: !str\n--- !b\n5\n',
+                S + 'job:\n  image: !str\n  args?:\n    !**: !signed | !str\n--- !job\nimage: x\nargs: +5\n']
     notstar += ['a:\n  !*: !int\n--- !a\nx: {y: 1}\n', 'a:\n  !*: !int\n--- !a\n5\n', 'a:\n  !*: !int\n--- !a\n[1]\n', 'a:\n  !*: !int\n--- !a\nx: y\n', 'a:\n  "!**": !int\n--- !a\nx: 5\n']
     for t in notstar:
         try: typed('--- &\n' + t); f += 1; print('NOT REFUSED', repr(t))

@@ -602,6 +602,16 @@ tests settled on, all proposals, left open for the core team:
   nested counts of 1. The other rule measured, at least 1 without the group's 1, left nesting free.
   On SchemaStore, 814 of 1,287 patterns count more, by 64 at most. The figures go from 11,831, 772 and
   782 to 11,832, 773 and 813. In main `c6ba341` (sections 4.3, 9, 16), with the checker's `counts3`.
+- **A `!**` type is a mapping only** (the user, 2026-11-14: "Yes drop it", after asking for the
+  ramifications in detail: "I don't like to guess here"). Section 10 had let a mapping type with `!**` and
+  no required key take a scalar or a sequence (since `7976461`, no note of the user choosing it). That
+  let a config type take `hello` as a string, made `!j | !bool` refuse the `5` that `!j` takes, made one
+  `?` decide the shape, carried through a merge, and let typed pass full. Any JSON value is now a union,
+  `json: !null | !bool | !int | !float | !str | !object | [!json, ...]` with `object: {!*: !json}`, and
+  section 10's first example types an object. The user asked for it on one line; a mapping can't sit
+  inside `|` (section 9), since `: ` ends the plain scalar, so it is named. Same figures: 1,015 of 1,015
+  SchemaStore, 93 of 95 JSONTestSuite, `i_` unchanged. Section 11 gets the sentence on interfaces that
+  deliver full data, which the user had asked for. **In main `e75a203`;** suite 827.
 - **JSON Schema stays a source:** its common part could be converted to shadows
   mechanically. Not tested.
 

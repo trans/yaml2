@@ -252,25 +252,14 @@ of 187,909 cases, was clean. Two points for the user:
 - **The path of a key's refusal.** **Fixed in main `5398fe7`.** The user left it to the agent
   (2026-11-14), and section 2 now gives an unknown or missing key the mapping's path, naming the key
   (rules.md). The suite has 7 tests of it below the root (815 tests).
-- **Typed on a data interface.** **Open.** @oylng's point: a node is typed once per type that reaches it, and each
-  type comes down a path of its own, so typed never passes full. So typed only refuses where references are
-  kept, as section 11 already says. A sentence saying why is the user's to add or not.
-  **Found 2026-11-14**, testing the sentence: typed can pass full. A mapping type with a `!**` and no key
-  required takes any value, and hands a scalar or sequence to its rules, which type it again at the same
-  path: `a: {!**: !int}` on `5` is typed 4, full 2. Rules can't hold a `!**` or a collection, even through
-  a name, so only that node doubles: typed is at most twice full. Typing the checker's 381 other documents
-  as kept found 5 such cases, all of this kind, and none past twice. The user is asked: say "at most
-  twice", or not count the hand-off, so that typed never passes full (the agent's recommendation).
-  **The rule behind it (2026-11-14).** Section 10's "`!**` covers the node it sits on" (since `7976461`;
-  no note says the user chose it). The user asked for its ramifications in detail. Measured with the
-  checker: it lets `deploy: {!**: {replicas: !int}}` take `hello` and `[a, b]` as strings; `!j` takes `5`
-  but `!j | !bool` refuses it; `{name?: !str, !**: !int}` takes `5` and `{name: !str, !**: !int}`
-  refuses it, and a merge carries this; on `[{name: a}]` that type refuses `/0/name`; section 10's `job` takes
-  `args: +5`. Dropping it: 68 of 68 examples pass, and 5 edge cases and 5 suite tests change (25QX,
-  5B26, 69LE, F2SL, Y9EH), all tests of the rule. JSON: the one-entry form gets 1,015 of 1,015
-  SchemaStore and 10 of 95 JSONTestSuite (75 are lists, 8 bare values); the three-entry form
-  (`json: !null | !bool | !int | !float | !str | !jmap | !jseq`, `jmap: {!*: !json}`, `jseq: [!json, ...]`)
-  gets 1,015 and 93, as now. The agent recommends dropping it; the user hasn't chosen.
+- **Typed on a data interface.** **Fixed in main `e75a203`.** @oylng's point: each type that reaches a
+  node comes down a path of its own, so typed never passes full, and only an interface that keeps
+  references needs to limit it. Testing the sentence (2026-11-14) found typed could pass full, up to
+  twice, through section 10's rule that a `!**` type with no required key also takes a scalar or a
+  sequence. The user asked for that rule's ramifications in detail (rules.md lists them) and chose to
+  drop it. With it gone, typing the checker's 384 other documents as kept finds none past full, and
+  section 11 has the sentence. Measured with scratchpad scripts `nokey/probe.py` and
+  `nokey/jsonfigs.py`, and `typedfull/typedfull.py`.
 
 **Oyl NG with patterns (2026-11-13)**
 (`mail/received/20261113-153724Z-@oylng--patterns-and-a-stream-with-no-document-2b7d9854.md`). The engine
