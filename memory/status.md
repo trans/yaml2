@@ -297,6 +297,18 @@ store, and 1 with a limit of 0, which its API reads as the default. No refusal c
   tag line YAML would read as other than a string; that fix is in `a7e2df6`. The `tags` file itself is
   in the working tree on main, not committed: it waits for the user.
 
+**Oyl NG with `!**` (2026-11-14)**
+(`mail/received/20261114-093223Z-@oylng--is-in-the-engine-part-2s-suite-736-pass-0-fail-c7337088.md`).
+Section 10 is in the engine (its main `ee7508a`, not pushed then). Over the suite at `a7e2df6`: 736 pass
+and none fail, all 69 `!**` tests included. It still skips 25 that hold times otherwise, 24 with `keep` and
+23 with a store; published names and `keep` are what part 2 still lacks there. Its harness now hands a
+test's schema to the library's public constructor, which reads it under the limit (`425db57`). Against the
+checker: 798 cases agree, none differ, with 20 store cases and the limit-0 case not run. The one difference
+before that, `a: !str` at limit 6, was its comparison not reading the application's schema under the limit.
+All 68 examples give their JSON or the refusal the text gives. Its reading of `!**` matches the checker
+everywhere the tests reach; the mail lists it rule by rule. This mail crossed ours on the refused key's
+path, so the 7 new tests (815) weren't in its run.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
