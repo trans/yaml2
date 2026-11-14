@@ -378,6 +378,8 @@ web1
 ```yaml refused
 --- &
 tag: !str(/^[a-z]+$/)
+--- !tag
+web
 ```
 
 A type expression is a plain scalar first, so it ends where any plain scalar ends (part 1,
@@ -1074,6 +1076,9 @@ All 721 schema families on SchemaStore together declare 90,006 keys, so no real 
 ```yaml refused
 --- &
 a: !str(/(a{1000}){1000}/)
+list: [!a, ...]
+--- !list
+[]
 ```
 
 ## 10. Wherever this occurs
