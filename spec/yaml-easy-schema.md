@@ -1057,8 +1057,8 @@ steps: [!step, ...]
 
 A pattern holding `, [ ] { }` can't sit in the flow form (section 4.3), and can in the block form.
 
-Each name counts once in a union, at its first place, so `{!|: [!m, !m]}` is `!m`, and so is a union that
-reaches `m` by two paths. `!any` in a union is tried last, wherever it is written, so it takes a node
+Each entry's name counts once in a union, at its first place, so `{!|: [!m, !m]}` is `!m`, and so is a union
+that reaches `m` by two paths. `!any` in a union is tried last, wherever it is written, so it takes a node
 no other alternative fits: `{!|: [!any, !int]}` reads `3` as 3.
 
 ```yaml
@@ -1079,8 +1079,9 @@ list: [!u, ...]
 [{"x": 1}, {"x": 1, "z": 2}]
 ```
 
-A union holds at most 1,024 positions once its names are expanded. A type counts 1, a literal
-counts nothing, since a hash table finds it, and a type with a pattern counts its pattern instead. A
+A union holds at most 1,024 positions once its names are expanded, each entry's name once. A type
+counts 1 each time it is written, so `{!|: [!int, !int]}` holds 2, a literal counts nothing, since a
+hash table finds it, and a type with a pattern counts its pattern instead. A
 pattern is counted as written. Each character, class, `.` and `\p{..}` counts 1, alternatives add
 what they hold, a group adds 1 to what it holds, and a count multiplies what it repeats: `{n}` and
 `{n,}` by n, `{n,m}` by m, and `*`, `+`, `?` and `{0,}` by 1. Each part counts at least 1 after its
@@ -1099,7 +1100,7 @@ in those entries that holds a type, adds what its type expands to: 1 for a liter
 a sequence or a name, the count above for a pattern, 1 for a mapping plus 1 for each key it names, a `!**`'s among
 them, for a name also what the name stands for, and for a union what its alternatives add. A mapping's values and a sequence's items are places of
 their own, so they aren't counted in it, and a type that contains itself still has a full size.
-Unlike the ceiling, this counts a name every time it is written. So 2 million lines of `aN: {!|: [!big, !int]}` are refused, though each union is within the ceiling.
+Unlike the ceiling, this counts an entry's name every time it is written. So 2 million lines of `aN: {!|: [!big, !int]}` are refused, though each union is within the ceiling.
 All 721 schema families on SchemaStore together declare 90,006 keys, so no real schema comes near it.
 
 ```yaml refused

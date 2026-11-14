@@ -1,0 +1,12 @@
+---
+- name: 'A cycle of names: `{!|: [{!|: [!a]}, !int]}` on `5`'
+  from: part 2, section 8
+  tags: int union error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {!|: [{!|: [!a]}, !int]}
+    --- !a
+    5

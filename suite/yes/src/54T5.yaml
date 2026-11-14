@@ -1,0 +1,16 @@
+---
+- name: 'Unions at the ceiling: `!a` on `x`'
+  from: part 2, section 9
+  tags: str int pattern union error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !|:
+        - !str(/a{1023}/)
+        - !int
+        - !int
+    --- !a
+    x
