@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!int(5..1)` on `x`'
+  from: part 2, section 4.2
+  tags: int range error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !int(5..1)
+    --- !a
+    x

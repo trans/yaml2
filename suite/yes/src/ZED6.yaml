@@ -1,0 +1,31 @@
+---
+- name: 'A standard type: `!binary` on `aGk=`'
+  from: part 2, section 4.1
+  tags: binary
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int
+    b: !bool
+    s: !str
+    d: !date
+    t: !datetime
+    x: !binary
+    f: !float
+    z: !null
+    r: !int(0..10)
+    l: !str(2..3)
+    p: !str(/[a-z]+/)
+    o:
+      a?: !str
+      b?: !int
+    --- !x
+    aGk=
+  typed: |
+    +STR
+     +DOC !x
+      =BIN :6869
+     -DOC
+    -STR
+  json: |
+    "aGk="

@@ -1,0 +1,18 @@
+---
+- name: 'From the third review: `a(/b | !int` on `a(/b`'
+  from: part 2, section 4.4
+  tags: int union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: a(/b | !int
+    --- !n
+    a(/b
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :a(/b
+     -DOC
+    -STR
+  json: |
+    "a(/b"

@@ -1,0 +1,15 @@
+---
+- name: 'Typed: `[!str(/a.*/), !str(/.*h/), !str(1..)]` on `[*s, *s, *s]`, at a limit of 27'
+  from: part 2, section 11
+  tags: str pattern range sequence reference typed size error
+  fail: true
+  limit: 27
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: abcdefgh
+    one: [!str, ...]
+    three: [!str(/a.*/), !str(/.*h/), !str(1..)]
+    --- !three
+    [*s, *s, *s]

@@ -1,0 +1,56 @@
+---
+- name: Wherever this occurs, example 4
+  from: part 2, section 10
+  tags: spec str int date pattern range union sequence star double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    cfg:
+      address:
+        name: !str(..40)
+        street?: !str(..100)
+      !**:
+        !str(/ts_.*/): !date
+        !*: !signed | !str
+    --- !cfg
+    address: {name: Ann, ts_moved: 2026-11-06, floor: +3}
+    count: +5
+    zip: 02134
+    ts_start: 2026-11-06
+    jobs:
+      - ts_end: 2026-11-07
+        n: -3
+  typed: |
+    +STR
+     +DOC !cfg
+      +MAP
+       =VAL :address
+       +MAP
+        =VAL :name
+        =VAL :Ann
+        =VAL :ts_moved
+        =DATE :2026-11-06
+        =VAL :floor
+        =INT :3
+       -MAP
+       =VAL :count
+       =INT :5
+       =VAL :zip
+       =VAL :02134
+       =VAL :ts_start
+       =DATE :2026-11-06
+       =VAL :jobs
+       +SEQ
+        +MAP
+         =VAL :ts_end
+         =DATE :2026-11-07
+         =VAL :n
+         =INT :-3
+        -MAP
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"address": {"name": "Ann", "ts_moved": "2026-11-06", "floor": 3}, "count": 5, "zip": "02134", "ts_start": "2026-11-06", "jobs": [{"ts_end": "2026-11-07", "n": -3}]}

@@ -1,0 +1,38 @@
+---
+- name: Wherever this occurs, example 3
+  from: part 2, section 10
+  tags: spec int double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    free:
+      !**:
+        timeout: !int
+    --- !free
+    timeout: 30
+    name: 30
+    jobs:
+      - nested: {timeout: 7}
+  typed: |
+    +STR
+     +DOC !free
+      +MAP
+       =VAL :timeout
+       =INT :30
+       =VAL :name
+       =VAL :30
+       =VAL :jobs
+       +SEQ
+        +MAP
+         =VAL :nested
+         +MAP
+          =VAL :timeout
+          =INT :7
+         -MAP
+        -MAP
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"timeout": 30, "name": "30", "jobs": [{"nested": {"timeout": 7}}]}

@@ -1,0 +1,20 @@
+---
+- name: 'Keys not named: `!a` on `{}`'
+  from: part 2, section 10
+  tags: int double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**: !int
+    --- !a
+    {}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {}

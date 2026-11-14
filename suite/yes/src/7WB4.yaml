@@ -1,0 +1,31 @@
+---
+- name: 'Keys not named: `!a` on `n: 1; b: {n: 1}`'
+  from: part 2, section 10
+  tags: str int double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        n: !int
+      b:
+        !**: !str
+    --- !a
+    n: 1
+    b: {n: 1}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :n
+       =INT :1
+       =VAL :b
+       +MAP
+        =VAL :n
+        =VAL :1
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"n": 1, "b": {"n": "1"}}

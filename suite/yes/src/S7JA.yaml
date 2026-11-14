@@ -1,0 +1,20 @@
+---
+- name: 'Typed: `s: abcdefgh; ---; [*s, *s, *s]; ---; [*s, *s, *s]`, at a limit of 9'
+  from: part 2, section 11
+  tags: str sequence reference application typed size error
+  fail: true
+  limit: 9
+  keep: true
+  schema: |
+    %YAML 2.0
+    --- &
+    one: [!str, ...]
+  root: one
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: abcdefgh
+    ---
+    [*s, *s, *s]
+    ---
+    [*s, *s, *s]

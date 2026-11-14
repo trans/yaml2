@@ -1,0 +1,20 @@
+---
+- name: 'What a parser holds of a date: `!datetime | !str` on `2001-02-03T04:05:06.1234567+05:30`'
+  from: part 2, section 4.8
+  tags: str datetime union cut holds
+  cut: true
+  holds: 6
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime | !str
+    --- !n
+    2001-02-03T04:05:06.1234567+05:30
+  typed: |
+    +STR
+     +DOC !n
+      =DATETIME :2001-02-03T04:05:06.123456+05:30
+     -DOC
+    -STR
+  json: |
+    "2001-02-03T04:05:06.123456+05:30"

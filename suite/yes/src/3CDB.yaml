@@ -1,0 +1,31 @@
+---
+- name: 'A standard type: `!datetime` on `2001-02-03T04:05:06Z`'
+  from: part 2, section 4.8
+  tags: datetime
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int
+    b: !bool
+    s: !str
+    d: !date
+    t: !datetime
+    x: !binary
+    f: !float
+    z: !null
+    r: !int(0..10)
+    l: !str(2..3)
+    p: !str(/[a-z]+/)
+    o:
+      a?: !str
+      b?: !int
+    --- !t
+    2001-02-03T04:05:06Z
+  typed: |
+    +STR
+     +DOC !t
+      =DATETIME :2001-02-03T04:05:06Z
+     -DOC
+    -STR
+  json: |
+    "2001-02-03T04:05:06Z"

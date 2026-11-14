@@ -1,0 +1,28 @@
+---
+- name: 'Keys not named: `!a` on `x: {ports: [1]}`'
+  from: part 2, section 10
+  tags: int sequence double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        ports: [!int, ...]
+    --- !a
+    x: {ports: [1]}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       +MAP
+        =VAL :ports
+        +SEQ
+         =INT :1
+        -SEQ
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": {"ports": [1]}}

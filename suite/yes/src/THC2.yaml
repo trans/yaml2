@@ -1,0 +1,34 @@
+---
+- name: Limits, example 1
+  from: part 2, section 4.2
+  tags: spec str int float range
+  yaml: |
+    %YAML 2.0
+    --- &
+    limits:
+      percent: !int(0..100)
+      ratio: !float(0..1)
+      name: !str(1..)
+      code: !str(..8)
+    --- !limits
+    percent: 100
+    ratio: 0.5
+    name: a
+    code: ''
+  typed: |
+    +STR
+     +DOC !limits
+      +MAP
+       =VAL :percent
+       =INT :100
+       =VAL :ratio
+       =FLT :0.5
+       =VAL :name
+       =VAL :a
+       =VAL :code
+       =VAL :
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"percent": 100, "ratio": 0.5, "name": "a", "code": ""}

@@ -1,0 +1,18 @@
+---
+- name: 'From the third review: `!int(0..10) | !str` on `100000000000000000000000000000`'
+  from: part 2, section 4.2
+  tags: str int range union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int(0..10) | !str
+    --- !n
+    100000000000000000000000000000
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :100000000000000000000000000000
+     -DOC
+    -STR
+  json: |
+    "100000000000000000000000000000"

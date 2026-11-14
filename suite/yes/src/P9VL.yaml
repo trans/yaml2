@@ -1,0 +1,37 @@
+---
+- name: Applying a schema, example 1
+  from: part 2, section 3
+  tags: spec str int merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    defaults:
+      retries: 3
+    job:
+      name: !str
+      retries: !int
+    --- !job
+    <<: *defaults
+    name: build
+    ---
+    retries: 3
+  typed: |
+    +STR
+     +DOC !job
+      +MAP
+       =VAL :retries
+       =INT :3
+       =VAL :name
+       =VAL :build
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :retries
+       =VAL :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"retries": 3, "name": "build"}
+    {"retries": "3"}

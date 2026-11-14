@@ -1,0 +1,13 @@
+---
+- name: Numbers, example 6
+  from: part 2, section 4.4
+  tags: spec str int union error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    id: !int | !str
+    --- !id
+    18446744073709551616

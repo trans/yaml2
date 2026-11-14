@@ -1,0 +1,34 @@
+---
+- name: 'Keys not named: `!a` on `s: {n: 1, z: true}; q: 1`'
+  from: part 2, section 10
+  tags: str int bool star double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    m:
+      n: !int
+      !*: !bool
+    a:
+      s: !m
+      !**: !str
+    --- !a
+    s: {n: 1, z: true}
+    q: 1
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :s
+       +MAP
+        =VAL :n
+        =INT :1
+        =VAL :z
+        =BOOL :true
+       -MAP
+       =VAL :q
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"s": {"n": 1, "z": true}, "q": "1"}

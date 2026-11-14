@@ -1,0 +1,13 @@
+---
+- name: 'Patterns, precision and limits: `!decimal(38:10 0..)` on `-1`'
+  from: part 2, section 4.7
+  tags: decimal range precision error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !decimal(38:10 0..)
+    --- !n
+    -1

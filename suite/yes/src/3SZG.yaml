@@ -1,0 +1,20 @@
+---
+- name: 'A published name: `!tabcomputing.com/address/v1` on `street: a`'
+  from: part 2, section 3.1
+  tags: published
+  store: {}
+  yaml: |
+    %YAML 2.0
+    --- !tabcomputing.com/address/v1
+    street: a
+  typed: |
+    +STR
+     +DOC !tabcomputing.com/address/v1
+      +MAP
+       =VAL :street
+       =VAL :a
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"street": "a"}

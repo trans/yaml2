@@ -1,0 +1,31 @@
+---
+- name: 'A standard type: `!str(/[a-z]+/)` on `abc`'
+  from: part 2, section 4.3
+  tags: str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int
+    b: !bool
+    s: !str
+    d: !date
+    t: !datetime
+    x: !binary
+    f: !float
+    z: !null
+    r: !int(0..10)
+    l: !str(2..3)
+    p: !str(/[a-z]+/)
+    o:
+      a?: !str
+      b?: !int
+    --- !p
+    abc
+  typed: |
+    +STR
+     +DOC !p
+      =VAL :abc
+     -DOC
+    -STR
+  json: |
+    "abc"

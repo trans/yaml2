@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!bool(0..1)` on `x`'
+  from: part 2, section 4.2
+  tags: bool range error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !bool(0..1)
+    --- !a
+    x

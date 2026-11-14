@@ -1,0 +1,18 @@
+---
+- name: 'From the third review: `!str(/[-a]+/)` on `a-a`'
+  from: part 2, section 4.3
+  tags: str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !str(/[-a]+/)
+    --- !n
+    a-a
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :a-a
+     -DOC
+    -STR
+  json: |
+    "a-a"

@@ -1,0 +1,27 @@
+---
+- name: 'Keys not named: `!a` on `[[{n: 1}]]`'
+  from: part 2, section 10
+  tags: int double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        n: !int
+    --- !a
+    [[{n: 1}]]
+  typed: |
+    +STR
+     +DOC !a
+      +SEQ
+       +SEQ
+        +MAP
+         =VAL :n
+         =INT :1
+        -MAP
+       -SEQ
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [[{"n": 1}]]

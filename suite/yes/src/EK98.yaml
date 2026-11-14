@@ -1,0 +1,9 @@
+---
+- name: Patterns, example 5
+  from: part 2, section 4.3
+  tags: spec str pattern sequence error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    tags: [!str(/[a-z]+/), ...]

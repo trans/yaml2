@@ -1,0 +1,15 @@
+---
+- name: 'Keys not named: `!a` on `ts_x: soon`'
+  from: part 2, section 10
+  tags: str date pattern double-star error
+  fail: true
+  refused: document
+  at: '/ts_x'
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        !str(/ts_.*/): !date
+    --- !a
+    ts_x: soon

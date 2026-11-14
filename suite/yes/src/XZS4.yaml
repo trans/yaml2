@@ -1,0 +1,14 @@
+---
+- name: 'A schema refused: `!a` on `x`'
+  from: part 2, section 4.3
+  tags: str int pattern error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !str(/a{513}/): !int
+      !str(/b{512}/): !int
+    --- !a
+    x

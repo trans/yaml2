@@ -1,0 +1,13 @@
+---
+- name: Standard types, example 3
+  from: part 2, section 4.1
+  tags: spec bool error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !bool
+    --- !n
+    yes

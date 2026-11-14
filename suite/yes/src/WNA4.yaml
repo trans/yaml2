@@ -1,0 +1,22 @@
+---
+- name: 'Alternatives: `!int | [!int, []]` on `[1, []]`'
+  from: part 2, section 9
+  tags: int union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    u: !int | [!int, []]
+    --- !u
+    [1, []]
+  typed: |
+    +STR
+     +DOC !u
+      +SEQ
+       =INT :1
+       +SEQ
+       -SEQ
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [1, []]

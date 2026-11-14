@@ -1,0 +1,13 @@
+---
+- name: Dates, example 2
+  from: part 2, section 4.8
+  tags: spec datetime error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    at: !datetime
+    --- !at
+    2001-02-30T04:05:06Z

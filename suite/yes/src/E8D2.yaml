@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `!int(..10 /0[0-9]+/)` on `007`'
+  from: part 2, section 4.5
+  tags: int pattern range sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int(..10 /0[0-9]+/)
+    --- !n
+    007
+  typed: |
+    +STR
+     +DOC !n
+      =INT :7
+     -DOC
+    -STR
+  json: |
+    7

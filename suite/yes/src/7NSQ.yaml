@@ -1,0 +1,13 @@
+---
+- name: A pattern on another type, example 4
+  from: part 2, section 4.5
+  tags: spec int pattern sequence error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    --- !signed
+    5

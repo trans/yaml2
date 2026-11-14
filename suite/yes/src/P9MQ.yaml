@@ -1,0 +1,23 @@
+---
+- name: 'From the third review: `!m` on `3.14159265358979323846: 5`'
+  from: part 2, section 7
+  tags: str int float star
+  yaml: |
+    %YAML 2.0
+    --- &
+    m:
+      !float: !int
+      !*: !str
+    --- !m
+    3.14159265358979323846: 5
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :3.14159265358979323846
+       =INT :5
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"3.14159265358979323846": 5}

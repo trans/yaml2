@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!date(/x/)` on `x`'
+  from: part 2, section 4.8
+  tags: date error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !date(/x/)
+    --- !a
+    x

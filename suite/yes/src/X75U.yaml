@@ -1,0 +1,16 @@
+---
+- name: 'What a parser holds of a date: `!datetime | !str` on `2001-02-03T04:05:06.0Z`'
+  from: part 2, section 4.8
+  tags: str datetime union holds error
+  fail: true
+  refused: document
+  at: '/'
+  holds: 0
+  leap-second: true
+  year-zero: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime | !str
+    --- !n
+    2001-02-03T04:05:06.0Z

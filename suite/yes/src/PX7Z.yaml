@@ -1,0 +1,27 @@
+---
+- name: 'Numbers: `!int(0..18446744073709551615)` on `18446744073709551615`'
+  from: part 2, section 4.4
+  tags: int range
+  yaml: |
+    %YAML 2.0
+    --- &
+    f: !float
+    d: !decimal
+    i: !int
+    b: !bigint
+    bu: !bigint(0..) | !str
+    u: !float | !str
+    w: !int | !float
+    c: !decimal(0..100)
+    q: !float(..3.4e38)
+    v: !int(0..18446744073709551615)
+    --- !v
+    18446744073709551615
+  typed: |
+    +STR
+     +DOC !v
+      =INT :18446744073709551615
+     -DOC
+    -STR
+  json: |
+    18446744073709551615

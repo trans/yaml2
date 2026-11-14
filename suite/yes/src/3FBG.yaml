@@ -1,0 +1,15 @@
+---
+- name: Publishing a schema, example 1
+  from: part 2, section 3.1
+  tags: spec str int range
+  yaml: |
+    %YAML 2.0
+    --- &
+    line: !str(1..80)
+    address:
+      street: !line
+      floor?: !int
+  typed: |
+    +STR
+    -STR
+  json: ''

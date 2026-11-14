@@ -1,0 +1,28 @@
+---
+- name: 'What the root reaches: `!b` on `1; ...; --- &; b: !bool; --- !b; true`'
+  from: part 2, section 2
+  tags: bool
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !b
+    b: !int
+    --- !a
+    1
+    ...
+    --- &
+    b: !bool
+    --- !b
+    true
+  typed: |
+    +STR
+     +DOC !a
+      =INT :1
+     -DOC
+     +DOC !b
+      =BOOL :true
+     -DOC
+    -STR
+  json: |
+    1
+    true

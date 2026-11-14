@@ -1,0 +1,13 @@
+---
+- name: Standard types, example 2
+  from: part 2, section 4.1
+  tags: spec int error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int
+    --- !n
+    "3"

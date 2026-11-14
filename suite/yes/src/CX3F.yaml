@@ -1,0 +1,19 @@
+---
+- name: 'What the root reaches: `!int` on `1`'
+  from: part 2, section 2
+  tags: int
+  yaml: |
+    %YAML 2.0
+    --- &
+    bad: !stirng
+    good: !int
+    --- !good
+    1
+  typed: |
+    +STR
+     +DOC !good
+      =INT :1
+     -DOC
+    -STR
+  json: |
+    1

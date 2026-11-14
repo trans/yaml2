@@ -1,0 +1,16 @@
+---
+- name: 'A schema refused: `!a` on `x`'
+  from: part 2, section 10
+  tags: str int pattern double-star error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        !str(/a{400}/): !int
+        !str(/b{400}/): !int
+        !str(/c{400}/): !int
+    --- !a
+    x

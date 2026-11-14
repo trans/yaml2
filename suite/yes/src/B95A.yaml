@@ -1,0 +1,18 @@
+---
+- name: Precision, limit and pattern together, example 3
+  from: part 2, section 4.7
+  tags: spec int range union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int(1..10) | !int(20..30)
+    --- !n
+    25
+  typed: |
+    +STR
+     +DOC !n
+      =INT :25
+     -DOC
+    -STR
+  json: |
+    25

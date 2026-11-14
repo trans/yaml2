@@ -1,0 +1,22 @@
+---
+- name: 'What the root reaches: `!a.example/job` on `retries: 3`'
+  from: part 2, section 2
+  tags: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a.example/job:
+      retries: !int
+    --- !a.example/job
+    retries: 3
+  typed: |
+    +STR
+     +DOC !a.example/job
+      +MAP
+       =VAL :retries
+       =VAL :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"retries": "3"}

@@ -1,0 +1,24 @@
+---
+- name: 'Typed: `!root` on `a:;   child: *v; b:;   child: *v`, at a limit of 28'
+  from: part 2, section 11
+  tags: str int double-star reference typed size error
+  fail: true
+  limit: 28
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    v: {x: 1}
+    leaf: {}
+    root:
+      a:
+        child: !leaf
+        !**: !int
+      b:
+        child: !leaf
+        !**: !str
+    --- !root
+    a:
+      child: *v
+    b:
+      child: *v

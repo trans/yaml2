@@ -1,0 +1,26 @@
+---
+- name: 'Keys not named: `!a` on `X_a: 2; z: 3`'
+  from: part 2, section 7
+  tags: str int pattern star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !*: !int
+      !str(/X_.*/): !str
+    --- !a
+    X_a: 2
+    z: 3
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :X_a
+       =VAL :2
+       =VAL :z
+       =INT :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"X_a": "2", "z": 3}

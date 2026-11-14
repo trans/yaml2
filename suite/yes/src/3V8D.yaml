@@ -1,0 +1,20 @@
+---
+- name: Standard types, example 4
+  from: part 2, section 4.1
+  tags: spec binary
+  yaml: |
+    %YAML 2.0
+    --- &
+    blob: !binary
+    --- !blob
+    |
+      aGVs
+      bG8=
+  typed: |
+    +STR
+     +DOC !blob
+      =BIN :68656c6c6f
+     -DOC
+    -STR
+  json: |
+    "aGVsbG8="

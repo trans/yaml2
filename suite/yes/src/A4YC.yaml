@@ -1,0 +1,31 @@
+---
+- name: 'The names are the author''s: `!signed | !str | !zig | !zag` on `a: +5; c: [-3, x]`'
+  from: part 2, section 8
+  tags: str int pattern union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    free: !signed | !str | !zig | !zag
+    zig: [!free, ...]
+    zag:
+      !str: !free
+    --- !free
+    a: +5
+    c: [-3, x]
+  typed: |
+    +STR
+     +DOC !free
+      +MAP
+       =VAL :a
+       =INT :5
+       =VAL :c
+       +SEQ
+        =INT :-3
+        =VAL :x
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": 5, "c": [-3, "x"]}

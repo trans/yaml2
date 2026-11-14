@@ -1,0 +1,24 @@
+---
+- name: 'Precision and scale on !decimal, example 1'
+  from: part 2, section 4.6
+  tags: spec decimal precision sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    prices: [!decimal(5:2), ...]
+    --- !prices
+    - 999.99
+    - 1.50
+    - -0.5
+  typed: |
+    +STR
+     +DOC !prices
+      +SEQ
+       =DEC :999.99
+       =DEC :1.50
+       =DEC :-0.5
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [999.99, 1.50, -0.5]

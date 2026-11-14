@@ -1,0 +1,12 @@
+---
+- name: 'A date level or round: `!float(0..1 round)` on `x`'
+  from: part 2, section 4.8
+  tags: float range error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !float(0..1 round)
+    --- !a
+    x

@@ -1,0 +1,23 @@
+---
+- name: Application types, example 1
+  from: part 2, section 12
+  tags: spec str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    money: !str(/[0-9]+[.][0-9]{2}/)
+    invoice:
+      total: !money
+    --- !invoice
+    total: 19.99
+  typed: |
+    +STR
+     +DOC !invoice
+      +MAP
+       =VAL :total
+       =VAL :19.99
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"total": "19.99"}

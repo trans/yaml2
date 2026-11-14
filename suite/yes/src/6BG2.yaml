@@ -1,0 +1,32 @@
+---
+- name: 'Keys not named: `!a` on `x: {db: {host: h, more: 1}}`'
+  from: part 2, section 10
+  tags: str double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        db:
+          host: !str
+    --- !a
+    x: {db: {host: h, more: 1}}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       +MAP
+        =VAL :db
+        +MAP
+         =VAL :host
+         =VAL :h
+         =VAL :more
+         =VAL :1
+        -MAP
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": {"db": {"host": "h", "more": "1"}}}

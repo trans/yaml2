@@ -1,0 +1,13 @@
+---
+- name: 'From the third review: `!int(0..) | !str` on `100000000000000000000000000000`'
+  from: part 2, section 4.2
+  tags: str int range union error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int(0..) | !str
+    --- !n
+    100000000000000000000000000000

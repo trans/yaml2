@@ -1,0 +1,18 @@
+---
+- name: 'The nearest binary64: `!float` on `9007199254740993`'
+  from: part 2, section 4.4
+  tags: float
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !float
+    --- !n
+    9007199254740993
+  typed: |
+    +STR
+     +DOC !n
+      =FLT :9007199254740992.0
+     -DOC
+    -STR
+  json: |
+    9007199254740992.0

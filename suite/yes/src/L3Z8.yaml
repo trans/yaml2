@@ -1,0 +1,19 @@
+---
+- name: 'Typed: `s: abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgh…`, at a limit of 407'
+  from: part 2, section 11
+  tags: str sequence reference application typed size
+  limit: 407
+  keep: true
+  schema: |
+    %YAML 2.0
+    --- &
+    one: [!str, ...]
+  root: one
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgh
+    ---
+    [*s, *s, *s]
+    ---
+    [*s, *s, *s]

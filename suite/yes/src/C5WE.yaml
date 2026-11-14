@@ -1,0 +1,29 @@
+---
+- name: 'A published name: `!tabcomputing.com/address/v1/a…` on `street: a; floor: 3`'
+  from: part 2, section 3.1
+  tags: str int published
+  store:
+    'a777a3595038ecd7577602ed54ead81ddee43323407f9f1f15ac1139035c5cb8': |
+      %YAML 2.0
+      --- &
+      address:
+        street: !str
+        floor?: !int
+  yaml: |
+    %YAML 2.0
+    --- !tabcomputing.com/address/v1/address.yes#sha256=a777a3595038ecd7577602ed54ead81ddee43323407f9f1f15ac1139035c5cb
+    street: a
+    floor: 3
+  typed: |
+    +STR
+     +DOC !tabcomputing.com/address/v1/address.yes#sha256=a777a3595038ecd7577602ed54ead81ddee43323407f9f1f15ac1139035c5cb
+      +MAP
+       =VAL :street
+       =VAL :a
+       =VAL :floor
+       =VAL :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"street": "a", "floor": "3"}

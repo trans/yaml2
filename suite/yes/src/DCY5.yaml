@@ -1,0 +1,16 @@
+---
+- name: 'A published name: `!x.example/c.yes#sha256=68d3aa…` on `z`'
+  from: part 2, section 3.1
+  tags: str int published error
+  fail: true
+  refused: schema
+  store:
+    '68d3aa99b59334f6706a9e823e39533df7fc598296d348bac21e3a862bd5adb0': |
+      %YAML 2.0
+      --- &
+      a: !int
+      b: !str
+  yaml: |
+    %YAML 2.0
+    --- !x.example/c.yes#sha256=68d3aa99b59334f6706a9e823e39533df7fc598296d348bac21e3a862bd5adb0
+    z

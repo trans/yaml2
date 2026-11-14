@@ -1,0 +1,34 @@
+---
+- name: References and merge, example 3
+  from: part 2, section 11
+  tags: spec str pattern range sequence reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    s: abcdefgh
+    one: [!str, ...]
+    three: [!str(/a.*/), !str(/.*h/), !str(1..)]
+    --- !one
+    [*s, *s, *s]
+    --- !three
+    [*s, *s, *s]
+  typed: |
+    +STR
+     +DOC !one
+      +SEQ
+       =VAL :abcdefgh
+       =VAL :abcdefgh
+       =VAL :abcdefgh
+      -SEQ
+     -DOC
+     +DOC !three
+      +SEQ
+       =VAL :abcdefgh
+       =VAL :abcdefgh
+       =VAL :abcdefgh
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["abcdefgh", "abcdefgh", "abcdefgh"]
+    ["abcdefgh", "abcdefgh", "abcdefgh"]

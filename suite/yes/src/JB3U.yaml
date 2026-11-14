@@ -1,0 +1,26 @@
+---
+- name: 'A standard type: `!o` on `b: ""`'
+  from: part 2, section 4.4
+  tags: str int error
+  fail: true
+  refused: document
+  at: '/b'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int
+    b: !bool
+    s: !str
+    d: !date
+    t: !datetime
+    x: !binary
+    f: !float
+    z: !null
+    r: !int(0..10)
+    l: !str(2..3)
+    p: !str(/[a-z]+/)
+    o:
+      a?: !str
+      b?: !int
+    --- !o
+    b: ""

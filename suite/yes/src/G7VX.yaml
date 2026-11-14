@@ -1,0 +1,18 @@
+---
+- name: 'Dates: `!datetime` on `1991-01-01T00:59:60+01:00`'
+  from: part 2, section 4.8
+  tags: datetime second-60
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime
+    --- !n
+    1991-01-01T00:59:60+01:00
+  typed: |
+    +STR
+     +DOC !n
+      =DATETIME :1991-01-01T00:59:60+01:00
+     -DOC
+    -STR
+  json: |
+    "1991-01-01T00:59:60+01:00"

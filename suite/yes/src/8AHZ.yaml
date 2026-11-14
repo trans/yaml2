@@ -1,0 +1,18 @@
+---
+- name: Literals, example 2
+  from: part 2, section 5
+  tags: spec
+  yaml: |
+    %YAML 2.0
+    --- &
+    mark: "!important"
+    --- !mark
+    "!important"
+  typed: |
+    +STR
+     +DOC !mark
+      =VAL :!important
+     -DOC
+    -STR
+  json: |
+    "!important"

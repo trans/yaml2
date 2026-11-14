@@ -1,0 +1,14 @@
+---
+- name: 'A schema''s full size: the schema `a: !str(/ab{3}/)` from `a`'
+  from: part 2, section 9
+  tags: str pattern application size error
+  fail: true
+  refused: schema
+  limit: 3
+  schema: |
+    %YAML 2.0
+    --- &
+    a: !str(/ab{3}/)
+  root: 'a'
+  yaml: |
+    %YAML 2.0

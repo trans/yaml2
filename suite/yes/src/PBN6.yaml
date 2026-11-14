@@ -1,0 +1,13 @@
+---
+- name: 'From the third review: `!binary` on `"aGVs\\r\\nbG8="`'
+  from: part 2, section 4.1
+  tags: binary error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !binary
+    --- !n
+    "aGVs\r\nbG8="

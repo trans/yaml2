@@ -1,0 +1,30 @@
+---
+- name: 'Keys not named: `!a` on `home: {name: x, floor: 3}`'
+  from: part 2, section 10
+  tags: str int double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    addr:
+      name: !str
+    a:
+      home: !addr
+      !**: !int
+    --- !a
+    home: {name: x, floor: 3}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :home
+       +MAP
+        =VAL :name
+        =VAL :x
+        =VAL :floor
+        =INT :3
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"home": {"name": "x", "floor": 3}}

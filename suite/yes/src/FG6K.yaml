@@ -1,0 +1,15 @@
+---
+- name: 'Typed: `{a: {n: !str}, b: {n: !str}}` on `{a: *x, b: *x}`, at a limit of 28'
+  from: part 2, section 11
+  tags: str reference typed size error
+  fail: true
+  limit: 28
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    x: {n: abcdefgh}
+    job: {n: !str}
+    pair: {a: {n: !str}, b: {n: !str}}
+    --- !pair
+    {a: *x, b: *x}

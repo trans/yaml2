@@ -1,0 +1,12 @@
+---
+- name: 'A date level or round: `!datetime(round 9)` on `x`'
+  from: part 2, section 4.8
+  tags: datetime error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !datetime(round 9)
+    --- !a
+    x

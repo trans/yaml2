@@ -1,0 +1,22 @@
+---
+- name: Publishing a schema, example 2
+  from: part 2, section 3.1
+  tags: spec published
+  yaml: |
+    %YAML 2.0
+    --- !tabcomputing.com/address/v1/address.yes#sha256=8789ccca7793386ebef9bb35f88d8b424239a44cae2bab4cbcd6222d8d2cda13
+    street: 1 Main St
+    floor: 3
+  typed: |
+    +STR
+     +DOC !tabcomputing.com/address/v1/address.yes#sha256=8789ccca7793386ebef9bb35f88d8b424239a44cae2bab4cbcd6222d8d2cda13
+      +MAP
+       =VAL :street
+       =VAL :1 Main St
+       =VAL :floor
+       =VAL :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"street": "1 Main St", "floor": "3"}

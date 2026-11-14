@@ -1,0 +1,39 @@
+---
+- name: Overview, example 4
+  from: part 2, section 1
+  tags: spec int double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    job:
+      !**:
+        timeout: !int
+        retries: !int
+    --- !job
+    name: build
+    timeout: 30
+    steps:
+      - run: make
+        retries: 2
+  typed: |
+    +STR
+     +DOC !job
+      +MAP
+       =VAL :name
+       =VAL :build
+       =VAL :timeout
+       =INT :30
+       =VAL :steps
+       +SEQ
+        +MAP
+         =VAL :run
+         =VAL :make
+         =VAL :retries
+         =INT :2
+        -MAP
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"name": "build", "timeout": 30, "steps": [{"run": "make", "retries": 2}]}

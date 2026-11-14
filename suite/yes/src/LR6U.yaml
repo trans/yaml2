@@ -1,0 +1,27 @@
+---
+- name: 'Numbers: `!float` on `0.10000000000000001`'
+  from: part 2, section 4.4
+  tags: float
+  yaml: |
+    %YAML 2.0
+    --- &
+    f: !float
+    d: !decimal
+    i: !int
+    b: !bigint
+    bu: !bigint(0..) | !str
+    u: !float | !str
+    w: !int | !float
+    c: !decimal(0..100)
+    q: !float(..3.4e38)
+    v: !int(0..18446744073709551615)
+    --- !f
+    0.10000000000000001
+  typed: |
+    +STR
+     +DOC !f
+      =FLT :0.1
+     -DOC
+    -STR
+  json: |
+    0.1

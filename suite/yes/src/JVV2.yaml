@@ -1,0 +1,13 @@
+---
+- name: 'Alternatives: `!a\u00A0b` on `3`'
+  from: part 2, section 9
+  tags: int
+  yaml: "%YAML 2.0\n--- &\n\"a\u00A0b\": !int\nu: !a\u00A0b\n--- !u\n3\n"
+  typed: |
+    +STR
+     +DOC !u
+      =INT :3
+     -DOC
+    -STR
+  json: |
+    3

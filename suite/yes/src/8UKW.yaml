@@ -1,0 +1,15 @@
+---
+- name: 'Keys not named: `!a` on `y: 1`'
+  from: part 2, section 10
+  tags: str int double-star error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      x: !str
+      !**: !int
+    --- !a
+    y: 1

@@ -1,0 +1,13 @@
+---
+- name: Alternatives, example 3
+  from: part 2, section 9
+  tags: spec int union error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    limit: !int | never
+    --- !limit
+    "30"

@@ -1,0 +1,18 @@
+---
+- name: 'A schema that loads: `!datetime | !str` on `x`'
+  from: part 2, section 4.8
+  tags: str datetime union
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !datetime | !str
+    --- !a
+    x
+  typed: |
+    +STR
+     +DOC !a
+      =VAL :x
+     -DOC
+    -STR
+  json: |
+    "x"

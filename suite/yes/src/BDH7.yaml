@@ -1,0 +1,29 @@
+---
+- name: 'Who says how to read a document: `!job` on `retries: abc`'
+  from: part 2, section 3
+  tags: str int application
+  schema: |
+    %YAML 2.0
+    --- &
+    job:
+      retries: !int
+  root: job
+  yaml: |
+    %YAML 2.0
+    --- &
+    int: !str
+    job:
+      retries: !int
+    --- !job
+    retries: abc
+  typed: |
+    +STR
+     +DOC !job
+      +MAP
+       =VAL :retries
+       =VAL :abc
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"retries": "abc"}

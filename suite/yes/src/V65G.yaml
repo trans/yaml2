@@ -1,0 +1,13 @@
+---
+- name: 'Dates: `!datetime` on `1990-12-30T23:59:60Z`'
+  from: part 2, section 4.8
+  tags: datetime second-60 error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime
+    --- !n
+    1990-12-30T23:59:60Z

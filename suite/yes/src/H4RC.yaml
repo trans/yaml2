@@ -1,0 +1,30 @@
+---
+- name: Mappings, example 1
+  from: part 2, section 7
+  tags: spec str int
+  yaml: |
+    %YAML 2.0
+    --- &
+    job:
+      name: !str
+      retries?: !int
+      "why?": !str
+    --- !job
+    retries:
+    why?: because
+    name: build
+  typed: |
+    +STR
+     +DOC !job
+      +MAP
+       =VAL :retries
+       =NULL
+       =VAL :why?
+       =VAL :because
+       =VAL :name
+       =VAL :build
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"retries": null, "why?": "because", "name": "build"}

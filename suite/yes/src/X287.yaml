@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `!decimal(5:2)` on `999.99`'
+  from: part 2, section 4.6
+  tags: decimal precision
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !decimal(5:2)
+    --- !n
+    999.99
+  typed: |
+    +STR
+     +DOC !n
+      =DEC :999.99
+     -DOC
+    -STR
+  json: |
+    999.99

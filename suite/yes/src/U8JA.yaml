@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `!decimal(5:2) | !str` on `1.005`'
+  from: part 2, section 4.6
+  tags: str decimal precision union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !decimal(5:2) | !str
+    --- !n
+    1.005
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :1.005
+     -DOC
+    -STR
+  json: |
+    "1.005"

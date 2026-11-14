@@ -1,0 +1,9 @@
+---
+- name: 'A schema refused: `a: !str(/x: y/)`'
+  from: part 2, section 4.3
+  tags: str pattern error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !str(/x: y/)

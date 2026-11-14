@@ -1,0 +1,15 @@
+---
+- name: 'What a parser holds of a date: `!datetime` on `0000-01-01T00:00:00.1234567Z`'
+  from: part 2, section 4.8
+  tags: datetime cut holds error
+  fail: true
+  refused: document
+  at: '/'
+  cut: true
+  holds: 6
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime
+    --- !n
+    0000-01-01T00:00:00.1234567Z

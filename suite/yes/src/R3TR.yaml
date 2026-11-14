@@ -1,0 +1,23 @@
+---
+- name: A pattern on another type, example 1
+  from: part 2, section 4.5
+  tags: spec int pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    offsets: [!signed, ...]
+    --- !offsets
+    - +5
+    - -3
+  typed: |
+    +STR
+     +DOC !offsets
+      +SEQ
+       =INT :5
+       =INT :-3
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [5, -3]

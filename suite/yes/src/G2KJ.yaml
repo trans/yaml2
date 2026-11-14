@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `!float(/[0-9]+/) | !str` on `abc`'
+  from: part 2, section 4.5
+  tags: str float pattern union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !float(/[0-9]+/) | !str
+    --- !n
+    abc
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :abc
+     -DOC
+    -STR
+  json: |
+    "abc"

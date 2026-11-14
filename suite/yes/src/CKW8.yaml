@@ -1,0 +1,26 @@
+---
+- name: 'A standard type: `!binary` on `a b`'
+  from: part 2, section 4.1
+  tags: binary error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !int
+    b: !bool
+    s: !str
+    d: !date
+    t: !datetime
+    x: !binary
+    f: !float
+    z: !null
+    r: !int(0..10)
+    l: !str(2..3)
+    p: !str(/[a-z]+/)
+    o:
+      a?: !str
+      b?: !int
+    --- !x
+    a b

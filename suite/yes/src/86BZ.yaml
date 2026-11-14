@@ -1,0 +1,14 @@
+---
+- name: 'Typed: `{a: !job, b: !job}` on `{a: *x, b: *x}`, at a limit of 450'
+  from: part 2, section 11
+  tags: str reference typed size
+  limit: 450
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    x: {n: abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgh}
+    job: {n: !str}
+    pair: {a: !job, b: !job}
+    --- !pair
+    {a: *x, b: *x}

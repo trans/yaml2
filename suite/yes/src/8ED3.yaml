@@ -1,0 +1,18 @@
+---
+- name: 'From the third review: `!float | !str` on `1E5`'
+  from: part 2, section 4.4
+  tags: str float union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !float | !str
+    --- !n
+    1E5
+  typed: |
+    +STR
+     +DOC !n
+      =FLT :100000.0
+     -DOC
+    -STR
+  json: |
+    100000.0

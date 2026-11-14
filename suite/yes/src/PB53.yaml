@@ -1,0 +1,18 @@
+---
+- name: Patterns, example 4
+  from: part 2, section 4.3
+  tags: spec str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    note: !str(/x:[ ]y/)
+    --- !note
+    'x: y'
+  typed: |
+    +STR
+     +DOC !note
+      =VAL :x: y
+     -DOC
+    -STR
+  json: |
+    "x: y"

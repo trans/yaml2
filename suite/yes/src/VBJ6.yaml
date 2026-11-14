@@ -1,0 +1,31 @@
+---
+- name: 'Keys not named: `!a` on `x: {n: 1, m: true}`'
+  from: part 2, section 10
+  tags: bool double-star merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    rules:
+      n: !int
+    a:
+      !**:
+        <<: *rules
+        m: !bool
+    --- !a
+    x: {n: 1, m: true}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       +MAP
+        =VAL :n
+        =INT :1
+        =VAL :m
+        =BOOL :true
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": {"n": 1, "m": true}}

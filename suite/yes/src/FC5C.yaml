@@ -1,0 +1,17 @@
+---
+- name: 'Who says how to read a document: `retries: abc`'
+  from: part 2, section 3
+  tags: int application error
+  fail: true
+  refused: document
+  at: '/retries'
+  schema: |
+    %YAML 2.0
+    --- &
+    job:
+      retries: !int
+  root: job
+  yaml: |
+    %YAML 2.0
+    ---
+    retries: abc

@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!null(0..1 /x/)` on `x`'
+  from: part 2, section 4.5
+  tags: null pattern range error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !null(0..1 /x/)
+    --- !a
+    x

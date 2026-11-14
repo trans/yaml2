@@ -1,0 +1,18 @@
+---
+- name: 'Floats: `!float(..0) | !str` on `1e-99999999999999999999`'
+  from: part 2, section 4.4
+  tags: str float range union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !float(..0) | !str
+    --- !n
+    1e-99999999999999999999
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :1e-99999999999999999999
+     -DOC
+    -STR
+  json: |
+    "1e-99999999999999999999"

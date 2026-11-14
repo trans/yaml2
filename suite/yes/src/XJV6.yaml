@@ -1,0 +1,22 @@
+---
+- name: 'A published schema: `!x.org/b.yes#sha256=d967438661…` on `true`'
+  from: part 2, section 3.1
+  tags: int bool published
+  store:
+    'd967438661e784f639331cbf35a5f243db30a9ed985d87891f3e1803f52ed73c': |
+      %YAML 2.0
+      --- &
+      a: !int
+      b: !bool
+  yaml: |
+    %YAML 2.0
+    --- !x.org/b.yes#sha256=d967438661e784f639331cbf35a5f243db30a9ed985d87891f3e1803f52ed73c
+    true
+  typed: |
+    +STR
+     +DOC !x.org/b.yes#sha256=d967438661e784f639331cbf35a5f243db30a9ed985d87891f3e1803f52ed73c
+      =BOOL :true
+     -DOC
+    -STR
+  json: |
+    true

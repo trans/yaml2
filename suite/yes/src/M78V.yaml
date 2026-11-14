@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!decimal(0..1 5:2)` on `x`'
+  from: part 2, section 4.2
+  tags: decimal range precision error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !decimal(0..1 5:2)
+    --- !a
+    x

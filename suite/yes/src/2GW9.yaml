@@ -1,0 +1,26 @@
+---
+- name: Numbers, example 4
+  from: part 2, section 4.4
+  tags: spec float decimal
+  yaml: |
+    %YAML 2.0
+    --- &
+    pi:
+      float: !float
+      decimal: !decimal
+    --- !pi
+    float: 3.14159265358979323846
+    decimal: 3.14159265358979323846
+  typed: |
+    +STR
+     +DOC !pi
+      +MAP
+       =VAL :float
+       =FLT :3.141592653589793
+       =VAL :decimal
+       =DEC :3.14159265358979323846
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"float": 3.141592653589793, "decimal": 3.14159265358979323846}

@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!bool(/x/)` on `x`'
+  from: part 2, section 4.1
+  tags: bool error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !bool(/x/)
+    --- !a
+    x

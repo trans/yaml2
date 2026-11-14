@@ -1,0 +1,23 @@
+---
+- name: 'Alternatives: `!m | !any` on `y: 1`'
+  from: part 2, section 9
+  tags: int any union
+  yaml: |
+    %YAML 2.0
+    --- &
+    m:
+      x: !int
+    u: !m | !any
+    --- !u
+    y: 1
+  typed: |
+    +STR
+     +DOC !u
+      +MAP
+       =VAL :y
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"y": "1"}

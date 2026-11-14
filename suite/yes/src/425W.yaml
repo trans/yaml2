@@ -1,0 +1,9 @@
+---
+- name: 'A schema refused: `a: {b: !int(0,100)}`'
+  from: part 2, section 4.4
+  tags: int error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {b: !int(0,100)}

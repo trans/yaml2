@@ -1,0 +1,25 @@
+---
+- name: 'From the third review: `!t` on `why?: 5`'
+  from: part 2, section 7
+  tags: str int star merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    base: {why?: !int}
+    t:
+      <<: *base
+      "why?": !str
+      !*: !int
+    --- !t
+    why?: 5
+  typed: |
+    +STR
+     +DOC !t
+      +MAP
+       =VAL :why?
+       =VAL :5
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"why?": "5"}

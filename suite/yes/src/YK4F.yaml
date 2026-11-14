@@ -1,0 +1,17 @@
+---
+- name: 'A schema''s full size: the schema `m:;   x: !int;   y?: !str; u: !m | !int` from `u`'
+  from: part 2, section 9
+  tags: str int union application size error
+  fail: true
+  refused: schema
+  limit: 9
+  schema: |
+    %YAML 2.0
+    --- &
+    m:
+      x: !int
+      y?: !str
+    u: !m | !int
+  root: 'u'
+  yaml: |
+    %YAML 2.0

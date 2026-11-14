@@ -1,0 +1,18 @@
+---
+- name: 'A schema that loads: `!float(0..1 /[0-9.]+/)` on `0`'
+  from: part 2, section 4.5
+  tags: float pattern range sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !float(0..1 /[0-9.]+/)
+    --- !a
+    0
+  typed: |
+    +STR
+     +DOC !a
+      =FLT :0.0
+     -DOC
+    -STR
+  json: |
+    0.0

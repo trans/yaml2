@@ -1,0 +1,46 @@
+---
+- name: References and merge, example 2
+  from: part 2, section 11
+  tags: spec str int double-star reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    v: {x: 1}
+    leaf: {}
+    root:
+      a:
+        child: !leaf
+        !**: !int
+      b:
+        child: !leaf
+        !**: !str
+    --- !root
+    a:
+      child: *v
+    b:
+      child: *v
+  typed: |
+    +STR
+     +DOC !root
+      +MAP
+       =VAL :a
+       +MAP
+        =VAL :child
+        +MAP
+         =VAL :x
+         =INT :1
+        -MAP
+       -MAP
+       =VAL :b
+       +MAP
+        =VAL :child
+        +MAP
+         =VAL :x
+         =VAL :1
+        -MAP
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": {"child": {"x": 1}}, "b": {"child": {"x": "1"}}}

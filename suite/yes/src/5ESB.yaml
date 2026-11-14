@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `[!decimal(5,2), ...]` on `x`'
+  from: part 2, section 4.4
+  tags: decimal sequence error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: [!decimal(5,2), ...]
+    --- !a
+    x

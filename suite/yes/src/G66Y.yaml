@@ -1,0 +1,15 @@
+---
+- name: Mappings, example 2
+  from: part 2, section 7
+  tags: spec str error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    job:
+      name: !str
+    --- !job
+    name: build
+    nmae: test

@@ -1,0 +1,28 @@
+---
+- name: 'Keys not named: `!a` on `x: *d`'
+  from: part 2, section 10
+  tags: int double-star reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    d:
+      n: 1
+    a:
+      !**:
+        n: !int
+    --- !a
+    x: *d
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       +MAP
+        =VAL :n
+        =INT :1
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": {"n": 1}}

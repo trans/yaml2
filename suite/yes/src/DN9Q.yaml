@@ -1,0 +1,16 @@
+---
+- name: 'A schema''s full size: the schema `a: !int | x` from `a`'
+  from: part 2, section 9
+  tags: int union application size
+  limit: 2
+  schema: |
+    %YAML 2.0
+    --- &
+    a: !int | x
+  root: 'a'
+  yaml: |
+    %YAML 2.0
+  typed: |
+    +STR
+    -STR
+  json: ''

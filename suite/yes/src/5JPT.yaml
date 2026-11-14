@@ -1,0 +1,20 @@
+---
+- name: 'A pattern is a plain scalar: `["!str(/[a-z]+/)", ...]` on `- "!str(/[a-z]+/)"`'
+  from: part 2, section 4.3
+  tags: str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: ["!str(/[a-z]+/)", ...]
+    --- !a
+    - "!str(/[a-z]+/)"
+  typed: |
+    +STR
+     +DOC !a
+      +SEQ
+       =VAL :!str(/[a-z]+/)
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["!str(/[a-z]+/)"]

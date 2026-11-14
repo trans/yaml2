@@ -1,0 +1,13 @@
+---
+- name: 'From the third review: `!str(/\\p{Lu}/)` on `a`'
+  from: part 2, section 4.3
+  tags: str pattern error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !str(/\p{Lu}/)
+    --- !n
+    a

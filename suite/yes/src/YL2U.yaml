@@ -1,0 +1,18 @@
+---
+- name: Wherever this occurs, example 5
+  from: part 2, section 10
+  tags: spec str date pattern range double-star error
+  fail: true
+  refused: document
+  at: '/jobs/0/ts_end'
+  yaml: |
+    %YAML 2.0
+    --- &
+    cfg:
+      name: !str(..4)
+      !**:
+        !str(/ts_.*/): !date
+    --- !cfg
+    name: Ann
+    jobs:
+      - ts_end: soon

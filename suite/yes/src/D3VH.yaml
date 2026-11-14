@@ -1,0 +1,31 @@
+---
+- name: Named types, example 1
+  from: part 2, section 8
+  tags: spec str sequence merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    base:
+      name: !str
+    step:
+      <<: *base
+      run: !str
+    steps: [!step, ...]
+    --- !steps
+    - name: build
+      run: make
+  typed: |
+    +STR
+     +DOC !steps
+      +SEQ
+       +MAP
+        =VAL :name
+        =VAL :build
+        =VAL :run
+        =VAL :make
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"name": "build", "run": "make"}]

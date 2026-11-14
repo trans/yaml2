@@ -1,0 +1,15 @@
+---
+- name: 'From the third review: `!m` on `1e999: 5`'
+  from: part 2, section 7
+  tags: str int float star error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    m:
+      !float: !int
+      !*: !str
+    --- !m
+    1e999: 5

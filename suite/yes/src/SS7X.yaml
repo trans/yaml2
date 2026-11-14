@@ -1,0 +1,23 @@
+---
+- name: 'From the third review: `!m` on `axb: 1`'
+  from: part 2, section 7
+  tags: str int pattern star
+  yaml: |
+    %YAML 2.0
+    --- &
+    m:
+      !str(/a.b/): !int
+      !*: !str
+    --- !m
+    axb: 1
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :axb
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"axb": 1}

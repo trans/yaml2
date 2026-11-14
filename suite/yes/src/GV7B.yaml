@@ -1,0 +1,21 @@
+---
+- name: 'Patterns, precision and limits: `[!decimal(5:2), ...]` on `[1.5, 2]`'
+  from: part 2, section 4.6
+  tags: decimal precision sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: [!decimal(5:2), ...]
+    --- !n
+    [1.5, 2]
+  typed: |
+    +STR
+     +DOC !n
+      +SEQ
+       =DEC :1.5
+       =DEC :2
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [1.5, 2]

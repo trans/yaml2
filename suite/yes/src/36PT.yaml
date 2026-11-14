@@ -1,0 +1,13 @@
+---
+- name: 'A quoted pattern is a literal: `["!str(/[a-z]+/)", ...]` on `- ab`'
+  from: part 2, section 5
+  tags: str pattern sequence error
+  fail: true
+  refused: document
+  at: '/0'
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: ["!str(/[a-z]+/)", ...]
+    --- !a
+    - ab

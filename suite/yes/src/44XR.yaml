@@ -1,0 +1,22 @@
+---
+- name: Standard types, example 1
+  from: part 2, section 4.1
+  tags: spec int sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: [!int, ...]
+    --- !n
+    - 3
+    - -4
+  typed: |
+    +STR
+     +DOC !n
+      +SEQ
+       =INT :3
+       =INT :-4
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [3, -4]

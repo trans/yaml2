@@ -1,0 +1,26 @@
+---
+- name: Numbers, example 5
+  from: part 2, section 4.4
+  tags: spec int bigint
+  yaml: |
+    %YAML 2.0
+    --- &
+    row:
+      id: !int
+      serial: !bigint
+    --- !row
+    id: 18446744073709551615
+    serial: 123456789012345678901234567890
+  typed: |
+    +STR
+     +DOC !row
+      +MAP
+       =VAL :id
+       =INT :18446744073709551615
+       =VAL :serial
+       =BIG :123456789012345678901234567890
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"id": 18446744073709551615, "serial": 123456789012345678901234567890}

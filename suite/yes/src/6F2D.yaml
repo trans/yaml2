@@ -1,0 +1,17 @@
+---
+- name: 'From the third review: `!t` on `{}`'
+  from: part 2, section 7
+  tags: str int star merge reference error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    base: {why?: !int}
+    t:
+      <<: *base
+      "why?": !str
+      !*: !int
+    --- !t
+    {}

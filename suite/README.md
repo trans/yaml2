@@ -88,7 +88,7 @@ that disagrees with a test has found a mistake in the test, the checker or the d
 - emitters (section 11);
 - nesting past 256 levels, where parsers may differ by refusing (section 10);
 - sections 5, 6.3, 7.2 and 12, which have few tests of their own;
-- part 2, YAML Easy Schema.
+- part 2, YAML Easy Schema, which has its own suite in [`yes/`](yes/README.md).
 
 ## License
 

@@ -1,0 +1,23 @@
+---
+- name: 'Keys not named: `!a` on `x: 1`'
+  from: part 2, section 10
+  tags: str int star double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !*: !int
+      !**: !str
+    --- !a
+    x: 1
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": 1}

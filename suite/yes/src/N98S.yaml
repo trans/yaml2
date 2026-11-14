@@ -1,0 +1,19 @@
+---
+- name: 'Floats: `!float` on `16777217`'
+  from: part 2, section 4.4
+  tags: int float
+  yaml: |
+    %YAML 2.0
+    --- &
+    float: !int
+    n: !float
+    --- !n
+    16777217
+  typed: |
+    +STR
+     +DOC !n
+      =INT :16777217
+     -DOC
+    -STR
+  json: |
+    16777217

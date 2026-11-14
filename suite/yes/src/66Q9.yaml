@@ -1,0 +1,18 @@
+---
+- name: 'A pattern is a plain scalar: `!str(/a#b/)` on `"a#b"`'
+  from: part 2, section 4.3
+  tags: str pattern
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !str(/a#b/)
+    --- !a
+    "a#b"
+  typed: |
+    +STR
+     +DOC !a
+      =VAL :a#b
+     -DOC
+    -STR
+  json: |
+    "a#b"

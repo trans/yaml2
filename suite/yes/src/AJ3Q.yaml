@@ -1,0 +1,11 @@
+---
+- name: 'A schema refused: `a:;   !**: !int;   !**: !str`'
+  from: part 2, section 10
+  tags: str int double-star error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**: !int
+      !**: !str

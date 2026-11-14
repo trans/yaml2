@@ -1,0 +1,18 @@
+---
+- name: 'Dates: `!datetime` on `2001-02-03T04:05:06Z`'
+  from: part 2, section 4.8
+  tags: datetime
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime
+    --- !n
+    2001-02-03T04:05:06Z
+  typed: |
+    +STR
+     +DOC !n
+      =DATETIME :2001-02-03T04:05:06Z
+     -DOC
+    -STR
+  json: |
+    "2001-02-03T04:05:06Z"

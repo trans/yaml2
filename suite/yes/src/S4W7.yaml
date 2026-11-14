@@ -1,0 +1,21 @@
+---
+- name: 'A pattern is a plain scalar: `[!t, ...]` on `- ab`'
+  from: part 2, section 4.3
+  tags: str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    t: !str(/[a-z]+/)
+    a: [!t, ...]
+    --- !a
+    - ab
+  typed: |
+    +STR
+     +DOC !a
+      +SEQ
+       =VAL :ab
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["ab"]

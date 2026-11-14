@@ -1,0 +1,13 @@
+---
+- name: 'A pattern on !decimal: `!decimal(/[a-z]+/) | !str` on `abc`'
+  from: part 2, section 4.5
+  tags: str decimal pattern union sequence error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !decimal(/[a-z]+/) | !str
+    --- !n
+    abc

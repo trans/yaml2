@@ -1,0 +1,13 @@
+---
+- name: 'Patterns, precision and limits: `!null(/(~|null)?/)` on `x`'
+  from: part 2, section 4.5
+  tags: null pattern error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !null(/(~|null)?/)
+    --- !n
+    x

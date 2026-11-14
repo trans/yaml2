@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Write the tests in src/ out as one directory per test, as yaml-test-suite's data branch has them.
 
-    python3 bin/suite-to-data src data
+    python3 bin/suite-to-data src data            (part 1)
+    python3 bin/suite-to-data yes/src yes-data    (part 2)
 
 Needs PyYAML. The src files use only what YAML 1.1 and 1.2 read alike: strings, `true` and integers.
 """
@@ -42,11 +43,21 @@ def main(src, out):
                 if 'tree' in test:
                     tree = re.sub('^[ \t]+', '', unescape(test['tree']), flags=re.M)
                     write(os.path.join(d, 'test.event'), tree.rstrip('\n') + '\n')
+                if 'typed' in test:
+                    typed = re.sub('^[ \t]+', '', unescape(test['typed']), flags=re.M)
+                    write(os.path.join(d, 'typed.event'), typed.rstrip('\n') + '\n')
                 if 'json' in test: write(os.path.join(d, 'in.json'), unescape(test['json']))
                 if 'rest' in test: write(os.path.join(d, 'rest'), unescape(test['rest']))
             if 'limit' in test: write(os.path.join(d, 'limit'), f"{test['limit']}\n")
-            for flag in ('keep', 'together'):
+            for flag in ('keep', 'together', 'cut', 'leap-second', 'year-zero'):
                 if test.get(flag): write(os.path.join(d, flag), '')
+            # Part 2: what the application supplies, and where a refusal comes from.
+            if 'schema' in test: write(os.path.join(d, 'schema.yaml'), unescape(test['schema']))
+            for key in ('root', 'holds', 'refused', 'at'):
+                if key in test: write(os.path.join(d, key), f'{test[key]}\n')
+            if 'store' in test:
+                os.makedirs(os.path.join(d, 'store'))
+                for h, text in test['store'].items(): write(os.path.join(d, 'store', h), unescape(text))
             made += 1
     print(f'wrote {made} tests to {out}')
 

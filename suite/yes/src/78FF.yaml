@@ -1,0 +1,9 @@
+---
+- name: 'A schema refused: `a: !decimal(5: 2)`'
+  from: part 2, section 4.6
+  tags: decimal error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !decimal(5: 2)

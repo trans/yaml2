@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!str(/\\d+/)` on `x`'
+  from: part 2, section 4.3
+  tags: str pattern error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !str(/\d+/)
+    --- !a
+    x

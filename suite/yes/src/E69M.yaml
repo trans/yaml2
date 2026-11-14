@@ -1,0 +1,18 @@
+---
+- name: Dates, example 1
+  from: part 2, section 4.8
+  tags: spec datetime
+  yaml: |
+    %YAML 2.0
+    --- &
+    at: !datetime
+    --- !at
+    2001-02-03T04:05:06.123456789Z
+  typed: |
+    +STR
+     +DOC !at
+      =DATETIME :2001-02-03T04:05:06.123456789Z
+     -DOC
+    -STR
+  json: |
+    "2001-02-03T04:05:06.123456789Z"

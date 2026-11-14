@@ -1,0 +1,26 @@
+---
+- name: Numbers, example 3
+  from: part 2, section 4.4
+  tags: spec float decimal range
+  yaml: |
+    %YAML 2.0
+    --- &
+    order:
+      price: !decimal(0..)
+      ratio: !float
+    --- !order
+    price: 19.99
+    ratio: 0.1
+  typed: |
+    +STR
+     +DOC !order
+      +MAP
+       =VAL :price
+       =DEC :19.99
+       =VAL :ratio
+       =FLT :0.1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"price": 19.99, "ratio": 0.1}

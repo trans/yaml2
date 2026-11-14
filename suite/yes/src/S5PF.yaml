@@ -1,0 +1,32 @@
+---
+- name: 'Keys not named: `!a` on `s: [{x: a, y: 1}]`'
+  from: part 2, section 10
+  tags: str int sequence double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    m:
+      x: !str
+    a:
+      s: [!m, ...]
+      !**: !int
+    --- !a
+    s: [{x: a, y: 1}]
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :s
+       +SEQ
+        +MAP
+         =VAL :x
+         =VAL :a
+         =VAL :y
+         =INT :1
+        -MAP
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"s": [{"x": "a", "y": 1}]}

@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!bigint(round)` on `x`'
+  from: part 2, section 4.4
+  tags: bigint error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !bigint(round)
+    --- !a
+    x

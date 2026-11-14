@@ -1,0 +1,23 @@
+---
+- name: 'From the third review: `!m` on `"a\\rb": 1`'
+  from: part 2, section 7
+  tags: str int pattern star
+  yaml: |
+    %YAML 2.0
+    --- &
+    m:
+      !str(/a.b/): !int
+      !*: !str
+    --- !m
+    "a\rb": 1
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :a\rb
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a\rb": "1"}

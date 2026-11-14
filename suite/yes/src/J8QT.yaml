@@ -1,0 +1,15 @@
+---
+- name: 'Keys not named: `!a` on `ports: 1`'
+  from: part 2, section 10
+  tags: int sequence double-star error
+  fail: true
+  refused: document
+  at: '/ports'
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        ports: [!int, ...]
+    --- !a
+    ports: 1

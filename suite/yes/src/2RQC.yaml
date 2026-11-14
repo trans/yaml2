@@ -1,0 +1,12 @@
+---
+- name: Patterns, example 3
+  from: part 2, section 4.3
+  tags: spec str pattern sequence error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    tag: !str(/^[a-z]+$/)
+    --- !tag
+    web

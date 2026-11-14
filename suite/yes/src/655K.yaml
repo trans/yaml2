@@ -1,0 +1,13 @@
+---
+- name: 'A schema refused: `!a` on `x`'
+  from: part 2, section 7
+  tags: star error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !*: !stirng
+    --- !a
+    x

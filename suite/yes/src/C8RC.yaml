@@ -1,0 +1,18 @@
+---
+- name: 'A pattern is a plain scalar: `!str(/[0-9]{1,3}/)` on `"12"`'
+  from: part 2, section 4.3
+  tags: str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !str(/[0-9]{1,3}/)
+    --- !a
+    "12"
+  typed: |
+    +STR
+     +DOC !a
+      =VAL :12
+     -DOC
+    -STR
+  json: |
+    "12"

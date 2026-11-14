@@ -1,0 +1,30 @@
+---
+- name: Mappings, example 4
+  from: part 2, section 7
+  tags: spec str int bool pattern
+  yaml: |
+    %YAML 2.0
+    --- &
+    env:
+      PATH: !str
+      !str(/X_.*/): !str
+      !int: !bool
+    --- !env
+    PATH: /bin
+    X_A: a
+    "7": true
+  typed: |
+    +STR
+     +DOC !env
+      +MAP
+       =VAL :PATH
+       =VAL :/bin
+       =VAL :X_A
+       =VAL :a
+       =VAL :7
+       =BOOL :true
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"PATH": "/bin", "X_A": "a", "7": true}

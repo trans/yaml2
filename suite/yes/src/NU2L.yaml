@@ -1,0 +1,32 @@
+---
+- name: A pattern on another type, example 2
+  from: part 2, section 4.5
+  tags: spec str float decimal null pattern union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    cents: !decimal(/[0-9]+\.[0-9]{2}/)
+    none: !null(/(~|null)?/)
+    item:
+      price: !cents
+      ratio: !float(/[0-9]*\.[0-9]+/)
+      note: !none | !str
+    --- !item
+    price: 19.99
+    ratio: .5
+    note: ~
+  typed: |
+    +STR
+     +DOC !item
+      +MAP
+       =VAL :price
+       =DEC :19.99
+       =VAL :ratio
+       =FLT :0.5
+       =VAL :note
+       =NULL
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"price": 19.99, "ratio": 0.5, "note": null}

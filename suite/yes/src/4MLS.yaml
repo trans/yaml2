@@ -1,0 +1,30 @@
+---
+- name: 'Keys not named: `!a` on `x: 1; b: {y: true}`'
+  from: part 2, section 10
+  tags: int bool double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**: !int
+      b:
+        !**: !bool
+    --- !a
+    x: 1
+    b: {y: true}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       =INT :1
+       =VAL :b
+       +MAP
+        =VAL :y
+        =BOOL :true
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": 1, "b": {"y": true}}

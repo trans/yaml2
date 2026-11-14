@@ -1,0 +1,16 @@
+---
+- name: 'Keys not named: `!a` on `b: {y: 1}`'
+  from: part 2, section 10
+  tags: int bool double-star error
+  fail: true
+  refused: document
+  at: '/b/y'
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**: !int
+      b:
+        !**: !bool
+    --- !a
+    b: {y: 1}

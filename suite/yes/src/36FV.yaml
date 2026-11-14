@@ -1,0 +1,28 @@
+---
+- name: 'Keys not named: `!a` on `<<: *d; m: 2`'
+  from: part 2, section 10
+  tags: int double-star merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    d:
+      n: 1
+    a:
+      !**:
+        n: !int
+    --- !a
+    <<: *d
+    m: 2
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :n
+       =INT :1
+       =VAL :m
+       =VAL :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"n": 1, "m": "2"}

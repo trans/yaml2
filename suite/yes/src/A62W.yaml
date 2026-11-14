@@ -1,0 +1,17 @@
+---
+- name: Named types, example 2
+  from: part 2, section 8
+  tags: spec bool error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !b
+    b: !int
+    --- !a
+    1
+    --- &
+    b: !bool
+    --- !a
+    true

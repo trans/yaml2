@@ -1,0 +1,27 @@
+---
+- name: 'Numbers: `!float | !str` on `1.5`'
+  from: part 2, section 4.4
+  tags: str float union
+  yaml: |
+    %YAML 2.0
+    --- &
+    f: !float
+    d: !decimal
+    i: !int
+    b: !bigint
+    bu: !bigint(0..) | !str
+    u: !float | !str
+    w: !int | !float
+    c: !decimal(0..100)
+    q: !float(..3.4e38)
+    v: !int(0..18446744073709551615)
+    --- !u
+    1.5
+  typed: |
+    +STR
+     +DOC !u
+      =FLT :1.5
+     -DOC
+    -STR
+  json: |
+    1.5

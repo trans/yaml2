@@ -1,0 +1,30 @@
+---
+- name: Mappings, example 5
+  from: part 2, section 7
+  tags: spec str int pattern star
+  yaml: |
+    %YAML 2.0
+    --- &
+    env:
+      PATH: !str
+      !*: !int
+      !str(/X_.*/): !str
+    --- !env
+    PATH: /bin
+    X_A: a
+    retries: 3
+  typed: |
+    +STR
+     +DOC !env
+      +MAP
+       =VAL :PATH
+       =VAL :/bin
+       =VAL :X_A
+       =VAL :a
+       =VAL :retries
+       =INT :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"PATH": "/bin", "X_A": "a", "retries": 3}

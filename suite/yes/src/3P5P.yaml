@@ -1,0 +1,29 @@
+---
+- name: 'Keys not named: `!p | !q` on `k: a; z: 1`'
+  from: part 2, section 7
+  tags: int union star
+  yaml: |
+    %YAML 2.0
+    --- &
+    p:
+      k: a
+      !*: !int
+    q:
+      k: b
+    u: !p | !q
+    --- !u
+    k: a
+    z: 1
+  typed: |
+    +STR
+     +DOC !u
+      +MAP
+       =VAL :k
+       =VAL :a
+       =VAL :z
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": "a", "z": 1}

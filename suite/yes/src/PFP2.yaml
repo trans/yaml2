@@ -1,0 +1,23 @@
+---
+- name: Patterns, example 1
+  from: part 2, section 4.3
+  tags: spec str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    tag: !str(/[a-z][a-z0-9-]*/)
+    tags: [!tag, ...]
+    --- !tags
+    - web
+    - db-1
+  typed: |
+    +STR
+     +DOC !tags
+      +SEQ
+       =VAL :web
+       =VAL :db-1
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["web", "db-1"]

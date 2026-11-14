@@ -1,0 +1,29 @@
+---
+- name: 'Keys not named: `!a` on `x: {z: 1}; y: 2`'
+  from: part 2, section 10
+  tags: int any double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      x: !any
+      !**: !int
+    --- !a
+    x: {z: 1}
+    y: 2
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :x
+       +MAP
+        =VAL :z
+        =VAL :1
+       -MAP
+       =VAL :y
+       =INT :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": {"z": "1"}, "y": 2}

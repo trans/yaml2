@@ -1,0 +1,27 @@
+---
+- name: 'Who says how to read a document: `job: data; ---; retries: 3`'
+  from: part 2, section 3
+  tags: int application
+  schema: |
+    %YAML 2.0
+    --- &
+    job:
+      retries: !int
+  root: job
+  yaml: |
+    %YAML 2.0
+    --- &
+    job: data
+    ---
+    retries: 3
+  typed: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :retries
+       =INT :3
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"retries": 3}

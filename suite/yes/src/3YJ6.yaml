@@ -1,0 +1,13 @@
+---
+- name: 'From the third review: `!float | !str` on `1.8e308`'
+  from: part 2, section 4.4
+  tags: str float union error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !float | !str
+    --- !n
+    1.8e308

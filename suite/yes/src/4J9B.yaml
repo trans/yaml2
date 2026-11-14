@@ -1,0 +1,19 @@
+---
+- name: 'Alternatives: `[]` on `[]`'
+  from: part 2, section 9
+  tags: sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    e: []
+    --- !e
+    []
+  typed: |
+    +STR
+     +DOC !e
+      +SEQ
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    []

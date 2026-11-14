@@ -1,0 +1,12 @@
+---
+- name: 'A schema refused: `!float(5:2)` on `x`'
+  from: part 2, section 4.4
+  tags: float error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !float(5:2)
+    --- !a
+    x

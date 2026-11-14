@@ -1,0 +1,45 @@
+---
+- name: Overview, example 2
+  from: part 2, section 1
+  tags: spec str int sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    step:
+      run: !str
+      retries: !int
+    job:
+      steps: [!step, ...]
+      cleanup: !step
+    --- !job
+    steps:
+      - run: make
+        retries: 2
+    cleanup:
+      run: rm
+      retries: 0
+  typed: |
+    +STR
+     +DOC !job
+      +MAP
+       =VAL :steps
+       +SEQ
+        +MAP
+         =VAL :run
+         =VAL :make
+         =VAL :retries
+         =INT :2
+        -MAP
+       -SEQ
+       =VAL :cleanup
+       +MAP
+        =VAL :run
+        =VAL :rm
+        =VAL :retries
+        =INT :0
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"steps": [{"run": "make", "retries": 2}], "cleanup": {"run": "rm", "retries": 0}}

@@ -1,0 +1,12 @@
+---
+- name: 'A schema''s full size: `!int | !str` on `1`'
+  from: part 2, section 9
+  tags: str int union size error
+  fail: true
+  limit: 1
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !int | !str
+    --- !a
+    1

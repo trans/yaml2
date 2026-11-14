@@ -1,0 +1,14 @@
+---
+- name: 'A schema''s full size: the schema `a: !str` from `a`'
+  from: part 2, section 9
+  tags: str application size error
+  fail: true
+  refused: schema
+  limit: 0
+  schema: |
+    %YAML 2.0
+    --- &
+    a: !str
+  root: 'a'
+  yaml: |
+    %YAML 2.0

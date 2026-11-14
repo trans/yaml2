@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `!str(1..8 /[a-z]+/)` on `web`'
+  from: part 2, section 4.3
+  tags: str pattern range sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !str(1..8 /[a-z]+/)
+    --- !n
+    web
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :web
+     -DOC
+    -STR
+  json: |
+    "web"

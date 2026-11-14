@@ -1,0 +1,20 @@
+---
+- name: 'What a parser holds of a date: `!datetime` on `1999-12-31T23:59:59.9999999Z`'
+  from: part 2, section 4.8
+  tags: datetime cut holds
+  cut: true
+  holds: 6
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime
+    --- !n
+    1999-12-31T23:59:59.9999999Z
+  typed: |
+    +STR
+     +DOC !n
+      =DATETIME :1999-12-31T23:59:59.999999Z
+     -DOC
+    -STR
+  json: |
+    "1999-12-31T23:59:59.999999Z"

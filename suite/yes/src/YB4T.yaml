@@ -1,0 +1,30 @@
+---
+- name: 'Keys not named: `!a` on `m: {ts_x: hello, ts_y: 2026-11-06}`'
+  from: part 2, section 10
+  tags: str date pattern double-star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        !str(/ts_.*/): !date
+      m:
+        ts_x: !str
+    --- !a
+    m: {ts_x: hello, ts_y: 2026-11-06}
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :m
+       +MAP
+        =VAL :ts_x
+        =VAL :hello
+        =VAL :ts_y
+        =DATE :2026-11-06
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"m": {"ts_x": "hello", "ts_y": "2026-11-06"}}

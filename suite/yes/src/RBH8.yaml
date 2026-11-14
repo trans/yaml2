@@ -1,0 +1,13 @@
+---
+- name: 'Patterns, precision and limits: `!decimal(5:2)` on `1e99999999999999999999`'
+  from: part 2, section 4.6
+  tags: decimal precision error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !decimal(5:2)
+    --- !n
+    1e99999999999999999999

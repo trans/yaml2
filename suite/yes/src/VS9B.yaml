@@ -1,0 +1,20 @@
+---
+- name: 'A schema''s full size: the schema `a:;   !**:;     n: !int;     !str(/x/): !int;    …` from `a`'
+  from: part 2, section 9
+  tags: str int pattern star double-star application size
+  limit: 9
+  schema: |
+    %YAML 2.0
+    --- &
+    a:
+      !**:
+        n: !int
+        !str(/x/): !int
+        !*: !str
+  root: 'a'
+  yaml: |
+    %YAML 2.0
+  typed: |
+    +STR
+    -STR
+  json: ''

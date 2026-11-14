@@ -1,0 +1,12 @@
+---
+- name: 'A date level or round: `!bool(round)` on `x`'
+  from: part 2, section 4.8
+  tags: bool error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !bool(round)
+    --- !a
+    x

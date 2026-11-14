@@ -1,0 +1,24 @@
+---
+- name: 'Keys not named: `!a` on `k: [1]`'
+  from: part 2, section 7
+  tags: int sequence star
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !*: [!int, ...]
+    --- !a
+    k: [1]
+  typed: |
+    +STR
+     +DOC !a
+      +MAP
+       =VAL :k
+       +SEQ
+        =INT :1
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": [1]}

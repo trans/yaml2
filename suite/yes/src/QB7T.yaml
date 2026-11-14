@@ -1,0 +1,27 @@
+---
+- name: References and merge, example 1
+  from: part 2, section 11
+  tags: spec str int reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    port: 80
+    app:
+      number: !int
+      text: !str
+    --- !app
+    number: *port
+    text: *port
+  typed: |
+    +STR
+     +DOC !app
+      +MAP
+       =VAL :number
+       =INT :80
+       =VAL :text
+       =VAL :80
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"number": 80, "text": "80"}

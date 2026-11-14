@@ -1,0 +1,18 @@
+---
+- name: 'From the third review: `!float` on `1.79769313486231570815e308`'
+  from: part 2, section 4.4
+  tags: float
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !float
+    --- !n
+    1.79769313486231570815e308
+  typed: |
+    +STR
+     +DOC !n
+      =FLT :1.7976931348623157e+308
+     -DOC
+    -STR
+  json: |
+    1.7976931348623157e+308

@@ -1,0 +1,17 @@
+---
+- name: 'A published schema is one table: `!x.org/b.yes#sha256=f0d4599d7e…` on `true`'
+  from: part 2, section 3.1
+  tags: int bool published error
+  fail: true
+  refused: schema
+  store:
+    'f0d4599d7e748297244d59a65c14e9bf65c4a53d7ce3a6e548f0047a84c6a88e': |
+      %YAML 2.0
+      --- &
+      a: !int
+      b: !bool
+      ...
+  yaml: |
+    %YAML 2.0
+    --- !x.org/b.yes#sha256=f0d4599d7e748297244d59a65c14e9bf65c4a53d7ce3a6e548f0047a84c6a88e
+    true

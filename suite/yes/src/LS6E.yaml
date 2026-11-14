@@ -1,0 +1,13 @@
+---
+- name: 'Precision and scale on !decimal, example 2'
+  from: part 2, section 4.6
+  tags: spec decimal precision error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    price: !decimal(5:2)
+    --- !price
+    1.005

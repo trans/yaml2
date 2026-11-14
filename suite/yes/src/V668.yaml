@@ -1,0 +1,15 @@
+---
+- name: 'What a parser holds of a date: `!datetime` on `2001-02-03T04:05:06.1234Z`'
+  from: part 2, section 4.8
+  tags: datetime holds error
+  fail: true
+  refused: document
+  at: '/'
+  holds: 3
+  year-zero: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !datetime
+    --- !n
+    2001-02-03T04:05:06.1234Z

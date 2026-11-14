@@ -1,0 +1,32 @@
+---
+- name: Overview, example 3
+  from: part 2, section 1
+  tags: spec str sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    node:
+      name: !str
+      children?: [!node, ...]
+    --- !node
+    name: a
+    children:
+      - name: b
+  typed: |
+    +STR
+     +DOC !node
+      +MAP
+       =VAL :name
+       =VAL :a
+       =VAL :children
+       +SEQ
+        +MAP
+         =VAL :name
+         =VAL :b
+        -MAP
+       -SEQ
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"name": "a", "children": [{"name": "b"}]}

@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `!decimal(/[0-9e]+/)` on `007e5`'
+  from: part 2, section 4.5
+  tags: decimal pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !decimal(/[0-9e]+/)
+    --- !n
+    007e5
+  typed: |
+    +STR
+     +DOC !n
+      =DEC :7e5
+     -DOC
+    -STR
+  json: |
+    7e5

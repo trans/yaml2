@@ -1,0 +1,18 @@
+---
+- name: 'A limit on the number as written: `!float(..0.1) | !str` on `0.1`'
+  from: part 2, section 4.2
+  tags: str float range union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !float(..0.1) | !str
+    --- !n
+    0.1
+  typed: |
+    +STR
+     +DOC !n
+      =FLT :0.1
+     -DOC
+    -STR
+  json: |
+    0.1

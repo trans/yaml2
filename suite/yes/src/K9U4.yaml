@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, precision and limits: `!decimal(38:10)` on `1234567890123456789012345678.1234567890`'
+  from: part 2, section 4.6
+  tags: decimal precision
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !decimal(38:10)
+    --- !n
+    1234567890123456789012345678.1234567890
+  typed: |
+    +STR
+     +DOC !n
+      =DEC :1234567890123456789012345678.1234567890
+     -DOC
+    -STR
+  json: |
+    1234567890123456789012345678.1234567890

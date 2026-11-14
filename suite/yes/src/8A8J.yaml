@@ -1,0 +1,13 @@
+---
+- name: 'A schema refused: `!x(1..)` on `x`'
+  from: part 2, section 4.2
+  tags: range error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !x(1..)
+    x: !str
+    --- !a
+    x

@@ -1,0 +1,9 @@
+---
+- name: 'A schema refused: `a: !str | {b: c}`'
+  from: part 2, section 9
+  tags: str union error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: !str | {b: c}

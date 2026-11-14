@@ -1,0 +1,18 @@
+---
+- name: 'From the third review: `!str(/[\\p{L}\\p{Nd}]+/)` on `À1`'
+  from: part 2, section 4.3
+  tags: str pattern sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !str(/[\p{L}\p{Nd}]+/)
+    --- !n
+    À1
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :À1
+     -DOC
+    -STR
+  json: |
+    "À1"
