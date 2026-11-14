@@ -261,6 +261,16 @@ of 187,909 cases, was clean. Two points for the user:
   a name, so only that node doubles: typed is at most twice full. Typing the checker's 381 other documents
   as kept found 5 such cases, all of this kind, and none past twice. The user is asked: say "at most
   twice", or not count the hand-off, so that typed never passes full (the agent's recommendation).
+  **The rule behind it (2026-11-14).** Section 10's "`!**` covers the node it sits on" (since `7976461`;
+  no note says the user chose it). The user asked for its ramifications in detail. Measured with the
+  checker: it lets `deploy: {!**: {replicas: !int}}` take `hello` and `[a, b]` as strings; `!j` takes `5`
+  but `!j | !bool` refuses it; `{name?: !str, !**: !int}` takes `5` and `{name: !str, !**: !int}`
+  refuses it, and a merge carries this; on `[{name: a}]` that type refuses `/0/name`; section 10's `job` takes
+  `args: +5`. Dropping it: 68 of 68 examples pass, and 5 edge cases and 5 suite tests change (25QX,
+  5B26, 69LE, F2SL, Y9EH), all tests of the rule. JSON: the one-entry form gets 1,015 of 1,015
+  SchemaStore and 10 of 95 JSONTestSuite (75 are lists, 8 bare values); the three-entry form
+  (`json: !null | !bool | !int | !float | !str | !jmap | !jseq`, `jmap: {!*: !json}`, `jseq: [!json, ...]`)
+  gets 1,015 and 93, as now. The agent recommends dropping it; the user hasn't chosen.
 
 **Oyl NG with patterns (2026-11-13)**
 (`mail/received/20261113-153724Z-@oylng--patterns-and-a-stream-with-no-document-2b7d9854.md`). The engine
