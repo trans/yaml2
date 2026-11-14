@@ -358,8 +358,8 @@ writer who means an anchor would get a pattern that never matches. A pattern end
 
 A pattern's groups nest at most 256 deep. Part 1 lets a parser go deeper than that in a document
 (part 1, section 10), but every parser refuses a deeper pattern when the schema is loaded, so all
-of them agree on what loads. Section 9's count doesn't limit depth, since a group counts only what
-it holds. Of SchemaStore's 1,287 patterns, the deepest nests 7.
+of them agree on what loads. Section 9's count would let a pattern nest about 1,000 deep, since a
+group adds only 1. Of SchemaStore's 1,287 patterns, the deepest nests 7.
 
 ```yaml
 --- &
@@ -1060,15 +1060,17 @@ list: [!u, ...]
 
 A union holds at most 1,024 positions once its names are expanded. A type counts 1, a literal
 counts nothing, since a hash table finds it, and a type with a pattern counts its pattern instead. A
-pattern is counted as written. Each character, class, `.` and `\p{..}` counts 1, alternatives and
-groups add what they hold, and a count multiplies what it repeats: `{n}` and `{n,}` by n, `{n,m}` by
-m, and `*`, `+`, `?` and `{0,}` by 1. So `(a{1000}){1000}` counts a million, and
-`abc|abd` counts 6. A mapping's type keys count as one union, and so do the type keys of all the
+pattern is counted as written. Each character, class, `.` and `\p{..}` counts 1, alternatives add
+what they hold, a group adds 1 to what it holds, and a count multiplies what it repeats: `{n}` and
+`{n,}` by n, `{n,m}` by m, and `*`, `+`, `?` and `{0,}` by 1. Each part counts at least 1 after its
+count, and so does an empty alternative, since a matcher still steps through it. So
+`(a{1000}){1000}` counts 1,001,000, `abc|abd` counts 6, `((a?)?)?` counts 3, and `(|||)` counts 5.
+A mapping's type keys count as one union, and so do the type keys of all the
 mapping alternatives in a union, since fitting tests a key against each of them. A type on its own
 is a union of one. A schema past that is refused when it is loaded, by every parser, so all of them
 agree on what loads. Of SchemaStore's 1,287 patterns, counted this way,
-one goes past it, a case-insensitive list of names at 11,831 positions, and would have to be loosened.
-The next has 772, and no real union of patterns has more than 782.
+one goes past it, a case-insensitive list of names at 11,832 positions, and would have to be loosened.
+The next has 773, and no real union of patterns has more than 813.
 
 A schema has a full size too, and it can't pass the size limit (part 1, section 10). Like a stream's,
 it is worked out by addition before anything is built. Each entry a schema reaches, and each place
@@ -1497,7 +1499,8 @@ depth does. Part 1, section 15, covers the data.
   links each collection's start to its end and steps over what is inside. Scanning instead costs
   depth times size, which section 2 rules out.
 - **Patterns.** Matching must take time linear in the string, and section 9's ceiling limits a
-  pattern's size. RFC 9485 warns that existing engines may not be linear, so such an
+  pattern's size. Every part and group counts, so a plain matcher's steps per character stay within
+  a small multiple of the count. RFC 9485 warns that existing engines may not be linear, so such an
   engine can't be used on a schema someone else wrote.
 - **Big integers.** Converting decimal digits to binary takes more than linear time, so `!int`'s range is
   fixed, and a parser doesn't convert a `!bigint` while reading (section 4.4).

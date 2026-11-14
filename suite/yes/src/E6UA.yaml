@@ -1,5 +1,5 @@
 ---
-- name: 'A schema refused: `!str(/(a|b){513}/)` on `x`'
+- name: 'A schema refused: `!str(/(a|b|c){257}/)` on `x`'
   from: part 2, section 4.3
   tags: str pattern error
   fail: true
@@ -7,6 +7,6 @@
   yaml: |
     %YAML 2.0
     --- &
-    a: !str(/(a|b){513}/)
+    a: !str(/(a|b|c){257}/)
     --- !a
     x
