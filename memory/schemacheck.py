@@ -689,7 +689,9 @@ if __name__ == '__main__':
                'a: !int(/[0-9]+/ 0..100)', 'a: !int(0..1 5..9)', 'a: !int(5:2)', 'a: !float(5:2)', 'a: !str(5:2)', 'a: !decimal(0..1 5:2)',
                'a: !decimal(2:5)', 'a: !decimal(0:0)', 'a: !decimal(05:2)', 'a: !decimal(5:02)', 'a: !decimal(5: 2)', 'a: !decimal(5,2)', 'a: !decimal(5:2 5:2)',
                'a: !decimal(5:2 /x/ 0..1)', 'a: !int(0..100  /x/)', 'a: !int(0..100/x/)', 'a: !int( 0..100)', 'a: !int(0..100 )', 'a: !null(0..1 /x/)',
-               'a: !null(0..1)', 'a: !int()', 'a: [!decimal(5,2), ...]', 'a: {b: !decimal(5,2)}', 'a: !decimal(5:2 /^x/)', 'a: !float(/x/ 0..1)']
+               'a: !null(0..1)', 'a: !int()', 'a: [!decimal(5,2), ...]', 'a: {b: !decimal(5,2)}', 'a: !decimal(5:2 /^x/)', 'a: !float(/x/ 0..1)',
+               # @oylng: a name that only names itself through a nested union, and through a pasted one.
+               'a: {!|: [{!|: [!a]}, !int]}\n--- !a\n5', 'u: {!|: [!a]}\na: {!|: [*u, !int]}\n--- !a\n5']
     for t in schemas:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
