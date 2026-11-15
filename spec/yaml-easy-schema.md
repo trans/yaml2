@@ -1414,6 +1414,13 @@ shapes: [!shape, ...]
 [{"x": 1, "y": 2}, {"target": 3}]
 ```
 
+A value typed through more than one name runs the code of the outermost name that is bound, and no
+other. With `spot: !point`, a `!spot` value goes through `spot` and then `point`. If the application
+binds `spot` to its `Spot` class, the value is a `Spot`, whether `point` is bound or not, since the
+schema chose a spot. If only `point` is bound, it is a `Point`. A union's name counts the same way:
+code bound to `shape` above takes the place of `point`'s and `sweep`'s, and gets what the chosen
+alternative delivers.
+
 A binding that refuses, refuses the document. It doesn't move on to the next alternative: the
 schema chooses the type, and then the code runs, so code never runs on trial. It is called once per
 use, so `*p` twice makes two calls and two values, since shared objects read as copies.
