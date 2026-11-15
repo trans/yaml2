@@ -148,8 +148,8 @@ A document gets its schema in one of two ways:
 A global name, one with a `/`, is never looked up in the table, so it stamps nothing. Nor does a
 name the table doesn't have. A document with neither stays strings.
 
-A library may let an application ignore a file's schema and read the document as it is, or hand it
-the schema, which is YAML too.
+A library may let an application ignore a file's schema and read the document as one with no stamp,
+or hand it the schema, which is YAML too.
 
 A schema from outside the stream, the application's own or a published one (section 3.1), is a
 stream of its own. A parser reads it under the size limit (part 1, section 10), as it reads any
@@ -201,7 +201,9 @@ address:
 ```
 
 A published name is a global name that ends in such a file name, then `#sha256=` and the SHA-256 of
-the file's bytes in 64 lowercase hex digits, as PEP 503 writes a hash in a URL. Its address is
+the file's bytes in 64 lowercase hex digits, as PEP 503 writes a hash in a URL. Every part of the name
+between `/`s holds something, and so does the file name before `.yes`, so `/a.yes`, `x.org//a.yes` and
+`x.org/.yes` are never published, and stamp nothing. Its address is
 `https://` and the name before the `#`, and a fragment never goes to the server, so that is an ordinary
 URL. No other name has one. The path is the publisher's, so a version goes there.
 
