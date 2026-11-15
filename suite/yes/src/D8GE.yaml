@@ -1,6 +1,6 @@
 ---
 - name: 'A schema refused: `[...]` on `x`'
-  from: part 2, section 14
+  from: part 2, section 6
   tags: sequence error
   fail: true
   refused: schema

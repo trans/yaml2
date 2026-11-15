@@ -1,6 +1,6 @@
 ---
 - name: 'A schema refused: `x | y` on `x`'
-  from: part 2, section 9
+  from: part 2, section 14
   tags: union error
   fail: true
   refused: schema

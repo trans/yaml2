@@ -1,6 +1,6 @@
 ---
 - name: 'From the third review: `{!|: [!circle, !square]}` on `{kind: square, r: 1}`'
-  from: part 2, section 4.4
+  from: part 2, section 9
   tags: int union error
   fail: true
   refused: document

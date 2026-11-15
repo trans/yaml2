@@ -1,6 +1,6 @@
 ---
 - name: 'A schema refused: `!any(/x/)` on `x`'
-  from: part 2, section 4.1
+  from: part 2, section 4.5
   tags: any error
   fail: true
   refused: schema

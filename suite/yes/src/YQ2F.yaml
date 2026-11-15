@@ -1,6 +1,6 @@
 ---
 - name: 'From the third review: `{!|: [a(/b, !int]}` on `a(/b`'
-  from: part 2, section 4.4
+  from: part 2, section 5
   tags: int union
   yaml: |
     %YAML 2.0

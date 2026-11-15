@@ -1,6 +1,6 @@
 ---
 - name: 'A schema refused: `!str(/一|丁|丂|七|丄|丅|丆|万|丈|三|上|下|丌|不|与|丏|丐…` on `x`'
-  from: part 2, section 4.3
+  from: part 2, section 9
   tags: str pattern error
   fail: true
   refused: schema
