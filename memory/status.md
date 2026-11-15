@@ -373,12 +373,16 @@ pushed with CI passing on all four jobs, each with the suite at `e8fe146` 797 pa
 holding more, skipped):
 - **Published names** (Oyl NG `d435018`; `mail/received/20261115-051810Z-@oylng--published-names-in-the-engine-a030f180.md`).
   The application gives the parser a lookup, by address or hash; all 23 store tests agree, and the checker
-  at ai `eebafbf`, 859 cases, all agree. **Open, for the user:** part 1 takes `x.org//a.yes`, `/a.yes` and
+  at ai `eebafbf`, 859 cases, all agree. **Fixed in main `bc14dca`** (the user: "that's fine", 2026-11-15):
+  the text now says every part between `/`s holds something, as the checker does; three tests, one per odd
+  name, deliver strings with the file in the store (a `PUB` loosened to allow empty parts fails all three).
+  It was: part 1 takes `x.org//a.yes`, `/a.yes` and
   `x.org/.yes` as global names. The checker's `PUB` needs every part, and the file name before `.yes`,
   non-empty, so none is published, and the engine agrees. Section 3.1 says only "a global name that ends
   in such a file name"; `/a.yes` would give `https:///a.yes`, with no host.
 - **Section 3's two "may" options** (Oyl NG `7b4ff48`; `...-151653Z-@oylng--ignoring-a-stamp-and-the-table-handed-over-a8f6c626.md`).
-  Stamps can be switched off, and the stream's table handed over as a tree. **Open, for the user:**
+  Stamps can be switched off, and the stream's table handed over as a tree. **Fixed in main `bc14dca`**
+  (the user: "ok", 2026-11-15): the text now says "as one with no stamp". It was:
   "ignore a file's schema and read the document as it is" can mean strings only or as a document with no
   stamp, typed by the application's schema if there is one. The engine does the second: under strings
   only, a file stamped `loose: !any` gets past the application's schema, which section 15's "Ways past a

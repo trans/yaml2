@@ -801,7 +801,9 @@ if __name__ == '__main__':
            (D.replace(h, h.upper()), {h: Y}, None, U), (D.replace(h, h[:63]), {h: Y}, None, U), (D.replace('tabcomputing.com/address/v1/', ''), {h: Y}, None, U),
            (D.replace('#sha256=', '#sha512='), {h: Y}, None, U), (D.replace('address.yes', 'address'), {h: Y}, None, U),
            ('--- !tabcomputing.com/address/v1\nstreet: a\n', {}, None, {'street': 'a'}), (f'--- !x.example/b.yes#sha256={q}\nz\n', Q, None, 'z'), (f'--- !x.example/a.yes#sha256={q}\n1\n', Q, None, 1),
-           ('--- &\naddress: !int\n' + D, {h: Y}, None, T), (D, {h: Y}, ('--- &\nj:\n  !**: !str\n', 'j'), T), (D, None, ('--- &\nj:\n  !**: !str\n', 'j'), U)]
+           ('--- &\naddress: !int\n' + D, {h: Y}, None, T), (D, {h: Y}, ('--- &\nj:\n  !**: !str\n', 'j'), T), (D, None, ('--- &\nj:\n  !**: !str\n', 'j'), U),
+           # @oylng: names part 1 takes as global with an empty part, or an empty file name, aren't published.
+           (D.replace('tabcomputing.com/address/v1/', '/'), {h: Y}, None, U), (D.replace('address/v1/', '/'), {h: Y}, None, U), (D.replace('address.yes', '.yes'), {h: Y}, None, U)]
     for t, st, ap, w_ in pub:
         try: got = typed(t, ap, store=st)[0]; f += 0 if same(got, w_) else 1; same(got, w_) or print('DIFFERS', repr(t), got)
         except REFUSED as e: f += 1; print('REFUSED', repr(t), e)
