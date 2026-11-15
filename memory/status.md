@@ -368,6 +368,30 @@ as they are, on purpose: `{!|: [!float, !str]}` and the like, where the union on
 nothing and the suite was rewritten instead of checked. The script now refuses that. The real check:
 846 tests, none fail.
 
+**Oyl NG: published names, stamps ignored, application types (2026-11-15).** Three of its mails, each
+pushed with CI passing on all four jobs, each with the suite at `e8fe146` 797 pass, 0 fail (24 `keep`, 25
+holding more, skipped):
+- **Published names** (Oyl NG `d435018`; `mail/received/20261115-051810Z-@oylng--published-names-in-the-engine-a030f180.md`).
+  The application gives the parser a lookup, by address or hash; all 23 store tests agree, and the checker
+  at ai `eebafbf`, 859 cases, all agree. **Open, for the user:** part 1 takes `x.org//a.yes`, `/a.yes` and
+  `x.org/.yes` as global names. The checker's `PUB` needs every part, and the file name before `.yes`,
+  non-empty, so none is published, and the engine agrees. Section 3.1 says only "a global name that ends
+  in such a file name"; `/a.yes` would give `https:///a.yes`, with no host.
+- **Section 3's two "may" options** (Oyl NG `7b4ff48`; `...-151653Z-@oylng--ignoring-a-stamp-and-the-table-handed-over-a8f6c626.md`).
+  Stamps can be switched off, and the stream's table handed over as a tree. **Open, for the user:**
+  "ignore a file's schema and read the document as it is" can mean strings only or as a document with no
+  stamp, typed by the application's schema if there is one. The engine does the second: under strings
+  only, a file stamped `loose: !any` gets past the application's schema, which section 15's "Ways past a
+  stamp" is about. It suggests "as one with no stamp". No suite test covers either option; one would need
+  a key, as `keep` marks its interface.
+- **Section 12, application types** (Oyl NG `8c56408`; `...-172347Z-@oylng--application-types-section-12-in-the-engine-f91d052e.md`).
+  `oylng_parser_bind`; code runs once per use, never on trial. **Open, for the user**, three points the
+  draft doesn't settle, as the engine answers them: (1) through a chain `alias: !point`, only the nearest
+  entry's code runs, so binding `alias` does nothing, and a union runs the chosen alternative's code, never
+  the union's; (2) innermost first, in the order written; (3) once the whole document is typed, so a
+  document refused anywhere runs no code. It suggests a suite key naming entries to bind with counting
+  code, `calls: {point: 2}`, and says nothing needs it.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
