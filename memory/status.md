@@ -392,7 +392,10 @@ holding more, skipped):
   `oylng_parser_bind`; code runs once per use, never on trial. **Open, for the user**, three points the
   draft doesn't settle, as the engine answers them: (1) through a chain `alias: !point`, only the nearest
   entry's code runs, so binding `alias` does nothing, and a union runs the chosen alternative's code, never
-  the union's; (2) innermost first, in the order written; (3) once the whole document is typed, so a
+  the union's. **Fixed in main `6a116a6`:** the user chose
+  the outermost bound name (2026-11-15: "the outer name takes precedence ... they choose a spot, not a
+  point"); if it isn't bound, the next one in runs, and a bound union's name takes the place of its
+  alternatives'. The engine does the opposite, so it needs changing; @oylng not told yet. (2) innermost first, in the order written; (3) once the whole document is typed, so a
   document refused anywhere runs no code. It suggests a suite key naming entries to bind with counting
   code, `calls: {point: 2}`, and says nothing needs it.
 
