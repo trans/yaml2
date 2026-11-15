@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-14*
+*Updated 2026-11-15*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -355,10 +355,18 @@ standard type a name, but the checker counts a repeated standard type each time 
 user agreed (2026-11-14) that the text say an entry's name counts once; the ceiling paragraph now says a
 type counts each time it is written (`{!|: [!int, !int]}` holds 2). Two tests pin it, in the checker's
 `ceiling` (refused at 1,025) and `unions` (an entry's name twice, 1,024, loads). Suite: 846 tests (69
-examples, 740 edge cases, 158 with a document added). **Open, minor:** `suiteyes.py` guesses the section
-of a test in `schemas` by the types it holds before its union, so 8 older refused-union tests say section
-4.x: `2LBS`, `5LKH`, `6PKU`, `6S72`, `8KXM`, `9BTF` and `JZ82` mean 9, and `Q9B2`, a cycle, means 8. The
-new ones have lists of their own.
+examples, 740 edge cases, 158 with a document added).
+
+**Section labels, fixed in main `25bfb66`** (the user asked, 2026-11-15). `suiteyes.py`'s `section()`
+guesses a test's section from the types it holds when its list names none, checking scalars before unions
+and never giving 5, 6 or 8. All about 370 guessed tests were read against their refusal or result; 51 were
+wrong (a `!|` form error said 4.4, `a: !a` said 14, the ceiling said 4.3, `!int(5:2)` said 4.4). They are
+corrected by ID in `CORRECT`, and the writer stops if an entry there isn't written, isn't guessed, or
+matches the guess. A test inside `!**`, `!*` or `<<` keeps that section. Only `from:` lines changed. Kept
+as they are, on purpose: `{!|: [!float, !str]}` and the like, where the union only wraps a number test.
+**Lesson:** `--check` must come first (`suiteyes.py --check SPEC SUITE`); written last, it was read as
+nothing and the suite was rewritten instead of checked. The script now refuses that. The real check:
+846 tests, none fail.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a

@@ -12,6 +12,7 @@ suite/yes/README.md.
 import base64, collections, json, os, re, sys, textwrap
 here = os.path.dirname(os.path.abspath(__file__))
 CHECK = sys.argv[1] == '--check'
+if '--check' in sys.argv[2:]: sys.exit('--check goes first: written last, it would be read as nothing and the suite rewritten')
 specfile, suite = sys.argv[2:4] if CHECK else sys.argv[1:3]
 sn = {'__name__': 'sn', '__file__': here + '/suitenew.py'}
 exec(open(here + '/suitenew.py', encoding='utf-8').read().split("\nif __name__ == '__main__':")[0], sn)
@@ -202,6 +203,24 @@ SINGLES = [('DIFFERS renamed', '8', "The names are the author's"), ('QUOTED PATT
            ('doubling(', '9', 'Names that double'), ('read(chain)', '9', "A schema's full size"), ('read(wide)', '9', 'Unions at the ceiling'),
            ('a stamp past the limit', '9', "A schema's full size"), ("('--- &\\na: !str\\n', 'a'), limit=", '3', "Part 1's limit on an application's schema"), ('pub3(', '3.1', 'A published schema'), ("for t in ('retries: abc", '3', 'Who says how to read a document'),
            ('for z3 in', '4.4', 'The sign of zero'), ('for body3 in', '3.1', 'A published schema is one table'), ('many', '11', 'Typed'), ('app=app2', '11', 'Typed')]
+# Where section() guesses wrong: the section whose rule a test is about, by its ID, which is a hash of its
+# stream. A test inside `!**`, `!*` or `<<` keeps that section, since reaching inside it is what it tests.
+# The writer stops if an ID here isn't written, if its section isn't guessed, or if the guess is already right.
+CORRECT = {i: s for s, ids in [
+    ('9', '6S72 XZS4 U2S8 XW7X S8W2 LZL6 E6UA 3G6Q JHX8 FZ2X 9BTF 2UBS'),  # the ceiling: a union of N positions
+    ('9', 'JZ82 5LKH 2LBS 6PKU'),  # a `!|` key's value, and no other key beside it
+    ('9', '3DS3 XU9S 3ST2 CBN9'),  # `!any` is tried last; a mapping fits by its keys
+    ('8', '6PTU V5SL Q9B2 8A8J 5WDD'),  # a cycle of names, a named type with a limit, a name that is neither
+    ('7', '54FM L5M5 5K47 6NVR'),  # `!ts_*`; `a` and `a?`; a quoted `"*"` is a literal key
+    ('6', 'D8GE 8KXM'),  # `...` repeats the item before it
+    ('5', 'LE9H YQ2F'),  # text that isn't a type is a literal: `f(x)`, `a(/b`
+    ('4.7', 'R2LT CC8M JLP7 9ZYR M78V'),  # a precision goes on `!decimal` only, and first
+    ('4.6', 'GR96 5ESB'),  # a colon stands where SQL has a comma
+    ('4.5', '3U4C L6MR LLY9'),  # which types take a pattern
+    ('4.2', '5YN4 J9VR'),  # a limit is written `a..b`
+    ('14', '7RTU 5ERC 795W 4NZJ 7RLX'),  # `()`; ` | ` outside a type's parentheses
+    ('10', '3X8L'),  # a `!**` doesn't reach a named type used as the root
+] for i in ids.split()}
 def single(g):
     l = lines[int(g[5:]) - 1]
     return next(((sec, title) for k, sec, title in SINGLES if k in l), (None, None))
@@ -389,6 +408,7 @@ if not CHECK:
                 if not refused and not schema and later is None: later = dict(r, stream=st, res=res)
         return later
     conv = collections.Counter(); lost = []; seen = set(); count = collections.Counter(); skipped = collections.Counter(); per = collections.Counter(); n = 0
+    wrong = []; corrected = set()
     for r in records:
         r0 = r; r = reached(r)
         if r is not r0 and r0['line'] in range(first, last): print('  spec example given a document:', repr(r0['stream'][:80]), '->', type(r['res'][1]).__name__ if r and r['res'][0] == 'fail' else r and r['res'][0])
@@ -406,14 +426,19 @@ if not CHECK:
         if not part1(r):
             if ok: skipped["refused by part 1's limit, accepted by typed()"] += 1; lost.append(r); continue
         g = 'spec' if r['line'] in range(first, last) else group(r['line'])
+        i = ident('yes\0' + key, taken); taken.add(i); guessed = False
         if g == 'spec':
             sec, title = heading(r0['stream'].rstrip('\n') + '\n')
             per[sec] += 1; name = f'{title}, example {per[sec]}'
         else:
             sec, title = single(g) if g.startswith('line ') else GROUPS.get(g, (None, None))
             if title is None: sys.exit(f'no group for line {r["line"]} ({g})')
-            sec = sec or section(r); name = f'{title}: {describe(r)}'
+            guessed = not sec; sec = sec or section(r); name = f'{title}: {describe(r)}'
             if (r['keep'] or r['app']) and r['limit'] != LIMIT: name += f', at a limit of {r["limit"]}'
+        if i in CORRECT:
+            if not guessed: wrong.append(f'{i}: its section, {sec}, is not guessed')
+            elif CORRECT[i] == sec: wrong.append(f'{i}: the guess, {sec}, is already right')
+            sec = CORRECT[i]; corrected.add(i)
         fail = not ok
         t = ['---', f'- name: {quoted(name)}', f'  from: part 2, section {sec}', f'  tags: {plain(tags(r, sec, fail))}']
         if fail:
@@ -441,12 +466,14 @@ if not CHECK:
             docs = read0(r['stream']).docs
             t += field('typed', events(list(zip([d[0] for d in docs], r['res'][1]))))
             t += field('json', ''.join(js(v) + '\n' for v in r['res'][1]))
-        i = ident('yes\0' + key, taken); taken.add(i)
         with open(os.path.join(dest, i + '.yaml'), 'w', encoding='utf-8') as f: f.write('\n'.join(t) + '\n')
         n += 1; count['refused' if fail else 'accepted'] += 1; count['spec' if g == 'spec' else 'edge'] += 1
     print('given a document:', dict(conv))
     print(f'{len(records)} recorded, {n} written: {dict(count)}; left out: {dict(skipped)}')
     for r in lost: print('  left out:', group(r['line']), 'limit', r['limit'], 'keep' if r['keep'] else '', repr(r['stream'][-50:]))
+    wrong += [f'{i}: in CORRECT, not written' for i in sorted(set(CORRECT) - corrected)]
+    if wrong: sys.exit('sections corrected wrongly:\n  ' + '\n  '.join(wrong))
+    print(f'sections corrected: {len(corrected)}')
 
 if CHECK:
     # Read each test as a harness would, through suite-to-data's reading of the marks, and run it.
