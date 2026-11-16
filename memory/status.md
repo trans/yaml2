@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-15*
+*Updated 2026-11-16*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -414,13 +414,19 @@ holding more, skipped):
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
 
-**Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). **Open, for the
-user.** (1) A table key starting with `!`, plain or quoted, makes an entry whose name has the `!`: with
-`!spot: !point`, `--- !spot` looks for `spot`, finds nothing, and the document stays strings; `--- !!spot`
-is refused by part 1; only `!!spot` inside the table reaches it. The agent recommends refusing such a
-table key when the schema loads. (2) A type key whose type is a mapping, `m: {!point: !int}` with `point` a
-mapping, loads, and no key can ever fit it. The agent recommends refusing a type key that isn't a scalar
-type. Inside a mapping, `!spot: !point` is an ordinary type key (section 7): any key that fits `!spot`
+**Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
+starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
+`--- !spot` looks for `spot`, finds nothing, and the document stays strings. **Fixed in main `c5203b6`:**
+part 1, section 8.1, refuses a name that starts with `!` (the user: "ok", 2026-11-16), in
+`draftcheck.py`'s `tableflow` and `tablemap`; part 1's 8THU and X65G became V4W4 and RQK6 with the `!` key
+inside an entry, and QVU4, JDM9, 3GJP refuse it (365 tests). Part 2, section 8, now has the user's example:
+the table isn't a document's schema, and an unstamped document whose keys are the table's names stays
+strings (850 tests). The user first leaned to marking names with `!` where defined; the agent advised
+against it once it checked that the table is part 1's and holds data too (`port: 80`, `*port`), and that
+`!spot:` at the table's top would read as a type key, more so if the core team keeps `?` keys. (2) A type key whose type is a mapping, `m: {!point: !int}` with `point` a
+mapping, loads, and no key can ever fit it. **Open.** The agent recommends refusing a type key that isn't
+a scalar type, which follows from part 1's scalar keys; if the core team keeps `?` keys, that rule goes,
+and `!point: !int` would mean keys that are points. Inside a mapping, `!spot: !point` is an ordinary type key (section 7): any key that fits `!spot`
 takes a `!point`.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
