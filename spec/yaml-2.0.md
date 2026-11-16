@@ -342,8 +342,9 @@ c: `code`
 
 Outside the table a plain scalar can't start with `!`, so a 1.x tag left in a file is refused, as
 a leftover anchor is. A value that starts with `!` is written quoted. In a table `!` is an ordinary
-character, because YAML Easy Schema's types are plain scalars that start with it. So a tag in a table
-entry still reads as text, but a 1.x file has no table, so one only gets there when it is moved.
+character, because YAML Easy Schema's types are plain scalars that start with it, though a name can't
+start with it (section 8.1). So a tag in a table entry still reads as text, but a 1.x file has no
+table, so one only gets there when it is moved.
 
 ```yaml
 --- &
@@ -619,10 +620,11 @@ A stream's table starts empty. Each `--- &` document adds entries to it: its top
 keys. A `--- &` document is a mapping, block or flow, or empty, and it is never
 delivered. A block mapping there starts at column 0.
 
-A key repeated inside one `--- &` document is refused, as in any mapping. A key that an
-earlier `--- &` document defined replaces that entry. A `...` empties the table, so the
-documents after it start fresh. A replaced entry still counts against the size limit until
-that `...` (section 10).
+A key repeated inside one `--- &` document is refused, as in any mapping. So is one that starts with
+`!`, plain or quoted: `--- !spot` stamps a document with the entry `spot`, so an entry named `!spot`
+would be one no stamp reaches. A key that an earlier `--- &` document defined replaces that
+entry. A `...` empties the table, so the documents after it start fresh. A replaced entry still
+counts against the size limit until that `...` (section 10).
 
 An entry stays in scope until the next `...`, so several documents can share it.
 Putting a `--- &` document ahead of a file shares definitions without any include

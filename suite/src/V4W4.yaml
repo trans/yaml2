@@ -1,21 +1,24 @@
 ---
-- name: '! in a flow mapping in the table'
+- name: '! in a key and in items in a table entry'
   from: part 1, section 6.1
-  tags: table tag flow
+  tags: table tag
   yaml: |
     %YAML 2.0
     --- &
-    {!a: !b}
+    a:
+      !b:
+        - !c
+        - [!d]
     ---
-    c: 1
+    e: 1
   tree: |
     +STR
      +DOC
       +MAP
-       =VAL :c
+       =VAL :e
        =VAL :1
       -MAP
      -DOC
     -STR
   json: |
-    {"c": "1"}
+    {"e": "1"}

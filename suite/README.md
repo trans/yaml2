@@ -1,7 +1,7 @@
 # Test suite for part 1
 
 Tests for [the language](../spec/yaml-2.0.md), Draft 1, in the format of the YAML project's
-[yaml-test-suite](https://github.com/yaml/yaml-test-suite), with the changes below. There are 362:
+[yaml-test-suite](https://github.com/yaml/yaml-test-suite), with the changes below. There are 365:
 
 - the draft's 59 examples, tagged `spec`;
 - 250 edge cases from the draft's checker;

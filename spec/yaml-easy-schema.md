@@ -912,6 +912,29 @@ It isn't a wildcard inside a name. `!ts_*` is refused as an unknown type, and a 
 An entry in the table is a type, and `!name` uses it. A name in the table wins over a standard
 one, so a later standard name can't change a schema. A name that is neither is an error.
 
+The table's keys are names, not a document's keys, and the table isn't a schema for the documents
+after it. An entry types a document only when the document is stamped with it, or when the
+application names it as the root (section 3). So this document stays strings, though its keys are
+the table's names:
+
+```yaml
+--- &
+point:
+  x: !int
+  y: !int
+spot: !point
+---
+point: {x: 1, y: 2}
+spot: {x: 3, y: 4}
+```
+
+```json
+{"point": {"x": "1", "y": "2"}, "spot": {"x": "3", "y": "4"}}
+```
+
+A name can't start with `!` (part 1, section 8.1), so `!spot: !point` in the table is refused, where
+it could only have meant `spot`. Inside a mapping, `!spot: !point` is a type key (section 7).
+
 Use `!name` to use a type, and `<<: *name` to paste a shape. A reference pastes the entry and
 loses the name, and it can't name itself.
 

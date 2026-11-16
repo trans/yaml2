@@ -1,5 +1,5 @@
 ---
-- name: Named types, example 1
+- name: Named types, example 2
   from: part 2, section 8
   tags: spec str sequence merge reference
   yaml: |
