@@ -398,6 +398,21 @@ holding more, skipped):
   alternatives'. The engine does the opposite, so it needs changing; @oylng not told yet. (2) innermost first, in the order written; (3) once the whole document is typed, so a
   document refused anywhere runs no code. It suggests a suite key naming entries to bind with counting
   code, `calls: {point: 2}`, and says nothing needs it.
+- **Section 13, emitting** (Oyl NG `8e1bdd0`; `mail/received/20261116-000932Z-@oylng--emitting-typed-data-section-13-in-the-engine-2d6b216e.md`).
+  Its CI runs the suite at `25bfb66`; at `bc14dca` 800 of 849 pass, none fail. The emitter types each
+  document with the schema and writes each scalar in the first spelling that reads back as the same type
+  and value; checked by writing again every typed document of the draft (49) and the suite (395), block
+  and flow. **Open, for the user**, from what it found: (1) under `{!|: [!date, !str]}` the string
+  `2001-02-03` has no spelling, nor does `abcd` under `{!|: [!binary, !str]}`, since both types match a
+  quoted scalar (section 4.1; the agent checked the text, as the checker delivers dates and binary as text);
+  a sentence could say such a union can't hold every string; (2) "it refuses if it has none" (section 13)
+  needs a search of the pattern to promise in full (`1.5` under `!float(/[0-9]+e-[0-9]+/)` needs `15e-1`);
+  it suggests naming the spellings an emitter must try; (3) a scalar decides nothing above it except
+  through an all-literal field, so an emitter needs no backtracking, which section 13 could say; (4) an
+  object under `!any` can't come back, and is refused; (5) `t`/`z` in a time come back as `T`/`Z`, the
+  same value. Section 13 writes `"3"` where the engine writes `'3'`; both read back. Suite idea: emitting
+  tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
+  again, reads back the same".
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
