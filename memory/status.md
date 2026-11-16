@@ -414,6 +414,15 @@ holding more, skipped):
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
 
+**Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). **Open, for the
+user.** (1) A table key starting with `!`, plain or quoted, makes an entry whose name has the `!`: with
+`!spot: !point`, `--- !spot` looks for `spot`, finds nothing, and the document stays strings; `--- !!spot`
+is refused by part 1; only `!!spot` inside the table reaches it. The agent recommends refusing such a
+table key when the schema loads. (2) A type key whose type is a mapping, `m: {!point: !int}` with `point` a
+mapping, loads, and no key can ever fit it. The agent recommends refusing a type key that isn't a scalar
+type. Inside a mapping, `!spot: !point` is an ordinary type key (section 7): any key that fits `!spot`
+takes a `!point`.
+
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
