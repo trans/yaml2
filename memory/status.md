@@ -421,19 +421,24 @@ otherwise). Chains by the outermost bound name are in (`11f6c4c`); in the Oyl NG
 again and agreed ("this makes sense", 2026-11-23), and "the most specific bound name wins" was set aside,
 since `shape` → `point` → `base` with `point` unbound has no ranking. `!` names are refused (`71051bf`).
 Keep and together for part 1 (`6ed5628`, `3b5f1ba`); part 2's 24 keep tests wait on typing kept trees.
-**Open, for the user:**
+**Fixed in main `b74622d`** (the user: "go with your recommendations on all three", 2026-11-23); no
+suite test, since neither checker models bindings or kept lookups:
 - **A union reaching one entry through two names.** With `p` a mapping, `a: !p`, `b: !p` and
   `u: {!|: [!a, !b]}`, section 9 says the union "is `!p`", counted at its first place; the engine types a
-  `!u` value through `u`, `a` and `p`, so `a`'s code can run and `b`'s never does. The draft doesn't say
-  which path a value takes.
+  `!u` value through `u`, `a` and `p`, so `a`'s code can run and `b`'s never does. Section 9 now says a
+  value goes the first way written.
 - **Held, part 1, section 10.** "Close to what a parser that keeps references has in memory" holds only
   if `<<:` lines are kept as written: a chain of n merges holds about n, while resolving each mapping's
-  merged pairs holds n²/2, which is full's count. It suggests "keeps references, `<<:` lines among them".
+  merged pairs holds n²/2, which is full's count. Section 10 now says "keeps references, `<<:` lines
+  among them".
 - **Lookups through kept `<<:` lines.** r paths into the end of a chain of n cost r × n steps, which
   neither held (about n) nor full (about n², and 0 for a line naming `{}`) bounds. The engine builds the
   normal read's merged sets while full is within the limit, and past it budgets the stream's lookups at
-  the limit in steps. Section 10's "Whatever expands those references later checks full and levels first"
-  could say a lookup through kept `<<:` lines is such a use and needs its own bound.
+  the limit in steps. Section 10 now says it is such a use: within full a parser can build the merged
+  pairs once; past it, each lookup counts the `<<:` lines it follows "as a walk that saves nothing would",
+  and a stream's lookups follow at most the limit. The agent chose that count so every parser refuses the
+  same lookup; the engine's merged sets budgeted at held, past full, may accept lookups this refuses, so
+  it may need to count the walk's lines as well.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
