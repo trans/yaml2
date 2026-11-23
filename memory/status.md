@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-16*
+*Updated 2026-11-23*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -413,6 +413,27 @@ holding more, skipped):
   same value. Section 13 writes `"3"` where the engine writes `'3'`; both read back. Suite idea: emitting
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
+
+**Oyl NG: chains, `!` names and part 1 of keep (2026-11-23)**
+(`mail/received/20261123-062923Z-@oylng--chains-the-rule-and-keep-part-1-are-in-the-engine-08fb6c4e.md`).
+CI runs the suite at `c5203b6`: part 1 365 of 365, part 2 801 pass, 0 fail (24 `keep`, 25 times held
+otherwise). Chains by the outermost bound name are in (`11f6c4c`); in the Oyl NG session the user was asked
+again and agreed ("this makes sense", 2026-11-23), and "the most specific bound name wins" was set aside,
+since `shape` → `point` → `base` with `point` unbound has no ranking. `!` names are refused (`71051bf`).
+Keep and together for part 1 (`6ed5628`, `3b5f1ba`); part 2's 24 keep tests wait on typing kept trees.
+**Open, for the user:**
+- **A union reaching one entry through two names.** With `p` a mapping, `a: !p`, `b: !p` and
+  `u: {!|: [!a, !b]}`, section 9 says the union "is `!p`", counted at its first place; the engine types a
+  `!u` value through `u`, `a` and `p`, so `a`'s code can run and `b`'s never does. The draft doesn't say
+  which path a value takes.
+- **Held, part 1, section 10.** "Close to what a parser that keeps references has in memory" holds only
+  if `<<:` lines are kept as written: a chain of n merges holds about n, while resolving each mapping's
+  merged pairs holds n²/2, which is full's count. It suggests "keeps references, `<<:` lines among them".
+- **Lookups through kept `<<:` lines.** r paths into the end of a chain of n cost r × n steps, which
+  neither held (about n) nor full (about n², and 0 for a line naming `{}`) bounds. The engine builds the
+  normal read's merged sets while full is within the limit, and past it budgets the stream's lookups at
+  the limit in steps. Section 10's "Whatever expands those references later checks full and levels first"
+  could say a lookup through kept `<<:` lines is such a use and needs its own bound.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
