@@ -1083,7 +1083,9 @@ steps: [!step, ...]
 A pattern holding `, [ ] { }` can't sit in the flow form (section 4.3), and can in the block form.
 
 Each entry's name counts once in a union, at its first place, so `{!|: [!m, !m]}` is `!m`, and so is a union
-that reaches `m` by two paths. `!any` in a union is tried last, wherever it is written, so it takes a node
+that reaches `m` by two paths. A value goes the first way written, which decides whose code runs
+(section 12): with `a: !p`, `b: !p` and `u: {!|: [!a, !b]}`, a `!u` value goes through `a`, so code
+bound to `b` never runs for it. `!any` in a union is tried last, wherever it is written, so it takes a node
 no other alternative fits: `{!|: [!any, !int]}` reads `3` as 3.
 
 ```yaml

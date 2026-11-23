@@ -960,7 +960,7 @@ passes the limit. It must refuse before allocating, because running out of memor
 kills a process with nothing to catch.
 
 **Held** is what the data takes with its references kept, which is close to what a parser
-that keeps references has in memory. Each node counts 1, and a scalar adds the UTF-8 bytes of
+that keeps references, `<<:` lines among them, has in memory. Each node counts 1, and a scalar adds the UTF-8 bytes of
 its value, so `"\u00e9"` adds 2. A key counts as a scalar does, and so does a document's name.
 A reference, a `<<:` and a `-<<` each count 1. A tree that keeps comments adds their bytes.
 
@@ -988,6 +988,13 @@ because a program that loads a file usually walks it, and a chain of references 
 in a kilobyte can take terabytes to walk. An interface that keeps references, such as a
 syntax tree (section 11), applies it to held alone. Whatever expands those references later
 checks full and levels first, and refuses before building.
+
+Looking a key up through kept `<<:` lines is such a use, and needs a bound of its own: r lookups
+into the end of a chain of n merges follow r × n lines, which neither number bounds, since held is
+about n and a line naming `{}` adds nothing to full. Where full is within the limit, a parser can
+build each mapping's merged pairs once, at full's cost. Past it, each lookup counts the `<<:` lines
+it follows, as a walk that saves nothing would, and a stream's lookups together follow at most the
+limit: the one that would pass it is refused.
 
 An interface that delivers several documents at once adds up their sizes in each number it
 applies. If it keeps references, `...` takes nothing off held either, because its documents
