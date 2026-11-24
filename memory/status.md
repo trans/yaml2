@@ -423,7 +423,8 @@ holding more, skipped):
   and flow. **Open, for the user**, from what it found: (1) under `{!|: [!date, !str]}` the string
   `2001-02-03` has no spelling, nor does `abcd` under `{!|: [!binary, !str]}`, since both types match a
   quoted scalar (section 4.1; the agent checked the text, as the checker delivers dates and binary as text);
-  a sentence could say such a union can't hold every string; (2) "it refuses if it has none" (section 13)
+  **no sentence** (the user, 2026-11-24: "#1 is a given": the schema decides what a scalar is, not its
+  quotes, so a date-first union takes any date-shaped text as a date, and the emitter refuses the string); (2) "it refuses if it has none" (section 13)
   needs a search of the pattern to promise in full (`1.5` under `!float(/[0-9]+e-[0-9]+/)` needs `15e-1`);
   it suggests naming the spellings an emitter must try; (3) a scalar decides nothing above it except
   through an all-literal field, so an emitter needs no backtracking, which section 13 could say; (4) an
