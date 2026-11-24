@@ -1444,7 +1444,15 @@ other. With `spot: !point`, a `!spot` value goes through `spot` and then `point`
 binds `spot` to its `Spot` class, the value is a `Spot`, whether `point` is bound or not, since the
 schema chose a spot. If only `point` is bound, it is a `Point`. A union's name counts the same way:
 code bound to `shape` above takes the place of `point`'s and `sweep`'s, and gets what the chosen
-alternative delivers.
+alternative delivers. To make a spot shaped like a point without being one, write `spot: *point`:
+a reference loses the name (section 8), so only `spot` is on the value, and `point`'s code never
+runs for it.
+
+Code runs for the values inside a value before the value that holds them, in the order the data
+has them. With `point` bound to `Point`, and `line: {a: !point, b: !point}` bound to `Line`, the
+`Point` for `a` is made, then the one for `b`, and then `Line`'s code gets a mapping holding the
+two. That doesn't make a spot a point first: `spot: !point` types one value, so one piece of code
+makes it, while a line is three values, its mapping and the two points inside it.
 
 A binding that refuses, refuses the document. It doesn't move on to the next alternative: the
 schema chooses the type, and then the code runs, so code never runs on trial. It is called once per
