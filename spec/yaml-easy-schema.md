@@ -1486,7 +1486,9 @@ would read as something else: under `{!|: [!int, !str]}`, the string `3` is writ
 integer in a spelling the type reads back as that number, so under `!signed` (section 4.5), 5 is
 written `+5`, and it refuses if it has none. A bound value
 needs the way back too: the application gives code that turns a `Point` into the mapping its entry
-takes. Part 1, section 11, says the rest.
+takes. Under `!any` nothing is typed, so an emitter writes what it's given as plain data: an object
+through the code the application gave for it, which reads back as the mapping that code made, as 3
+reads back as `"3"`. Part 1, section 11, says the rest.
 
 An emitter never has to go back and respell anything. A union chooses a mapping by its keys and by
 the values of keys whose type is only literals (section 9), and a literal matches however its value
