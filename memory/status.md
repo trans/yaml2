@@ -478,8 +478,10 @@ suite test, since neither checker models bindings or kept lookups:
   **The engine agrees** (`mail/received/20261124-203641Z-@oylng--7sxp-and-j4hm-pass-the-engine-counts-the-document-ffd3816f.md`):
   at main `def062b` and Oyl NG `5c6e618`, part 1's 373 pass, and read the same kept; part 2 801 pass, 49
   skipped, as before. J4HM is refused at 29 and 7SXP accepted at 30, so the engine counts the document as
-  12; kept, it is accepted at 29, as only held applies. Oyl NG's CI still runs against `635b24d`; moving
-  it to `def062b` is for the user to tell @oylng.
+  12; kept, it is accepted at 29, as only held applies. Oyl NG's CI still runs against `635b24d`.
+  **Open: push main `def062b`** (`mail/received/20261124-214114Z-@oylng--the-engine-s-0.3.0-waits-on-def062b-reaching-githu-225dfc42.md`).
+  The user chose, in the Oyl NG session, to release the engine's 0.3.0 once `def062b` is on GitHub, so its
+  CI runs the eight new tests. @oylng asks to be mailed once it is pushed, to move CI's pin and tag.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
