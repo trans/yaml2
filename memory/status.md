@@ -464,13 +464,17 @@ suite test, since neither checker models bindings or kept lookups:
   (3) pair 2's table, `a: *t:k2` before `b: [*m10, *m10, *m10]` takes full past 20,000, then 9 items
   accepted, 10 refused. `draftcheck.py` now counts lookups (full as it stands; written keys, then lines
   from the last up, stopping at the first key found) and gives all six as @oylng says; the normal read
-  refuses each for full. **Open, for the user:** the text doesn't say which walk. Pair 1 refuses a walk
-  that follows every line (2^31 − 2 a path); pair 2 accepts one that tries the first line first (1 a
-  path). The agent recommends stating the order section 9.1 implies; the tests wait on that.
-  **Checker bug, fixed, not yet committed:** `<<: *b` added only `b`'s remaining pairs, not those `b`'s
+  refuses each for full. **The walk's order: fixed in main `def062b`** (the user: "I agree",
+  2026-11-24). Section 10 now says the walk looks at a mapping's own keys, then its `<<:` lines from the
+  last up, and stops at the first key found, with `t: {<<: *x, <<: *m}` counting 3 for `k`. It was: no
+  order, so a walk following every line refuses pair 1 (2^31 − 2 a path) and one trying the first line
+  first accepts pair 2 (1 a path). The six are K3CL/Y2M5, J4HE/VCU5, 42RY/4R5Y.
+  **Checker bug, fixed in `draftcheck.py`, committed with this note:** `<<: *b` added only `b`'s remaining pairs, not those `b`'s
   own later lines replaced, though section 10 says a replaced key "still counts, in its mapping and in
   every reference to it". With `a: {k: v}`, `b: {<<: *a, k: w}`, `c: {<<: *b}`, the document's full is
-  12, not 8, and held 5, not 1. No suite test changed; a pair at limits 30 and 29 would test it.
+  12, not 8, and held 5, not 1. 7SXP (limit 30) and J4HM (29) test it. The old checker fails J4HM and
+  the four refused lookup tests. `draftcheck.py` now also checks, at each collection's end, that what it
+  counted while reading equals the collection's size. 373 tests; part 2's 850 still pass.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,

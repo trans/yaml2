@@ -29,6 +29,7 @@ class P:
     def __init__(s, t, limit=None, together=False, keep=False, maxlevels=None):
         s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.sizes = []; s.keep = keep; s.theld = 0; s.saved = 0; s.helds = []
         s.dheld = s.dfull = 0; s.maxlevels = maxlevels; s.lmemo = {}
+        s.fr = []; s.part = 0; s.looked = 0; s.lines = {}; s.wmemo = {}
         s.raw = t; s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None; s.intable = False
     def nsize(s, v):
         """A node's size. A shared object counts in full at every use."""
@@ -54,6 +55,43 @@ class P:
         s.check(min(s.nsize(v), 2 ** 64 - 1)); s.deep(v)
     def check(s, n):
         if s.limit is not None and n > s.limit: s.bad('past the size limit')
+    def full_now(s):
+        """Full as it stands: the table's entries, then the key and the open collections of what is
+        being read, each with the parts read so far."""
+        return sum(s.tsize.values()) + s.part + sum(s.fr)
+    def add(s, out, v):
+        out.append(v); s.fr[-1] += s.nsize(v)
+    def merged(s, out, src):
+        """`<<:` adds the size of the pairs it names, including those src's own later lines replaced
+        (section 10): x is what out's own pairs leave out."""
+        x = s.nsize(src) - 1 - sum(s.nsize(k) + s.nsize(v) for k, v in src.items())
+        for k, v in src.items():
+            if k in out: x += s.nsize(k) + s.nsize(out[k])
+            put(out, k, v)
+        s.fr[-1] += s.nsize(src) - 1
+        return x
+    def closed(s, v, written=None, srcs=None):
+        """What was counted while reading v must be its size."""
+        f = s.fr.pop()
+        assert f == s.nsize(v), (f, s.nsize(v))
+        if srcs: s.lines[id(v)] = (v, written, srcs)
+        return v
+    def walk(s, v, k):
+        """The `<<:` lines a walk that saves nothing follows to find k in v, and whether it does: the
+        written keys first, then each line from the last up, as section 9.1's later lines win."""
+        key = (id(v), k); m = s.wmemo.get(key)
+        if m is None:
+            e = s.lines.get(id(v))
+            if e is None: r = (0, k in v)
+            elif k in e[1]: r = (0, True)
+            else:
+                n = 0; r = None
+                for src in reversed(e[2]):
+                    c, found = s.walk(src, k); n += 1 + c
+                    if found: r = (n, True); break
+                if r is None: r = (n, False)
+            m = s.wmemo[key] = (r, v)
+        return m[0]
     def entry(s, k, v):
         s.tsize[k] = s.nsize(k) + s.nsize(v)
         s.theld += s.tsize[k] - s.saved; s.saved = 0
@@ -67,6 +105,7 @@ class P:
         return v
     def splice(s, out, src):
         s.saved += s.nsize(src) - 2
+        s.fr[-1] += s.nsize(src) - 1
         if s.keep:
             out.more += s.nsize(src) - 1; out.deep = max(out.deep, s.levels(src))
         else:
@@ -76,6 +115,7 @@ class P:
         h = n - s.saved; s.saved = 0
         s.sizes.append((sum(s.tsize.values()), n)); s.helds.append((s.theld, h))
         s.dheld += h; s.dfull += n
+        assert not s.fr; s.part = 0
         s.tally(h, n)
         if not s.keep: s.deep(v)
         s.docs.append((name, v))
@@ -182,7 +222,7 @@ class P:
                 s.i += 1; f = s.i
                 while re.match('[A-Za-z0-9=]', s.ch() or ' '): s.i += 1
                 if s.i == f: s.bad('an empty fragment')
-            name = s.t[b:s.i]
+            name = s.t[b:s.i]; s.part = s.nsize(name)
             j = s.i; n = s.spaces()
         if n and s.ch() not in ('#', '\n', ''):
             s.deliver(name, s.line_node(0))
@@ -199,11 +239,11 @@ class P:
             s.colon()
             if k in here: s.bad('key repeated in one table document')
             if k.startswith('!'): s.bad('a name in the table starts with !')
-            here.add(k)
+            here.add(k); s.tsize.pop(k, None); s.part = s.nsize(k)
             if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
             s.fs()
             s.table[k] = '' if s.ch() in (',', '}') else s.fnode()
-            s.entry(k, s.table[k])
+            s.part = 0; s.entry(k, s.table[k])
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
             elif s.ch() != '}': s.bad('expected , or }')
@@ -218,9 +258,9 @@ class P:
             k = s.key(); s.colon()
             if k in here: s.bad('key repeated in one table document')
             if k.startswith('!'): s.bad('a name in the table starts with !')
-            here.add(k); s.tsize.pop(k, None)
+            here.add(k); s.tsize.pop(k, None); s.part = s.nsize(k)
             s.table[k] = s.value(0, True)
-            s.entry(k, s.table[k])
+            s.part = 0; s.entry(k, s.table[k])
             s.gap()
     def is_seq(s):
         c = s.ch()
@@ -261,7 +301,7 @@ class P:
         """A mapping's size counts the merged pairs later lines replaced (x), wherever it is named."""
         s.memo.pop(id(v), None); s.memo[id(v)] = (v, s.nsize(v) + x); return v
     def map(s, m):
-        s.enter(); out = {}; written = set(); started = False; x = 0
+        s.enter(); out = {}; written = set(); started = False; x = 0; srcs = []; s.fr.append(1)
         while True:
             j = s.i
             if not s.at(m): s.i = j; break
@@ -272,18 +312,16 @@ class P:
                 src = s.ref(False); s.eol()
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
                 s.saved += s.nsize(src) - 2
-                for k, v in src.items():
-                    if k in out: x += s.nsize(k) + s.nsize(out[k])
-                    put(out, k, v)
+                x += s.merged(out, src); srcs.append(src)
             else:
                 if not s.is_map(): s.bad('expected a key')
                 k = s.key(); s.colon()
                 if k in written: s.bad('duplicate key')
-                written.add(k); started = True
+                written.add(k); started = True; s.fr[-1] += s.nsize(k)
                 if k in out: x += s.nsize(k) + s.nsize(out[k])
-                put(out, k, s.value(m, True))
+                v = s.value(m, True); s.fr[-1] += s.nsize(v); put(out, k, v)
             s.gap()
-        s.leave(); return s.counted(out, x)
+        s.leave(); return s.closed(s.counted(out, x), written, srcs)
     def key(s):
         c = s.ch()
         if c == '"': return s.double()
@@ -308,7 +346,7 @@ class P:
             s.i -= k
         return s.node(m)
     def seq(s, m):
-        s.enter(); out = L()
+        s.enter(); out = L(); s.fr.append(1)
         while True:
             j = s.i
             if not s.at(m): s.i = j; break
@@ -320,13 +358,13 @@ class P:
             else:
                 s.i += 1; k0 = s.i; k = s.spaces()
                 if k and s.ch() not in ('#', '\n', ''):
-                    if s.is_seq(): out.append(s.seq(s.col()))
-                    elif s.is_map(): out.append(s.map(s.col()))
-                    else: out.append(s.line_node(m))
+                    if s.is_seq(): s.add(out, s.seq(s.col()))
+                    elif s.is_map(): s.add(out, s.map(s.col()))
+                    else: s.add(out, s.line_node(m))
                 else:
-                    s.i = k0; s.eol(); s.gap(); out.append(s.node(m))
+                    s.i = k0; s.eol(); s.gap(); s.add(out, s.node(m))
             s.gap()
-        s.leave(); return out
+        s.leave(); return s.closed(out)
     def line_node(s, n):
         c = s.ch()
         if c in '|>' and c: return s.block(n)
@@ -434,7 +472,7 @@ class P:
         if c == '*': return s.plainref(True)
         return s.plain(True)
     def fseq(s):
-        s.i += 1; o = L(); s.fs()
+        s.i += 1; o = L(); s.fs(); s.fr.append(1)
         while s.ch() != ']':
             if s.t.startswith('-<<', s.i) and s.ch(3) in (' ', '\t', '\n'):
                 j = s.i; s.i += 3; s.fs()
@@ -442,23 +480,21 @@ class P:
                     src = s.ref(True)
                     if not isinstance(src, list): s.bad('-<< needs a sequence')
                     s.splice(o, src)
-                else: s.i = j; o.append(s.fnode())
-            else: o.append(s.fnode())
+                else: s.i = j; s.add(o, s.fnode())
+            else: s.add(o, s.fnode())
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
             elif s.ch() != ']': s.bad('expected , or ]')
-        s.i += 1; return o
+        s.i += 1; return s.closed(o)
     def fmap(s):
-        s.i += 1; o = {}; w = set(); started = False; x = 0; s.fs()
+        s.i += 1; o = {}; w = set(); started = False; x = 0; srcs = []; s.fs(); s.fr.append(1)
         while s.ch() != '}':
             if s.t.startswith('<<:', s.i) and s.ch(3) in (' ', '\t', '\n'):
                 if started: s.bad('merge after a key')
                 s.i += 3; s.fs(); src = s.ref(True)
                 if not isinstance(src, dict): s.bad('merge needs a mapping')
                 s.saved += s.nsize(src) - 2
-                for k, v in src.items():
-                    if k in o: x += s.nsize(k) + s.nsize(o[k])
-                    put(o, k, v)
+                x += s.merged(o, src); srcs.append(src)
             else:
                 q = s.ch() in ('"', "'")
                 k = s.double() if s.ch() == '"' else s.single() if q else s.plain(True)
@@ -467,13 +503,13 @@ class P:
                 s.colon()
                 if k in w: s.bad('duplicate key')
                 if not q and s.ch() not in (' ', '\t', '\n', ',', '}'): s.bad('space needed after :')
-                w.add(k); started = True; s.fs()
+                w.add(k); started = True; s.fs(); s.fr[-1] += s.nsize(k)
                 if k in o: x += s.nsize(k) + s.nsize(o[k])
-                put(o, k, '' if s.ch() in (',', '}') else s.fnode())
+                v = '' if s.ch() in (',', '}') else s.fnode(); s.fr[-1] += s.nsize(v); put(o, k, v)
             s.fs()
             if s.ch() == ',': s.i += 1; s.fs()
             elif s.ch() != '}': s.bad('expected , or }')
-        s.i += 1; return s.counted(o, x)
+        s.i += 1; return s.closed(s.counted(o, x), w, srcs)
     def ref(s, flow):
         if s.ch() != '*': s.bad('expected a reference')
         s.i += 1; steps = [s.step(flow)]
@@ -504,8 +540,14 @@ class P:
     def resolve(s, steps):
         if steps[0] not in s.table: s.bad(f'no entry {steps[0]}')
         v = s.table[steps[0]]
+        # Section 10: past full, as it stands when the path is read, a stream's lookups through kept
+        # `<<:` lines follow at most the limit, counted as a walk that saves nothing.
+        count = s.keep and s.limit is not None and len(steps) > 1 and s.full_now() > s.limit
         for k in steps[1:]:
             if not isinstance(v, dict): s.bad('step through a non-mapping')
+            if count:
+                s.looked += s.walk(v, k)[0]
+                if s.looked > s.limit: s.bad('lookups past the limit')
             if k not in v: s.bad(f'no key {k}')
             v = v[k]
         return v
