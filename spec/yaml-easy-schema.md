@@ -1488,6 +1488,11 @@ written `+5`, and it refuses if it has none. A bound value
 needs the way back too: the application gives code that turns a `Point` into the mapping its entry
 takes. Part 1, section 11, says the rest.
 
+An emitter never has to go back and respell anything. A union chooses a mapping by its keys and by
+the values of keys whose type is only literals (section 9), and a literal matches however its value
+is written (section 5), so how a scalar is spelled never changes the type of anything above it. An
+emitter can spell each scalar where it is typed.
+
 A comment directly above a key is its description. A parser still discards it, and only a tool
 that keeps comments can show it. Part 1, section 11, says which key a comment belongs to.
 
