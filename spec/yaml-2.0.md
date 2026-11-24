@@ -991,10 +991,10 @@ checks full and levels first, and refuses before building.
 
 Looking a key up through kept `<<:` lines is such a use, and needs a bound of its own: r lookups
 into the end of a chain of n merges follow r × n lines, which neither number bounds, since held is
-about n and a line naming `{}` adds nothing to full. Where full is within the limit, a parser can
-build each mapping's merged pairs once, at full's cost. Past it, each lookup counts the `<<:` lines
-it follows, as a walk that saves nothing would, and a stream's lookups together follow at most the
-limit: the one that would pass it is refused.
+about n and a line naming `{}` adds nothing to full. Where full, as it stands when the path is
+read, is within the limit, a parser can build each mapping's merged pairs once, at full's cost.
+Past it, each lookup counts the `<<:` lines it follows, as a walk that saves nothing would, and a
+stream's lookups together follow at most the limit: the one that would pass it is refused.
 
 An interface that delivers several documents at once adds up their sizes in each number it
 applies. If it keeps references, `...` takes nothing off held either, because its documents
