@@ -437,7 +437,7 @@ holding more, skipped):
   already relaxes under `!any` (3 reads back as `"3"`). Section 13 now says under `!any` an emitter writes
   an object as plain data through the code the application gave for it, refusing only an object with no
   such code; the engine needs changing, @oylng not told yet; (5) `t`/`z` in a time come back as `T`/`Z`, the
-  same value. Section 13 writes `"3"` where the engine writes `'3'`; both read back. Suite idea: emitting
+  same value: **no change** (the user: "I don't think we need to worry about it", 2026-11-24). Section 13 writes `"3"` where the engine writes `'3'`; both read back. Suite idea: emitting
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
 
