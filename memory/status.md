@@ -399,7 +399,14 @@ holding more, skipped):
   the union's. **Fixed in main `6a116a6`:** the user chose
   the outermost bound name (2026-11-15: "the outer name takes precedence ... they choose a spot, not a
   point"); if it isn't bound, the next one in runs, and a bound union's name takes the place of its
-  alternatives'. The engine does the opposite, so it needs changing; @oylng not told yet. (2) innermost first, in the order written; (3) once the whole document is typed, so a
+  alternatives'. The engine does the opposite, so it needs changing; @oylng not told yet. (2) innermost first, in the order written.
+  **Fixed in main `1a2815f`** (2026-11-24): the user had raised, 2026-11-16, that parts first might make a
+  spot a point first; the agent answered that a chain is one value and a line three, and the user took
+  that as settled ("I thought we just went thru this", 2026-11-24). Section 12 now says code runs for the
+  values inside a value first, in the order the data has them, with `line: {a: !point, b: !point}`, and
+  that `spot: *point` makes a spot shaped like a point without being one. Lesson: the agent asked "does
+  that settle it?", the talk moved on, and the agent kept listing the item as open for eight days without
+  asking again. (3) **Open, for the user:** once the whole document is typed, so a
   document refused anywhere runs no code. It suggests a suite key naming entries to bind with counting
   code, `calls: {point: 2}`, and says nothing needs it.
 - **Section 13, emitting** (Oyl NG `8e1bdd0`; `mail/received/20261116-000932Z-@oylng--emitting-typed-data-section-13-in-the-engine-2d6b216e.md`).
