@@ -406,8 +406,15 @@ holding more, skipped):
   values inside a value first, in the order the data has them, with `line: {a: !point, b: !point}`, and
   that `spot: *point` makes a spot shaped like a point without being one. Lesson: the agent asked "does
   that settle it?", the talk moved on, and the agent kept listing the item as open for eight days without
-  asking again. (3) **Open, for the user:** once the whole document is typed, so a
-  document refused anywhere runs no code. It suggests a suite key naming entries to bind with counting
+  asking again. (3) When code runs: **fixed in main `b2ae1b8`** (the user: "yes", 2026-11-24). The engine
+  runs it once the whole document is typed. The agent first recommended requiring that, so a refused
+  document runs no code; the user objected that it "effectively kills streaming" for a large document.
+  Part 1, section 2, already lets an event interface deliver before reporting an error, and part 2,
+  section 3, lets a parser type events as they arrive, so the agent changed its recommendation: section
+  12 now fixes which calls and their order (the same everywhere for an accepted document), and lets code
+  run once a value's type is fixed (read, and every union around it chosen) or once the document is
+  typed. A parser may have run code for a document it then refuses, as with events; the root's code runs
+  last, so all-or-nothing work goes there (`orders: [!order, ...]`). The engine's way is allowed. It suggests a suite key naming entries to bind with counting
   code, `calls: {point: 2}`, and says nothing needs it.
 - **Section 13, emitting** (Oyl NG `8e1bdd0`; `mail/received/20261116-000932Z-@oylng--emitting-typed-data-section-13-in-the-engine-2d6b216e.md`).
   Its CI runs the suite at `25bfb66`; at `bc14dca` 800 of 849 pass, none fail. The emitter types each
