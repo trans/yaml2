@@ -456,8 +456,21 @@ suite test, since neither checker models bindings or kept lookups:
   when, so a parser resolving paths after reading the whole document would use full at its end, and differ
   from the engine on a document whose full passes the limit only after its paths. @oylng suggested it, as
   section 10 already counts replacements "when the new entry's key is read"; full is worked out by
-  addition in reading order, so a parser that resolves late can still note full at each path. No suite
-  test, since `draftcheck.py` doesn't model kept lookups.
+  addition in reading order, so a parser that resolves late can still note full at each path.
+  **The count is in Oyl NG `5c6e618`** (`mail/received/20261124-194237Z-@oylng--the-count-is-in-the-engine-three-small-test-pairs-2b216f29.md`),
+  CI passing against main `635b24d`. @oylng sent three small pairs, each `keep: true`, `from: part 1,
+  section 10`, tags `size merge table`: (1) 33 paths `*m30:k` through `mN: {<<: *mN-1, <<: *mN-1}` at
+  1,000 accepted, 34 refused; (2) `t: {<<: *x, <<: *m10}`, 4 paths `*t:k2` at 10,000 accepted, 5 refused;
+  (3) pair 2's table, `a: *t:k2` before `b: [*m10, *m10, *m10]` takes full past 20,000, then 9 items
+  accepted, 10 refused. `draftcheck.py` now counts lookups (full as it stands; written keys, then lines
+  from the last up, stopping at the first key found) and gives all six as @oylng says; the normal read
+  refuses each for full. **Open, for the user:** the text doesn't say which walk. Pair 1 refuses a walk
+  that follows every line (2^31 − 2 a path); pair 2 accepts one that tries the first line first (1 a
+  path). The agent recommends stating the order section 9.1 implies; the tests wait on that.
+  **Checker bug, fixed, not yet committed:** `<<: *b` added only `b`'s remaining pairs, not those `b`'s
+  own later lines replaced, though section 10 says a replaced key "still counts, in its mapping and in
+  every reference to it". With `a: {k: v}`, `b: {<<: *a, k: w}`, `c: {<<: *b}`, the document's full is
+  12, not 8, and held 5, not 1. No suite test changed; a pair at limits 30 and 29 would test it.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
