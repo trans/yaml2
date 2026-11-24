@@ -426,6 +426,11 @@ too. A parser doesn't use a wider type where it has one, or the same file would 
 C's `long double` holds 3.1415926535897932385 on x86 Linux, and every digit of `3.14159265358979323846`
 on ARM64 Linux. A value whose digits must all be kept is a `!decimal`.
 
+Written, a float takes the fewest significant digits that read back as the same value. Zero, and a
+value whose size is from 1e-7 up to 1e21, is written positionally, with `.0` when it has no
+fraction, so that it never reads as an integer: `0.1`, `2.0`, `-0.0`. Outside that range it takes an
+exponent with its sign: `1e+21`, `5e-324`.
+
 A value too large for binary64 refuses the document. Too large means it would round to infinity, as C's
 `strtod` reads it, so `1.79769313486231570815e308`, within half a unit of binary64's largest value, is
 that value, and `1.8e308` is too large. JSON has no infinity, so a parser can't deliver one. A value too
@@ -1482,10 +1487,12 @@ such as `true` or `${{ expression }}`, is a named string and a few lines of code
 ## 13. Emitting and documenting
 
 An emitter of typed data needs the same schema. It quotes a string that the type at that place
-would read as something else: under `{!|: [!int, !str]}`, the string `3` is written `"3"`. It writes an
-integer in a spelling the type reads back as that number, so under `!signed` (section 4.5), 5 is
-written `+5`, and it refuses if it has none. A bound value
-needs the way back too: the application gives code that turns a `Point` into the mapping its entry
+would read as something else: under `{!|: [!int, !str]}`, the string `3` is written `"3"`. It writes
+a number, a boolean, null or a time in its standard spelling, a float as section 4.4 says, or in the
+text it was read from if the application kept it, and refuses if that doesn't fit the type at that
+place: under `!signed` (section 4.5), 5 is refused, and a `+5` that was read and kept is written
+`+5`. An application that wants `+5` from a 5 binds `signed` to code that writes it (section 12).
+A bound value needs the way back too: the application gives code that turns a `Point` into the mapping its entry
 takes. Under `!any` nothing is typed, so an emitter writes what it's given as plain data: an object
 through the code the application gave for it, which reads back as the mapping that code made, as 3
 reads back as `"3"`. Part 1, section 11, says the rest.
