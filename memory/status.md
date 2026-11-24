@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-23*
+*Updated 2026-11-24*
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -437,8 +437,27 @@ suite test, since neither checker models bindings or kept lookups:
   the limit in steps. Section 10 now says it is such a use: within full a parser can build the merged
   pairs once; past it, each lookup counts the `<<:` lines it follows "as a walk that saves nothing would",
   and a stream's lookups follow at most the limit. The agent chose that count so every parser refuses the
-  same lookup; the engine's merged sets budgeted at held, past full, may accept lookups this refuses, so
-  it may need to count the walk's lines as well.
+  same lookup.
+  **Open: the engine past full** (`mail/received/20261124-181842Z-@oylng--the-engine-past-full-yes-it-accepts-what-the-count-cecea8fd.md`,
+  read from Oyl NG `3b5f1ba`). It accepts lookups the count refuses, two ways. (1) A mapping's gathered
+  keys answer later lookups for nothing: 100 paths `*m30:k` through 31 mappings that each merge the one
+  before twice, at a limit of 1,000, count 30 each, so the count refuses the 34th; the engine reads all
+  100. A chain of 100,000 with paths to `k0` counts 99,999 each, so the count refuses the 672nd at
+  64 MiB; the engine read 10^6. (2) It looks in each mapping once per lookup, where the walk follows a
+  mapping's lines each time it reaches it. For a missing key, `*m30:nope` counts 2^31 − 2 against the
+  engine's 60, but a missing key is refused anyway (part 1, section 8.3), so only the reason differs. For
+  a found key the count can differ too. @oylng's sketch, not built or measured: each kept mapping keeps the
+  walk's lines through it, worked out by addition as full is; each gathered key keeps the count at which
+  the walk first reaches it; a lookup adds its key's number, or the mapping's when the key is missing.
+  8 bytes per gathered key and per kept mapping, one addition per lookup, nothing within full. The agent
+  checked the four counts above and they hold.
+  **Open, for the user: when full is measured.** "Where full is within the limit" doesn't say when. The
+  engine uses full as it stands when the path is read; a parser that resolves paths after reading the
+  whole document would use full at its end, and the two differ on a document whose full passes the limit
+  only after its paths. @oylng suggests "full as it stands when the path is read", which section 10
+  already does for replacements ("when the new entry's key is read"). The agent recommends it: full is
+  worked out by addition in reading order, so a parser that resolves late can still note full at each
+  path, and a streaming parser can't know full at the end.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
