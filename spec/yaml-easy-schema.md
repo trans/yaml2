@@ -1454,6 +1454,14 @@ has them. With `point` bound to `Point`, and `line: {a: !point, b: !point}` boun
 two. That doesn't make a spot a point first: `spot: !point` types one value, so one piece of code
 makes it, while a line is three values, its mapping and the two points inside it.
 
+A value's type is fixed once it has been read and every union around it has chosen. Code for it
+may run then, as a parser reading events does, or once the whole document is typed, as one
+building a tree may. Either way the calls and their order are the same. So, as with events (part
+1, section 2), a parser may already have run code for a document it then refuses, though it never
+delivers that document as complete. The root's code runs last, once everything inside it is typed,
+so code that must act on all of a document or none of it belongs there: with `orders: [!order,
+...]`, `order`'s code can build each row and `orders`' code save them together.
+
 A binding that refuses, refuses the document. It doesn't move on to the next alternative: the
 schema chooses the type, and then the code runs, so code never runs on trial. It is called once per
 use, so `*p` twice makes two calls and two values, since shared objects read as copies.
