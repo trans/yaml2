@@ -1,0 +1,30 @@
+---
+- name: 'Lookups past full follow the last merge line first: a fifth path passes 10,000'
+  from: part 1, section 10
+  tags: size merge table error
+  fail: true
+  limit: 10000
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    m0: {k: v}
+    m1: {<<: *m0, <<: *m0}
+    m2: {<<: *m1, <<: *m1}
+    m3: {<<: *m2, <<: *m2}
+    m4: {<<: *m3, <<: *m3}
+    m5: {<<: *m4, <<: *m4}
+    m6: {<<: *m5, <<: *m5}
+    m7: {<<: *m6, <<: *m6}
+    m8: {<<: *m7, <<: *m7}
+    m9: {<<: *m8, <<: *m8}
+    m10: {<<: *m9, <<: *m9}
+    x: {k2: 1}
+    t: {<<: *x, <<: *m10}
+    ---
+    c:
+    - *t:k2
+    - *t:k2
+    - *t:k2
+    - *t:k2
+    - *t:k2

@@ -1,0 +1,13 @@
+---
+- name: 'A merged mapping counts the pairs its own later lines replaced: refused at 29'
+  from: part 1, section 10
+  tags: size merge table error
+  fail: true
+  limit: 29
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {k: v}
+    b: {<<: *a, k: w}
+    ---
+    c: {<<: *b}

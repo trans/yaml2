@@ -1,0 +1,26 @@
+---
+- name: 'A merged mapping counts the pairs its own later lines replaced: full is 30'
+  from: part 1, section 10
+  tags: size merge table
+  limit: 30
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {k: v}
+    b: {<<: *a, k: w}
+    ---
+    c: {<<: *b}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :c
+       +MAP
+        =VAL :k
+        =VAL :w
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"c": {"k": "w"}}
