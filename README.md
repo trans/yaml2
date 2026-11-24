@@ -56,7 +56,7 @@ job:
   structure with a type where each value would be. Table definitions, recursion and the key globs
   `!*` and `!**` compress that form.
 
-The grammar has 58 productions. YAML 1.2 has 211, written at a finer grain, so the
+The grammar has 59 productions. YAML 1.2 has 211, written at a finer grain, so the
 comparison is rough.
 
 ## What it costs
@@ -71,12 +71,15 @@ from 1.2, and section 13.1 what they cost.
 - **The language:** Draft 1 is in [`spec/yaml-2.0.md`](spec/yaml-2.0.md). Section 14 lists
   what is still open.
 - **YAML Easy Schema (YES), part 2:** **Work in progress.** Draft 1 is in
-  [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Its rules are still changing, no parser
-  implements it yet, and section 15 lists what is open.
-- **Test suite:** part 1's is in [`suite/`](suite/), 362 tests in yaml-test-suite's format, the draft's
-  examples among them. Part 2's isn't written yet.
+  [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Its rules are still changing, and section
+  15 lists what is open.
+- **Test suite:** part 1's is in [`suite/`](suite/), 373 tests in yaml-test-suite's format, the draft's
+  examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 855 tests.
 - **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser,
-  the tree and the emitter for part 1, and passes the suite's tests for events. Part 2 is to come. On
+  the tree and the emitter for part 1. For part 2 it types documents, binds application types, emits
+  typed data and looks up published schemas. Against this repo's `v0.1.0`, it passes all 373 of part
+  1's tests, and 801 of part 2's 850 with none failing. It skips the rest: 24 for typing with
+  references kept, which isn't built yet, and 25 for a parser that holds times differently. On
   the 3,409 public files that read as written, by its own benchmark, it reads events 4.1 times as fast
   as libyaml 0.2.5, and about as fast as Oyl, a 1.2 parser built the same way (0.92): most of the gap
   is engineering, not the language.

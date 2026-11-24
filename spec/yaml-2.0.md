@@ -1221,7 +1221,7 @@ bare-char(s)   ::= s - ":" - ">" - space - #x9
 colons         ::= ":" ":"+
 ```
 
-That is 58 productions. YAML 1.2 has 211, written at a finer grain, so the comparison
+That is 59 productions. YAML 1.2 has 211, written at a finer grain, so the comparison
 is rough.
 
 ## 13. Changes from YAML 1.2

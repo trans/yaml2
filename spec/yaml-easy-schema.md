@@ -1,7 +1,7 @@
 # A proposal for YAML 2.0: YAML Easy Schema (YES)
 
-**WORK IN PROGRESS. This part isn't finished. Its rules are still changing, no parser implements it
-yet, and section 15 lists what is still open.**
+**WORK IN PROGRESS. This part isn't finished. Its rules are still changing, and section 15 lists
+what is still open.**
 
 *Draft 1, 2026-11-07*
 
