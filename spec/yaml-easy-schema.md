@@ -1066,6 +1066,11 @@ b: "1.10"
 {"a": 1.1, "b": "1.10"}
 ```
 
+Quotes don't keep `!date`, `!datetime` or `!binary` away, since they match any scalar (section 4.1).
+So a union that tries `!date` before `!str` reads any date-shaped text as a date, quoted or not, and
+can't hold the string `2001-02-03`: an emitter refuses to write it (section 13). Writing `!str`
+first reads every date as a string instead, so the author chooses one.
+
 The block form is the same union. Here a step is a command, or a mapping written in place:
 
 ```yaml
