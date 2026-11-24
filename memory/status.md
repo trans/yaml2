@@ -420,7 +420,7 @@ holding more, skipped):
   Its CI runs the suite at `25bfb66`; at `bc14dca` 800 of 849 pass, none fail. The emitter types each
   document with the schema and writes each scalar in the first spelling that reads back as the same type
   and value; checked by writing again every typed document of the draft (49) and the suite (395), block
-  and flow. **Open, for the user**, from what it found: (1) under `{!|: [!date, !str]}` the string
+  and flow. **All five ruled on 2026-11-24, and @oylng told:** (1) under `{!|: [!date, !str]}` the string
   `2001-02-03` has no spelling, nor does `abcd` under `{!|: [!binary, !str]}`, since both types match a
   quoted scalar (section 4.1; the agent checked the text, as the checker delivers dates and binary as text);
   **fixed in main `36517b9`**: the user first called it "a given" (2026-11-24), then asked for the warning
@@ -428,7 +428,14 @@ holding more, skipped):
   `!date`, `!datetime` or `!binary` away, so a date-first union can't hold the string `2001-02-03` and an
   emitter refuses it, while `!str` first reads every date as a string; (2) "it refuses if it has none" (section 13)
   needs a search of the pattern to promise in full (`1.5` under `!float(/[0-9]+e-[0-9]+/)` needs `15e-1`);
-  it suggests naming the spellings an emitter must try; (3) a scalar decides nothing above it except
+  it suggests naming the spellings an emitter must try; **fixed in main `54fcd63`** (the user, 2026-11-24:
+  "when you have custom ways to write things, that's the only way to do it"): no list and no search. An
+  emitter writes a scalar's standard spelling, a float as section 4.4 now pins it, or the text it was
+  read from if the application kept it, and refuses if that doesn't fit; `+5` from a 5 under `!signed`
+  comes from code bound to `signed`. Section 4.4: fewest digits, `.0` when there's no fraction so a float
+  never reads as an integer under `{!|: [!int, !float]}` (the agent's addition, needed by the rule),
+  positional for zero and from 1e-7 up to 1e21, else an exponent with its sign (`1e+21`). The engine's
+  extra spellings (`+`, zeros, `.5`, `1.`, `~`, empty) go; (3) a scalar decides nothing above it except
   through an all-literal field, so an emitter needs no backtracking: **fixed in main `99db372`** (the user:
   "#3 seems fine. go ahead.", 2026-11-24), a paragraph in section 13; (4) an
   object under `!any` can't come back, and is refused: **turned around, fixed in main `b40c6f5`** (the
@@ -436,7 +443,7 @@ holding more, skipped):
   in", 2026-11-24). The engine's refusal came from its check that a value reads back as given, which it
   already relaxes under `!any` (3 reads back as `"3"`). Section 13 now says under `!any` an emitter writes
   an object as plain data through the code the application gave for it, refusing only an object with no
-  such code; the engine needs changing, @oylng not told yet; (5) `t`/`z` in a time come back as `T`/`Z`, the
+  such code; the engine needs changing; (5) `t`/`z` in a time come back as `T`/`Z`, the
   same value: **no change** (the user: "I don't think we need to worry about it", 2026-11-24). Section 13 writes `"3"` where the engine writes `'3'`; both read back. Suite idea: emitting
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
