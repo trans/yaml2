@@ -514,9 +514,14 @@ the table isn't a document's schema, and an unstamped document whose keys are th
 strings (850 tests). The user first leaned to marking names with `!` where defined; the agent advised
 against it once it checked that the table is part 1's and holds data too (`port: 80`, `*port`), and that
 `!spot:` at the table's top would read as a type key, more so if the core team keeps `?` keys. (2) A type key whose type is a mapping, `m: {!point: !int}` with `point` a
-mapping, loads, and no key can ever fit it. **Open.** The agent recommends refusing a type key that isn't
-a scalar type, which follows from part 1's scalar keys; if the core team keeps `?` keys, that rule goes,
-and `!point: !int` would mean keys that are points. Inside a mapping, `!spot: !point` is an ordinary type key (section 7): any key that fits `!spot`
+mapping, loads, and no key can ever fit it. **Fixed in main `bd5f8ed`** (the user: "ok, I agree",
+2026-11-24). Section 7 now says a type key's type must be one a scalar can fit, so `!point: !int` as a
+key, and a union as a key with a mapping or sequence among its alternatives, are refused when the schema
+is read; `schemacheck.py`'s `keytype` checks it, type keys under `!**` too. It was: `!point: !int` beside
+`!*: !str` gave `{"a": "1"}` through `!*`, and `{!|: [!int, !point]}` as a key gave `{"5": "1"}`.
+Five tests (25F7, JR6M, L4RX, ZZ27 refused; 4CT4 loads), 855 in all; the old checker accepts three of
+the four refused. If the core team keeps `?` keys, that sentence goes, and `!point: !int` would mean keys
+that are points. Inside a mapping, `!spot: !point` is an ordinary type key (section 7): any key that fits `!spot`
 takes a `!point`.
 
 **Covering note for the core team** (the user asked for a draft, 2026-11-05). It stays local until the

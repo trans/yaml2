@@ -425,6 +425,7 @@ class Schema:
                 for y in x[1] + ([x[2]] if x[2] else []): s.walk(y)
             elif x[0] == 'map':
                 for ft, _ in x[1].values(): s.walk(ft)
+                for kt, vt in x[2] + (x[3][1] if x[3] else []): s.keytype(kt)
                 for kt, vt in x[2]: s.walk(kt); s.walk(vt)
                 if x[4] is not None: s.walk(x[4])
                 s.ceiling([y for kt, _ in x[2] for y in s.alts(kt)])
@@ -434,6 +435,9 @@ class Schema:
                     s.ceiling([y for kt, _ in x[3][1] for y in s.alts(kt)])
                     if x[3][2]: s.place(x[3][2])
                     if x[3][2] and any(y[0] not in ('lit', 'name') for y in s.alts(x[3][2])): raise SchemaError('a `!**` takes a scalar type, or a mapping of rules')
+    def keytype(s, kt):
+        """Section 7: a key is a scalar (part 1, section 7.4), so a type key takes a type a scalar can fit."""
+        if any(y[0] not in ('lit', 'name') for y in s.alts(kt)): raise SchemaError('a type key takes a scalar type, since a key is a scalar')
     def check(s, v):
         s.count, s.done = 0, {}  # Section 11: typed counts the document being typed.
         return s.conv(s.root, v, '')
@@ -703,6 +707,18 @@ if __name__ == '__main__':
     for t in ceiling:
         try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
         except REFUSED: pass
+    # Section 7: a key is a scalar, so a type key's type is one a scalar can fit. The first loaded before,
+    # and gave {"a": "1"} through `!*`; the second gave {"5": "1"} through `!int`.
+    P = 'point: {x: !int, y: !int}\n'
+    typekeys = [P + 'm:\n  !point: !int\n  !*: !str\n--- !m\na: 1', P + 'shape: {!|: [!int, !point]}\nm:\n  !shape: !str\n--- !m\n5: 1',
+                'list: [!int, ...]\nm:\n  !list: !int\n--- !m\na: 1', P + 'm:\n  !**:\n    !point: !int\n--- !m\na: 1']
+    for t in typekeys:
+        try: typed('--- &\n' + t + '\n'); f += 1; print('SCHEMA NOT REFUSED', t)
+        except REFUSED: pass
+    typekeysok = [('id:\n  !|:\n    - !int\n    - !str(/[a-z]+/)\nm:\n  !id: !bool\n--- !m\n7: true\nab: false\n', {'7': True, 'ab': False})]
+    for t, w in typekeysok:
+        try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', t, got)
+        except REFUSED as e: f += 1; print('REFUSED', t, e)
     # A pattern on !int: it replaces the spelling, reads base 10, and a claim it can't read refuses.
     I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: {!|: [!q, !str]}\nh: !int(/0x[0-9a-f]+/)\nv: {!|: [!h, !str]}\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: {!|: [!str, !q]}\nlit: {!|: [!q, never]}\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: {!|: [!bigint, !str]}\nbyi: {!|: [!int, !str]}\n'
     ints = [('q', '+5', 5), ('q', '-3', -3), ('q', '+0', 0), ('q', '-0', 0), ('q', '+007', 7), ('w', '5', 5), ('w', '007', 7), ('w', '+5', 5),
@@ -1112,5 +1128,5 @@ if __name__ == '__main__':
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
     prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP)
     f += prec; third_n += prec_n
-    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
+    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(typekeys) + len(typekeysok) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)
