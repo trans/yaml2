@@ -429,7 +429,8 @@ holding more, skipped):
   emitter refuses it, while `!str` first reads every date as a string; (2) "it refuses if it has none" (section 13)
   needs a search of the pattern to promise in full (`1.5` under `!float(/[0-9]+e-[0-9]+/)` needs `15e-1`);
   it suggests naming the spellings an emitter must try; (3) a scalar decides nothing above it except
-  through an all-literal field, so an emitter needs no backtracking, which section 13 could say; (4) an
+  through an all-literal field, so an emitter needs no backtracking: **fixed in main `99db372`** (the user:
+  "#3 seems fine. go ahead.", 2026-11-24), a paragraph in section 13; (4) an
   object under `!any` can't come back, and is refused; (5) `t`/`z` in a time come back as `T`/`Z`, the
   same value. Section 13 writes `"3"` where the engine writes `'3'`; both read back. Suite idea: emitting
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
