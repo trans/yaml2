@@ -431,7 +431,12 @@ holding more, skipped):
   it suggests naming the spellings an emitter must try; (3) a scalar decides nothing above it except
   through an all-literal field, so an emitter needs no backtracking: **fixed in main `99db372`** (the user:
   "#3 seems fine. go ahead.", 2026-11-24), a paragraph in section 13; (4) an
-  object under `!any` can't come back, and is refused; (5) `t`/`z` in a time come back as `T`/`Z`, the
+  object under `!any` can't come back, and is refused: **turned around, fixed in main `b40c6f5`** (the
+  user: "any means any, so if it is a Point, so what? why would the emitter care?", then "yes, write it
+  in", 2026-11-24). The engine's refusal came from its check that a value reads back as given, which it
+  already relaxes under `!any` (3 reads back as `"3"`). Section 13 now says under `!any` an emitter writes
+  an object as plain data through the code the application gave for it, refusing only an object with no
+  such code; the engine needs changing, @oylng not told yet; (5) `t`/`z` in a time come back as `T`/`Z`, the
   same value. Section 13 writes `"3"` where the engine writes `'3'`; both read back. Suite idea: emitting
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
