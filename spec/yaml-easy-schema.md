@@ -883,6 +883,11 @@ X_A: a
 {"PATH": "/bin", "X_A": "a", "7": true}
 ```
 
+A key is always a scalar (part 1, section 7.4), so a type key's type must be one a scalar can fit.
+With `point: {x: !int, y: !int}`, `!point: !int` as a key is refused when the schema is read, and
+so is a union as a key with a mapping or a sequence among its alternatives, since that alternative
+could never take a key.
+
 A flow mapping works as well: `{!str: !int}`.
 
 `!*` as a key takes every other key at this level, whichever order it is written in: any key the

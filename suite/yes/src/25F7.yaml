@@ -1,0 +1,15 @@
+---
+- name: 'A type key takes a scalar type: `!m` on `a: 1`'
+  from: part 2, section 7
+  tags: int double-star error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    point: {x: !int, y: !int}
+    m:
+      !**:
+        !point: !int
+    --- !m
+    a: 1

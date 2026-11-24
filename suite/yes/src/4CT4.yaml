@@ -1,0 +1,29 @@
+---
+- name: 'A type key takes a scalar type: `!m` on `7: true; ab: false`'
+  from: part 2, section 7
+  tags: str int bool pattern union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    id:
+      !|:
+        - !int
+        - !str(/[a-z]+/)
+    m:
+      !id: !bool
+    --- !m
+    7: true
+    ab: false
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :7
+       =BOOL :true
+       =VAL :ab
+       =BOOL :false
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"7": true, "ab": false}
