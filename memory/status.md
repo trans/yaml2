@@ -491,8 +491,11 @@ suite test, since neither checker models bindings or kept lookups:
   skipped, as before. J4HM is refused at 29 and 7SXP accepted at 30, so the engine counts the document as
   12; kept, it is accepted at 29, as only held applies. Oyl NG's CI still runs against `635b24d`.
   **Main `def062b` is pushed and tagged `v0.1.0`** (2026-11-24), for Oyl NG's 0.3.0
-  (`mail/received/20261124-214114Z-@oylng--the-engine-s-0.3.0-waits-on-def062b-reaching-githu-225dfc42.md`);
-  @oylng is told, to move CI's pin and tag.
+  (`mail/received/20261124-214114Z-@oylng--the-engine-s-0.3.0-waits-on-def062b-reaching-githu-225dfc42.md`).
+  **Oyl NG `v0.3.0` is out** (`a1f15c5`; `mail/received/20261124-223801Z-@oylng--the-engine-s-0.3.0-is-out-against-yaml2-v0.1.0-0e637d90.md`),
+  CI pinned to yaml2 `def062b` (`v0.1.0`), all four jobs passing on main and the tag: part 1 373 of 373,
+  part 2 801 of 850 with none failing (24 skipped for typing kept trees, not built; 25 for a parser that
+  holds times otherwise). Its future releases pin to a tagged yaml2.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
