@@ -544,5 +544,8 @@ takes a `!point`.
 user says otherwise, in `Outtake/covering-note.md`, which git ignores. On 2026-11-11 the user asked for a
 shorter one as a separate document: `Outtake/covering-note-short.md`, under 1,000 words against 2,667,
 with the cut table and other details left to the long one. Its list of what is essential is
-the agent's draft: the user hasn't ruled on it. The talk is confirmed, and the org's schema language
+the agent's draft: the user hasn't ruled on it. Both brought up to date on 2026-11-24 (the user asked):
+YES has a suite (855) and Oyl NG implements it, 801 of 850 at `v0.1.0`; part 1's suite is 373; the
+checker counts 71 examples and 811 edge cases; 59 productions. Neither note shows union syntax, so `!|`
+needed nothing. The short one is 1,023 words outside code blocks, 1,041 before. The talk is confirmed, and the org's schema language
 and plugin work bear on the ask and on part 2's name: see landscape.md, What the YAML org is doing now.
