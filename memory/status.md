@@ -2,6 +2,10 @@
 
 *Updated 2026-11-24*
 
+**Tags.** The user, 2026-11-24: "nothing should be released on an untagged commit". So a commit of
+main that a release (Oyl NG's, say) runs against gets an annotated tag, pushed with it. The user chose
+`v0.x.y`, Oyl NG's pattern; the first is `v0.1.0`, on main `def062b`.
+
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
 
@@ -479,9 +483,9 @@ suite test, since neither checker models bindings or kept lookups:
   at main `def062b` and Oyl NG `5c6e618`, part 1's 373 pass, and read the same kept; part 2 801 pass, 49
   skipped, as before. J4HM is refused at 29 and 7SXP accepted at 30, so the engine counts the document as
   12; kept, it is accepted at 29, as only held applies. Oyl NG's CI still runs against `635b24d`.
-  **Open: push main `def062b`** (`mail/received/20261124-214114Z-@oylng--the-engine-s-0.3.0-waits-on-def062b-reaching-githu-225dfc42.md`).
-  The user chose, in the Oyl NG session, to release the engine's 0.3.0 once `def062b` is on GitHub, so its
-  CI runs the eight new tests. @oylng asks to be mailed once it is pushed, to move CI's pin and tag.
+  **Main `def062b` is pushed and tagged `v0.1.0`** (2026-11-24), for Oyl NG's 0.3.0
+  (`mail/received/20261124-214114Z-@oylng--the-engine-s-0.3.0-waits-on-def062b-reaching-githu-225dfc42.md`);
+  @oylng is told, to move CI's pin and tag.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
