@@ -471,9 +471,10 @@ tested yet.
 alternative carries the names on its way, outermost first; a value runs the first bound one, after its
 parts; a key matched by a type key runs nothing. 33 tests in main `16533e7` with `bind` and `calls`;
 three mutants of the checker (innermost name, calls before parts, code run for keys) each fail some.
-**Open, for the user** (asked 2026-11-25): two cases the text doesn't state, which the tests take as the
-agent recommends: a key, which stays a string, runs no code (`!k: !int` with `k` bound); and an optional
-key's no value, which delivers null, runs no code for the key's type.
+Two cases the text didn't state, which the tests took as the agent recommended; the user: "yes to
+both" (2026-11-25). A key, which stays a string, runs no code (`!k: !int` with `k` bound), and an
+optional key with no value delivers null without running the key's type's code. **Fixed in main
+`9d8b160`**, a paragraph in section 12, and @oylng told.
 
 **Oyl NG: chains, `!` names and part 1 of keep (2026-11-23)**
 (`mail/received/20261123-062923Z-@oylng--chains-the-rule-and-keep-part-1-are-in-the-engine-08fb6c4e.md`).

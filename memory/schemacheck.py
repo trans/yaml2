@@ -780,8 +780,8 @@ if __name__ == '__main__':
         ('--- &\nsigned: !int(/[-+][0-9]+/)\ncfg:\n  !**: {!|: [!signed, !str]}\n--- !cfg\na: +5\nb: x\nc:\n  d: -3\n', ['signed', 'cfg'], ['signed', 'signed', 'cfg']),
         # Each document in turn.
         ('--- &\n' + PT + '--- !point\nx: 1\ny: 2\n--- !point\nx: 3\ny: 4\n', ['point'], ['point', 'point']),
-        # Not covered by the text yet (asked 2026-11-25): a key, which stays a string, runs no code, and nor
-        # does the null an optional key with no value delivers.
+        # Code runs only for a typed value: not for a key, which stays a string, nor for the null an optional
+        # key with no value delivers (the user, 2026-11-25).
         ('--- &\nk: !str(/[a-z]+/)\nm:\n  !k: !int\n--- !m\nab: 1\n', ['k'], []),
         ('--- &\ncount: !int\njob:\n  retries?: !count\n--- !job\nretries:\n', ['count'], []),
         ('--- &\ncount: !int\njob:\n  retries?: !count\n--- !job\nretries: 3\n', ['count'], ['count']),
