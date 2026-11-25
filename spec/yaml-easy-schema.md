@@ -1489,9 +1489,13 @@ such as `true` or `${{ expression }}`, is a named string and a few lines of code
 An emitter of typed data needs the same schema. It quotes a string that the type at that place
 would read as something else: under `{!|: [!int, !str]}`, the string `3` is written `"3"`. It writes
 a number, a boolean, null or a time in its standard spelling, a float as section 4.4 says, or in the
-text it was read from if the application kept it, and refuses if that doesn't fit the type at that
-place: under `!signed` (section 4.5), 5 is refused, and a `+5` that was read and kept is written
-`+5`. An application that wants `+5` from a 5 binds `signed` to code that writes it (section 12).
+text it was read from if the application kept it, and refuses if that wouldn't read back as the
+same type and value: under `!signed` (section 4.5), 5 is refused, and a `+5` that was read and kept is
+written `+5`. Under `{!|: [!signed, !str]}`, 5 is refused too, since `5` fits there only as the string
+`"5"`. An application that wants `+5` from a 5 binds `signed` to code that writes it (section 12).
+Null under an optional key is written as no value, `retries:`, which always reads back as null:
+`retries: null` would be refused under `retries?: !int`, and under `name?: !str` it would read back
+as the string `"null"`.
 A bound value needs the way back too: the application gives code that turns a `Point` into the mapping its entry
 takes. Under `!any` nothing is typed, so an emitter writes what it's given as plain data: an object
 through the code the application gave for it, which reads back as the mapping that code made, as 3
