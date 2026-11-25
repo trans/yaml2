@@ -448,6 +448,30 @@ holding more, skipped):
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
 
+**Emitting, written again and read back (2026-11-24). Open, for the user.** The user approved emitting
+tests ("tests are always a good thing"). `emitcheck.py` writes each of the suite's 410 typed documents
+(420 tests) from its typed values alone, by section 13, and reads it back with the same schema. Quoting
+a string never changed another scalar, so section 13's no-respelling claim holds on the suite, and
+every float came back in section 4.4's spelling. Three gaps in the text:
+1. **A silent change.** Section 13 refuses a spelling that "doesn't fit the type at that place". Under
+   `{!|: [!signed, !str]}`, 5 read from `+5` is written `5`, which fits, as the string "5". 6 suite
+   documents (`4WZ6`, `8A56`, `D4E3`, `DCX7`, `Q36K`, `X9PT`). The agent recommends "refuses if it
+   wouldn't read back as the same type and value", which is Oyl NG's test.
+2. **Null at an optional key.** `retries?: !int` with an empty value delivers null; `retries: null` is
+   refused under `!int`, and under `a?: !str` reads back as the string "null" (silent). 4 documents
+   (`D5T3`, `FGT2`, `H4RC`, `XC3V`). Recommends: an optional key's null is written as an empty value.
+   `--empty-null` runs it so.
+3. **A string whose plain spelling refuses.** `1e999` under `{!|: [!float, !str]}`: plain, it is a
+   float too large, which refuses the document (section 4.4). Section 13 quotes a string that "would read
+   as something else"; recommends adding "or be refused". 1 document (`45KT`).
+With all three, 389 documents come back the same, and 21 are refused, each a pattern on a non-string
+type that the standard spelling doesn't match (`+5` under `!signed`, `007`, `~` under `!null(/~/)`,
+`.5` under `!decimal(/\.[0-9]+/)`), as the user chose (kept text or bound code writes those). Suite
+format not chosen yet: a harness rule (write each typed test again; it reads back the same) and a flag
+on the 21.
+The user asked what the `calls:` idea means (2026-11-24); the agent explained it with
+`line: {a: !point, b: !point}` giving `calls: [point, point, line]`, and recommended it. **Waiting.**
+
 **Oyl NG: chains, `!` names and part 1 of keep (2026-11-23)**
 (`mail/received/20261123-062923Z-@oylng--chains-the-rule-and-keep-part-1-are-in-the-engine-08fb6c4e.md`).
 CI runs the suite at `c5203b6`: part 1 365 of 365, part 2 801 pass, 0 fail (24 `keep`, 25 times held

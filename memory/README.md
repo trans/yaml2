@@ -26,6 +26,7 @@ working on the code needs belongs in the project's own docs, not here.
 | [suitenew.py](suitenew.py) | Adds a test to part 1's suite, with the answers from draftcheck.py to read before keeping it |
 | [schemacheck.py](schemacheck.py) | Tests YAML Easy Schema (YES), part 2, on top of draftcheck.py: also throwaway |
 | [suiteyes.py](suiteyes.py) | Writes part 2's suite, `suite/yes/src` in the code checkout, from schemacheck.py's tests, and with `--check` reads it back |
+| [emitcheck.py](emitcheck.py) | Writes every typed test of part 2's suite out again by section 13, from its typed values alone, and reads it back |
 
 Keep each note short and dated (`*Updated YYYY-MM-DD*`), with absolute
 dates and commit hashes. Check the code or `git log` before acting on
