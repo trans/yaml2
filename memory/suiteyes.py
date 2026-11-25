@@ -68,17 +68,17 @@ def read(t, *a, **k):
     r = read0(t, *a, **k)
     if state['depth'] == 0: texts[id(r.table)] = (t, r.table)
     return r
-def Schema(table, root, cut=False, limit=LIMIT, kept=False):
+def Schema(table, root, cut=False, limit=LIMIT, kept=False, types=None):
     """A schema loaded on its own is an application's schema with its root, over a stream with no
     documents. The same outcome through typed() is checked."""
     if state['depth'] == 0 and id(table) in texts:
-        direct = outcome(lambda: SchemaCls(table, root, cut, limit, kept))
-        res = record(line(), '%YAML 2.0\n', (texts[id(table)][0], root), None, limit, cut, kept)
+        direct = outcome(lambda: SchemaCls(table, root, cut, limit, kept, types))
+        res = record(line(), '%YAML 2.0\n', (texts[id(table)][0], root), None, limit, cut, bool(kept))
         # Section 3: typed() also reads the schema's text under part 1's limit, which Schema() doesn't.
         if part1text(texts[id(table)][0], limit) and (direct[0], type(direct[1])) != (res[0], type(res[1])) and not (direct[0] == res[0] == 'ok'):
             sys.exit(f'Schema() and typed() differ on {root}: {direct} {res}')
     state['depth'] += 1
-    try: return SchemaCls(table, root, cut, limit, kept)
+    try: return SchemaCls(table, root, cut, limit, kept, types)
     finally: state['depth'] -= 1
 ns['typed'], ns['read'], ns['Schema'] = typed, read, Schema
 
@@ -196,6 +196,7 @@ GROUPS = {
     'fulls': ('9', "A schema's full size"), 'emptyseq': ('6', 'An empty sequence'),
     'goods3': (None, 'From the third review'), 'bads3': (None, 'From the third review'), 'schemas3': (None, 'A schema refused'),
     'loads3': (None, 'A schema that loads'), 'counts': ('11', 'Typed'), 'goodsP': ('4.8', 'Dates'), 'badsP': ('4.8', 'Dates'),
+    'spreads': ('11', 'Typing a merge'), 'spreadok': ('11', 'Typing a merge'), 'spreadno': ('11', 'Typing a merge'), 'keptfull': ('11', 'Typing a merge'), 'fullno': ('11', 'Typing a merge'),
     'oks': ('4.8', 'What a parser holds of a date'), 'nos': ('4.8', 'What a parser holds of a date'),
     'schemasP': ('4.8', 'A date level or round'), 'loadsP': (None, 'A schema that loads'), 'extra': ('11', 'Typed'), 'extrafull': ('9', "A schema's full size"),
 }
@@ -203,7 +204,7 @@ GROUPS = {
 SINGLES = [('DIFFERS renamed', '8', "The names are the author's"), ('QUOTED PATTERN NOT A LITERAL', '5', 'A quoted pattern is a literal'),
            ('doubling(', '9', 'Names that double'), ('read(chain)', '9', "A schema's full size"), ('read(wide)', '9', 'Unions at the ceiling'),
            ('a stamp past the limit', '9', "A schema's full size"), ("('--- &\\na: !str\\n', 'a'), limit=", '3', "Part 1's limit on an application's schema"), ('pub3(', '3.1', 'A published schema'), ("for t in ('retries: abc", '3', 'Who says how to read a document'),
-           ('for z3 in', '4.4', 'The sign of zero'), ('for body3 in', '3.1', 'A published schema is one table'), ('many', '11', 'Typed'), ('app=app2', '11', 'Typed')]
+           ('for z3 in', '4.4', 'The sign of zero'), ('for body3 in', '3.1', 'A published schema is one table'), ('many', '11', 'Typed'), ('app=app2', '11', 'Typed'), ('typed(spreadno[-1][0])', '11', 'Typing a merge')]
 # Where section() guesses wrong: the section whose rule a test is about, by its ID, which is a hash of its
 # stream. A test inside `!**`, `!*` or `<<` keeps that section, since reaching inside it is what it tests.
 # The writer stops if an ID here isn't written, if its section isn't guessed, or if the guess is already right.
@@ -276,7 +277,7 @@ def tagtext(r):
     """What a test asks of a parser: the entries its roots reach, its documents, and any published
     file, rather than the whole table, since an entry nothing reaches isn't a type (section 2)."""
     st = r['stream']; store = ''.join((r['store'] or {}).values())
-    try: rr = read0(st)
+    try: rr = read0(st, None, False, r['keep'])  # Kept, a `-<<` builds nothing (section 11's tests of spreading).
     except No: return st + (r['app'][0] if r['app'] else '') + store, st
     parts = TABLE.findall(st); ch = {k: v for p in parts for k, v in chunks(p).items()}
     docs = TABLE.sub('', st); names = set()
@@ -375,7 +376,7 @@ def refused(r, e):
     if name == 'SchemaError': return 'schema', None
     if name == 'No':
         if 'typed passes the size limit' in str(e): return 'document', str(e).split(': ')[0]
-        try: read0(r['stream']); return 'schema', None
+        try: read0(r['stream'], None, False, r['keep']); return 'schema', None
         except No: return 'stream', None
     m = re.match(r'(/[^:]*): ', str(e))
     return 'document', m[1] if m else None
@@ -395,7 +396,7 @@ if not CHECK:
     # entry, and keeps the checker's answer only if the schema is still refused, or still loads.
     CANDS = ['x', '0', '1', '0.5', 'a', 'b', 'true', 'null', '2001-02-03', '2001-02-03T04:05:06Z', 'aGk=', '[]', '{}', 'x' * 1024, 'ab' * 256, 'ab' * 128]
     def reached(r):
-        try: rr = read0(r['stream'])
+        try: rr = read0(r['stream'], None, False, r['keep'])
         except No: return r
         if rr.docs or not rr.table or r['app'] or r['store'] is not None: return r
         refused = r['res'][0] == 'fail' and type(r['res'][1]).__name__ == 'SchemaError'

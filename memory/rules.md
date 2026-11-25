@@ -1038,6 +1038,21 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   cap on types per node is an arbitrary number. **In main `56210d7`,** with the checker in step: a `keep`
   mode in `typed()` (part 2: 72 examples, 880 edge cases; nine mutants fail). The checker counts two plain
   one-character scalars as one node, because CPython shares those strings; no test relies on that.
+- **Typing a merge, read kept** (the user, 2026-11-25: "go with your recommendations on all four", on
+  @oylng's four cases, `mail/received/20261125-082830Z-@oylng--typing-kept-lines-and-items-four-cases-8eb1cb3d.md`).
+  (1) Typing spreads `<<:` and `-<<`, and types what part 1's section 9 delivers. (2) Typed adds what
+  spreading builds, by addition before building, nothing deduplicated: 1 for each line below the node's
+  own, 1 and the bytes for each key a line gives, 1 for each item a `-<<` puts in. A node's own size now
+  counts its own lines (1 each), as held does. Why the lines: with `e0: {}` and each `eN` merging `eN-1`
+  twice, no keys come out, but 62 entries give 2^63-2 lines to walk. Why not full: full counts each
+  value's references too, so a `<<: *a` with `a: {k: *big}` adds `big` each time, though typing shares
+  it. (3) The entries a schema reaches are held to full together, then compiled from their merged form,
+  so a kept parser loads every schema a full one does, and section 9's full size counts the same form.
+  (4) `!any` alone spreads nothing; any other type spreads, a union with `!any` too. Part 1, section 10,
+  now says typing checks levels and counts what it builds in place of full. **In main `a2c46f4`**, with
+  the checkers in step: part 1's checker keeps each `-<<` line (`L.spl`); part 2's `keep` mode reads kept
+  and counts the spread; 27 tests (915); seven mutants each fail some. A full read accepts the `{}` chain
+  that a kept one refuses: a loud difference, by the ruling.
 
 ## Positions (the user, 2026-11-24)
 

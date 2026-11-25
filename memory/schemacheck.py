@@ -77,6 +77,9 @@ DATEHOLD = None
 # Section 12: the entries an application binds, as a suite harness does, with code that only notes its
 # name and gives back what it was given; and the names noted, in the order the code ran.
 BIND = None
+# Section 11's hold on the entries a schema reaches, read kept. Off only for the checker's tests of typed
+# alone, whose limits are below what the stream holds, so part 1 refuses them first; the suite leaves those out.
+HOLDTYPES = True
 CALLS = []
 def leapyear(y): return (y % 4 == 0 and y % 100 != 0) or y % 400 == 0
 def lastday(y, m): return (31, 29 if leapyear(y) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)[m - 1]
@@ -354,15 +357,37 @@ def strip(v):
 
 CEILING = 1024
 LIMIT = 64 * 2 ** 20
+def keysize(k): return 1 + len(str(k).encode('utf-8', 'surrogatepass'))
+def spread(v):
+    """A kept sequence with its `-<<` lines spread, as part 1's section 9.2 delivers it. Each item stays
+    the node it was. A kept mapping is merged as it is read, and its lines are kept beside it."""
+    if not getattr(v, 'spl', ()): return v
+    out = []
+    def go(x):
+        j = 0
+        for pos, src in getattr(x, 'spl', ()): out.extend(x[j:pos]); go(src); j = pos
+        out.extend(x[j:])
+    go(v); return out
+def unkept(v, memo=None):
+    """A type as a full read gives it (section 11): every `-<<` spread, each shared node built once."""
+    if isinstance(v, str): return v
+    if memo is None: memo = {}
+    if id(v) not in memo:
+        out = {k: unkept(x, memo) for k, x in v.items()} if isinstance(v, dict) else [unkept(x, memo) for x in spread(v)]
+        memo[id(v)] = (v, out)
+    return memo[id(v)][1]
 
 class Schema:
-    def __init__(s, table, root, cut=False, limit=LIMIT, kept=False):
+    def __init__(s, table, root, cut=False, limit=LIMIT, kept=False, types=None):
         s.table, s.defs, s.memo, s.seen, s.reached, s.cut = table, {}, {}, set(), {root}, cut
         # Section 11: an interface that keeps references types each node once for each type and nearest
         # `!**`, and adds the node's own size to typed each time. The reader hands back the table's own
         # object for a reference, so a shared node is one object here. CPython shares strings of one
         # character, so two plain one-character scalars count as one node; no test relies on that.
         s.kept, s.limit, s.count, s.done = kept, limit, 0, {}
+        # Kept, `kept` is the reader of the data, whose `lines` and `spl` say what each node's lines name,
+        # and `types` the reader of the schema's own text, whose entries a schema holds to full (section 11).
+        s.types, s.typefull, s.gave = types, 0, {}
         s.places, s.fulls, s.quiet = {}, {}, 0
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
@@ -387,7 +412,15 @@ class Schema:
             return n
         return 1
     def get(s, name):
-        if name not in s.defs: s.defs[name] = to_type(s.table[name])
+        if name not in s.defs:
+            v = s.table[name]
+            if s.types is not None:
+                # Section 11: read with references kept, the entries a schema reaches are held to their
+                # full size together, before each is compiled from its merged form.
+                s.typefull += s.types.nsize(name) + s.types.nsize(v)
+                if s.typefull > s.limit: raise SchemaError(f'the entries the schema reaches come to {s.typefull} in full')
+                v = unkept(v)
+            s.defs[name] = to_type(v)
         return s.defs[name]
     def flat(s, t): return [x for x, _ in s.named(t)]
     def named(s, t, seen=(), done=None):
@@ -461,22 +494,43 @@ class Schema:
         s.count, s.done = 0, {}  # Section 11: typed counts the document being typed.
         return s.conv(s.top, v, '')
     def own(s, v):
-        """A node's own size, as held counts it: 1, a scalar's bytes, or a mapping's keys. Not what is below."""
-        b = lambda x: 1 + len(str(x).encode('utf-8', 'surrogatepass'))
-        if isinstance(v, dict): return 1 + sum(b(k) for k in v)
-        return 1 if isinstance(v, list) else b(v)
+        """A node's own size, as held counts it: 1, a scalar's bytes, or a mapping's keys, and 1 for each
+        `<<:` or `-<<` line kept in it. Not what is below."""
+        if isinstance(v, dict):
+            e = s.kept.lines.get(id(v))
+            return 1 + (sum(map(keysize, e[1])) + len(e[2]) if e else sum(map(keysize, v)))
+        return 1 + len(getattr(v, 'spl', ())) if isinstance(v, list) else keysize(v)
+    def srcs(s, v):
+        """What v's own `<<:` or `-<<` lines name."""
+        if isinstance(v, dict):
+            e = s.kept.lines.get(id(v)); return e[2] if e else ()
+        return [src for _, src in getattr(v, 'spl', ())] if isinstance(v, list) else ()
+    def gives(s, v):
+        """Section 11: what a line naming v adds when it is spread, by addition, with nothing deduplicated:
+        each key it gives, as a written key counts, or 1 for each item, and 1 for each line below."""
+        m = s.gave.get(id(v))
+        if m is None:
+            if isinstance(v, dict):
+                e = s.kept.lines.get(id(v)); n = sum(map(keysize, e[1] if e else v))
+            else: n = len(v)
+            m = s.gave[id(v)] = (v, n + sum(1 + s.gives(x) for x in s.srcs(v)))
+        return m[1]
+    def alone(s, t):
+        """`!any` alone types nothing, so it spreads nothing (section 11)."""
+        a = s.alts(t); return len(a) == 1 and a[0][0] == 'name' and a[0][1] == 'any'
     def kind(s, t):
         """Section 11: each type written in the schema is one type, and a name is its entry's."""
         while t[0] == 'name' and t[1] in s.table and t[2] is None: t = s.get(t[1])
         return id(t)
-    def typing(s, key, v, path, work):
-        """Once for each node, type and nearest `!**`, adding the node's own size to typed each time."""
-        if not s.kept: return work()
+    def typing(s, key, v, path, work, alone=False):
+        """Once for each node, type and nearest `!**`, adding the node's own size to typed each time, and
+        unless the type is `!any` alone, what spreading its lines builds, before it is built (section 11)."""
+        if not s.kept: return work(v)
         k = (id(v),) + key
         if k in s.done: return s.done[k]
-        s.count += s.own(v)
+        s.count += s.own(v) + (0 if alone else sum(map(s.gives, s.srcs(v))))
         if s.count > s.limit: raise No(f'{path or "/"}: typed passes the size limit')
-        out = s.done[k] = work()
+        out = s.done[k] = work(v if alone else spread(v))
         return out
     def under(s, k, y, path, scope):
         """A key the mapping at this place doesn't name, under the nearest `!**`."""
@@ -492,13 +546,13 @@ class Schema:
         return s.anywhere(y, p, scope)
     def anywhere(s, v, path, scope):
         if not isinstance(v, (dict, list)) and scope[2]: return s.conv(scope[2], v, path, scope)
-        return s.typing(('**', id(scope)), v, path, lambda: s.below(v, path, scope))
+        return s.typing(('**', id(scope)), v, path, lambda w: s.below(w, path, scope))
     def below(s, v, path, scope):
         if isinstance(v, dict): return {str(k): s.under(k, y, path, scope) for k, y in v.items()}
         if isinstance(v, list): return [s.anywhere(y, f'{path}/{i}', scope) for i, y in enumerate(v)]
         return strip(v)
     def conv(s, t, v, path, scope=None):
-        return s.typing((s.kind(t), id(scope)), v, path, lambda: s.convert(t, v, path, scope))
+        return s.typing((s.kind(t), id(scope)), v, path, lambda w: s.convert(t, w, path, scope), s.kept and s.alone(t))
     def convert(s, t, v, path, scope=None):
         a = s.alts(t)
         if len(a) == 1: return s.called(t, 0, s.one(a[0], v, path, scope))
@@ -621,29 +675,32 @@ def published(name, store, cut, limit=LIMIT, keep=False):
     root, h = PUB.fullmatch(name).groups(); b = store.get(h)
     if b is None: raise Cant(f'{name}: the file is not to be had')
     if hashlib.sha256(b).hexdigest() != h: raise Cant(f'{name}: the file does not hash to its name')
-    text = b.decode('utf-8'); r = read(text, limit)
+    text = b.decode('utf-8'); r = read(text, limit, keep=bool(keep))
     marks = re.findall(r'^(?:---|\.\.\.)(?=[ \t\n]|$).*', text, re.M)
     if r.docs or not r.table or len(marks) != 1 or not marks[0].startswith('--- &'):
         raise SchemaError(f'{name}: a published schema is one table and nothing else')
     # Section 3.1: the root is the entry named like the file.
     if root not in r.table: raise SchemaError(f'{name}: the file has no entry {root}')
-    return Schema(r.table, root, cut, limit, keep)
+    return Schema(r.table, root, cut, limit, keep, r if keep and HOLDTYPES else None)
 def typed(stream, app=None, store=None, limit=LIMIT, cut=False, keep=False):
     """Type each stamped document by the file's table, others by the application's schema.
     With neither they stay strings. An application's schema is (schema text, root). A store
     means the application looks published names up. Cut is an application cutting a time to what this parser holds (sections 3 and 4.8). Keep
     types as an interface that keeps references does, counting typed (section 11)."""
-    r = read(stream); out = []; reached = {}; live = None; CALLS.clear()
+    # Keep reads as an interface that keeps references: `-<<` builds nothing, and a mapping's lines are kept.
+    r = read(stream, keep=keep); out = []; reached = {}; live = None; CALLS.clear(); kept = r if keep else False
+    hold = keep and HOLDTYPES
     # Section 3: a schema from outside the stream is a stream too, read under part 1's limit.
-    own = None if app is None else Schema(read(app[0], limit).table, app[1], cut, limit, keep)
+    if app is not None: ra = read(app[0], limit, keep=keep)
+    own = None if app is None else Schema(ra.table, app[1], cut, limit, kept, ra if hold else None)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
         if obj is not live: reached, live = {}, obj
         for k, e in reached.items():
             if table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
         if name and '/' not in name and name in table:
-            sc = Schema(table, name, cut, limit, keep); out.append(sc.check(v))
+            sc = Schema(table, name, cut, limit, kept, r if hold else None); out.append(sc.check(v))
             reached.update((k, table[k]) for k in sc.reached)
-        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, cut, limit, keep).check(v))
+        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, cut, limit, kept).check(v))
         elif own: out.append(own.check(v))
         else: out.append(strip(v))
     if r.docs and r.table is live:
@@ -1114,7 +1171,10 @@ if __name__ == '__main__':
               # A collection reached only through `!**`: the root 5, `v` once 3, its `1` 2.
               ('--- &\nv: {x: 1}\nroot:\n  !**: !int\n--- !root\na: *v\nb: *v\n', 10),
               # Keys tried against a type key count with their mapping, not again: 5, `v` 4, its `1` 2.
-              ('--- &\nv: {k1: 1}\nroot:\n  !**:\n    !str(/k.*/): !int\n--- !root\na: *v\nb: *v\n', 11)]
+              ('--- &\nv: {k1: 1}\nroot:\n  !**:\n    !str(/k.*/): !int\n--- !root\na: *v\nb: *v\n', 11),
+              # A key a `<<:` line gives counts as a written one: the root 6, with the line's `k`, then 2 and 2.
+              ('--- &\na: {k: v}\nm: {k: !str, j: !int}\n--- !m\n<<: *a\nj: 1\n', 10)]
+    HOLDTYPES = False
     for st, n in counts:
         try: typed(st, keep=True, limit=n)
         except REFUSED as e: tyd += 1; print('TYPED REFUSED AT', n, repr(st[-40:]), e)
@@ -1122,6 +1182,7 @@ if __name__ == '__main__':
         except REFUSED: pass
         try: typed(st, limit=n - 1)
         except REFUSED as e: tyd += 1; print('REFUSED WITHOUT KEEP AT', n - 1, repr(st[-40:]), e)
+    HOLDTYPES = True
     big = 'a' * 2 ** 20; refs = '[' + ', '.join(['*s'] * 1000) + ']\n'
     many = '--- &\ns: ' + big + '\nrow: [' + ', '.join(f'!str({k}..)' for k in range(1, 1001)) + ']\n--- !row\n' + refs
     same1 = '--- &\ns: ' + big + '\nrow: [!str, ...]\n--- !row\n' + refs
@@ -1140,6 +1201,55 @@ if __name__ == '__main__':
         if 'typed passes' not in str(e): tyd += 1; print('NOT REFUSED BY TYPED AT 17, APP', e)
     typed_n = 3 * len(counts) + 3 + 2
     f += tyd
+    # Section 11's spreads (2026-11-25), as an interface that keeps references types them. Typing spreads
+    # `<<:` and `-<<` as part 1's section 9 delivers them, and typed adds what that builds, by addition and
+    # with nothing deduplicated. Each test in spreads passes at its limit and is refused at one less, with
+    # typed past what the stream holds, so part 1's limit allows both.
+    spr = 0
+    def chain11(n, key=lambda i: f'k{i}'):
+        t = '--- &\nm0: {' + key(0) + ': 0}\n' + ''.join(f'm{i}: {{<<: *m{i - 1}, {key(i)}: {i}}}\n' for i in range(1, n + 1))
+        return t + 'l: [{!*: !int}, ...]\n--- !l\n[' + ', '.join(f'*m{i}' for i in range(n + 1)) + ']\n'
+    def twice11(p, first, n, seq=False):
+        two = f'[-<< *{p}{{0}}, -<< *{p}{{0}}]' if seq else f'{{{{<<: *{p}{{0}}, <<: *{p}{{0}}}}}}'
+        return f'{p}0: {first}\n' + ''.join(f'{p}{i}: ' + two.format(i - 1) + '\n' for i in range(1, n + 1))
+    C11 = '--- &\na: {k: v}\nm: {k: !str, j: !int}\n--- !m\n<<: *a\nj: 1\n'
+    J11 = '--- &\nbase: {x: !int}\njob: {<<: *base, y: !int}\n--- !job\n'
+    R11 = '--- &\npre: [!int]\nrow: [-<< *pre, !str]\n--- !row\n'
+    E11 = '--- &\n' + twice11('e', '{k: v}', 10)
+    spreads = [(chain11(10), 289),  # each mi types its key, the keys of those before it, and their lines
+               (chain11(10, lambda i: 'k'), 222),  # one key throughout: a key a later one replaces still counts
+               # The entries a schema reaches are held to full together: t 232, q 227, each below 458.
+               ('--- &\n' + twice11('b', '{x: !int}', 5) + 't: {<<: *b5, p: !q}\nq: {<<: *b5}\n--- !t\nx: 1\np: {x: 2}\n', 459)]
+    spreadok = [(C11, LIMIT), (J11 + 'x: 1\ny: 2\n', LIMIT), (R11 + '[1, a]\n', LIMIT),
+                (E11 + 't: {x: !any}\n--- !t\nx: {<<: *e10}\n', 100),  # `!any` alone spreads nothing
+                ('--- &\n' + twice11('a', '[x, x]', 62, True) + 't: {x: !any}\n--- !t\nx: *a62\n', LIMIT)]
+    spreadno = [(J11 + 'x: a\ny: 2\n', LIMIT), (R11 + '[a, a]\n', LIMIT),
+                (E11 + 't: {x: {!|: [!any, !int]}}\n--- !t\nx: {<<: *e10}\n', 100),  # a union spreads, to try the rest
+                ('--- &\n' + twice11('a', '[x, x]', 62, True) + 'l: [!str, ...]\n--- !l\n*a62\n', LIMIT),  # 2^63 items
+                # No keys, and 2^63 - 2 lines, though a full read builds each mapping's pairs once: none.
+                ('--- &\n' + twice11('e', '{}', 62) + 't: {!*: !int}\n--- !t\n<<: *e62\n', LIMIT)]
+    for st, n in spreads:
+        try: typed(st, keep=True, limit=n)
+        except REFUSED as e: spr += 1; print('SPREAD REFUSED AT', n, repr(st[-40:]), e)
+        try: typed(st, keep=True, limit=n - 1); spr += 1; print('SPREAD NOT REFUSED AT', n - 1, repr(st[-40:]))
+        except REFUSED: pass
+    for st, n in spreadok:
+        try: typed(st, keep=True, limit=n)
+        except REFUSED as e: spr += 1; print('SPREAD REFUSED', repr(st[-40:]), e)
+    for st, n in spreadno:
+        try: typed(st, keep=True, limit=n); spr += 1; print('SPREAD NOT REFUSED', repr(st[-40:]))
+        except REFUSED: pass
+    # Kept or full, the same data and the same answers.
+    keptfull = [x[0] for x in spreadok[:3] + spreads[:2]]; fullno = [x[0] for x in spreadno[:2]]
+    for st in keptfull:
+        if typed(st, keep=True) != typed(st): spr += 1; print('KEPT AND FULL DIFFER', repr(st[-40:]))
+    for st in fullno:
+        try: typed(st); spr += 1; print('FULL NOT REFUSED', repr(st[-40:]))
+        except REFUSED: pass
+    try: typed(spreadno[-1][0])
+    except REFUSED as e: spr += 1; print('FULL REFUSED THE EMPTY MERGES', e)
+    typed_n += 2 * len(spreads) + len(spreadok) + len(spreadno) + 5 + 2 + 1
+    f += spr
     # Dates (the user, 2026-11-11 and 2026-11-12): RFC 3339's grammar, a date a parser can't hold refusing
     # the document, and an application's cut, which keeps the digits a parser holds and refuses the rest.
     prec = 0

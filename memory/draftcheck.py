@@ -23,8 +23,9 @@ def put(d, k, v):
         items = [(k if j == k else j, w) for j, w in d.items()]; d.clear(); d.update(items)
     d[k] = v
 class L(list):
-    """A sequence that keeps references: `-<<` adds to more and deep, and no items."""
-    more = 0; deep = 0
+    """A sequence that keeps references: `-<<` adds to more and deep, and no items. Each line is kept in
+    spl, with the number of written items before it, for what a schema spreads (part 2, section 11)."""
+    more = 0; deep = 0; spl = ()
 class P:
     def __init__(s, t, limit=None, together=False, keep=False, maxlevels=None):
         s.dq = []; s.limit = limit; s.together = together; s.memo = {}; s.tsize = {}; s.sizes = []; s.keep = keep; s.theld = 0; s.saved = 0; s.helds = []
@@ -107,7 +108,7 @@ class P:
         s.saved += s.nsize(src) - 2
         s.fr[-1] += s.nsize(src) - 1
         if s.keep:
-            out.more += s.nsize(src) - 1; out.deep = max(out.deep, s.levels(src))
+            out.more += s.nsize(src) - 1; out.deep = max(out.deep, s.levels(src)); out.spl += ((len(out), src),)
         else:
             s.check(s.nsize(src)); out += src
     def deliver(s, name, v):
