@@ -1,0 +1,68 @@
+---
+- name: 'Application types: `{lines: [!line, ...], at: !point}` on `lines:;   - {a: {x: 1, y: 2}, b: {x: 3,…`, binding point, line and drawing'
+  from: part 2, section 12
+  tags: int sequence bind
+  bind: [point, line, drawing]
+  calls: [point, point, line, point, point, line, point, drawing]
+  yaml: |
+    %YAML 2.0
+    --- &
+    point: {x: !int, y: !int}
+    line: {a: !point, b: !point}
+    drawing: {lines: [!line, ...], at: !point}
+    --- !drawing
+    lines:
+      - {a: {x: 1, y: 2}, b: {x: 3, y: 4}}
+      - {a: {x: 5, y: 6}, b: {x: 7, y: 8}}
+    at: {x: 0, y: 0}
+  typed: |
+    +STR
+     +DOC !drawing
+      +MAP
+       =VAL :lines
+       +SEQ
+        +MAP
+         =VAL :a
+         +MAP
+          =VAL :x
+          =INT :1
+          =VAL :y
+          =INT :2
+         -MAP
+         =VAL :b
+         +MAP
+          =VAL :x
+          =INT :3
+          =VAL :y
+          =INT :4
+         -MAP
+        -MAP
+        +MAP
+         =VAL :a
+         +MAP
+          =VAL :x
+          =INT :5
+          =VAL :y
+          =INT :6
+         -MAP
+         =VAL :b
+         +MAP
+          =VAL :x
+          =INT :7
+          =VAL :y
+          =INT :8
+         -MAP
+        -MAP
+       -SEQ
+       =VAL :at
+       +MAP
+        =VAL :x
+        =INT :0
+        =VAL :y
+        =INT :0
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"lines": [{"a": {"x": 1, "y": 2}, "b": {"x": 3, "y": 4}}, {"a": {"x": 5, "y": 6}, "b": {"x": 7, "y": 8}}], "at": {"x": 0, "y": 0}}

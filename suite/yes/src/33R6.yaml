@@ -1,0 +1,27 @@
+---
+- name: 'Application types: `*point` on `x: 1; y: 2`, binding spot and point'
+  from: part 2, section 12
+  tags: reference bind
+  bind: [spot, point]
+  calls: [spot]
+  yaml: |
+    %YAML 2.0
+    --- &
+    point: {x: !int, y: !int}
+    spot: *point
+    --- !spot
+    x: 1
+    y: 2
+  typed: |
+    +STR
+     +DOC !spot
+      +MAP
+       =VAL :x
+       =INT :1
+       =VAL :y
+       =INT :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": 1, "y": 2}

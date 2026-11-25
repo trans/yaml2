@@ -1,0 +1,31 @@
+---
+- name: 'Application types: `[!order, ...]` on `- id: 1; - id: 2`, binding order and orders'
+  from: part 2, section 12
+  tags: int sequence bind
+  bind: [order, orders]
+  calls: [order, order, orders]
+  yaml: |
+    %YAML 2.0
+    --- &
+    order: {id: !int}
+    orders: [!order, ...]
+    --- !orders
+    - id: 1
+    - id: 2
+  typed: |
+    +STR
+     +DOC !orders
+      +SEQ
+       +MAP
+        =VAL :id
+        =INT :1
+       -MAP
+       +MAP
+        =VAL :id
+        =INT :2
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"id": 1}, {"id": 2}]

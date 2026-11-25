@@ -1,0 +1,26 @@
+---
+- name: 'Application types: `{!|: [!a, !b]}` on `x: 1`, binding p'
+  from: part 2, section 12
+  tags: int union bind
+  bind: [p]
+  calls: [p]
+  yaml: |
+    %YAML 2.0
+    --- &
+    p: {x: !int}
+    a: !p
+    b: !p
+    u: {!|: [!a, !b]}
+    --- !u
+    x: 1
+  typed: |
+    +STR
+     +DOC !u
+      +MAP
+       =VAL :x
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": 1}

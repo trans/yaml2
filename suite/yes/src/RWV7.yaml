@@ -2,6 +2,7 @@
 - name: 'Patterns, precision and limits: `!a` on `x: ~; y: [1, ~]`'
   from: part 2, section 10
   tags: int null pattern union double-star
+  emit: refused
   yaml: |
     %YAML 2.0
     --- &

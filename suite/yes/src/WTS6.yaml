@@ -2,6 +2,7 @@
 - name: 'A pattern on !decimal: `!decimal(/\\.[0-9]+/)` on `.5`'
   from: part 2, section 4.5
   tags: decimal pattern sequence
+  emit: refused
   yaml: |
     %YAML 2.0
     --- &

@@ -2,6 +2,7 @@
 - name: 'From the third review: `!bigint(/[-+][0-9]+/)` on `+0012`'
   from: part 2, section 4.5
   tags: bigint pattern sequence
+  emit: refused
   yaml: |
     %YAML 2.0
     --- &

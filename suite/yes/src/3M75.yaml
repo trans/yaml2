@@ -1,0 +1,25 @@
+---
+- name: 'Application types: `!m` on `ab: 1`, binding k'
+  from: part 2, section 12
+  tags: str int pattern sequence bind
+  bind: [k]
+  calls: []
+  yaml: |
+    %YAML 2.0
+    --- &
+    k: !str(/[a-z]+/)
+    m:
+      !k: !int
+    --- !m
+    ab: 1
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :ab
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"ab": 1}

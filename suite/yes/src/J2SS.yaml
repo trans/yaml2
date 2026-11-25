@@ -1,0 +1,36 @@
+---
+- name: 'Application types: `!cfg` on `a: +5; b: x; c:;   d: -3`, binding signed and cfg'
+  from: part 2, section 12
+  tags: str int pattern union sequence double-star bind
+  bind: [signed, cfg]
+  calls: [signed, signed, cfg]
+  emit: refused
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    cfg:
+      !**: {!|: [!signed, !str]}
+    --- !cfg
+    a: +5
+    b: x
+    c:
+      d: -3
+  typed: |
+    +STR
+     +DOC !cfg
+      +MAP
+       =VAL :a
+       =INT :5
+       =VAL :b
+       =VAL :x
+       =VAL :c
+       +MAP
+        =VAL :d
+        =INT :-3
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": 5, "b": "x", "c": {"d": -3}}

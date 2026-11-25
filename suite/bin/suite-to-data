@@ -52,6 +52,9 @@ def main(src, out):
             if 'limit' in test: write(os.path.join(d, 'limit'), f"{test['limit']}\n")
             for flag in ('keep', 'together', 'cut', 'leap-second', 'year-zero'):
                 if test.get(flag): write(os.path.join(d, flag), '')
+            # Part 2, section 12: the entries a harness binds, and the calls expected, one name a line.
+            for key in ('bind', 'calls'):
+                if key in test: write(os.path.join(d, key), ''.join(f'{n}\n' for n in test[key]))
             # Part 2: what the application supplies, and where a refusal comes from.
             if 'schema' in test: write(os.path.join(d, 'schema.yaml'), unescape(test['schema']))
             for key in ('root', 'holds', 'refused', 'at'):

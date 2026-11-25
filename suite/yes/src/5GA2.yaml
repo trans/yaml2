@@ -1,0 +1,43 @@
+---
+- name: 'Application types: `[!point, ...]` on `- *o; - *o; - {x: 3, y: 4}`, binding point'
+  from: part 2, section 12
+  tags: int sequence reference bind
+  bind: [point]
+  calls: [point, point, point]
+  yaml: |
+    %YAML 2.0
+    --- &
+    point: {x: !int, y: !int}
+    pts: [!point, ...]
+    o: {x: 1, y: 2}
+    --- !pts
+    - *o
+    - *o
+    - {x: 3, y: 4}
+  typed: |
+    +STR
+     +DOC !pts
+      +SEQ
+       +MAP
+        =VAL :x
+        =INT :1
+        =VAL :y
+        =INT :2
+       -MAP
+       +MAP
+        =VAL :x
+        =INT :1
+        =VAL :y
+        =INT :2
+       -MAP
+       +MAP
+        =VAL :x
+        =INT :3
+        =VAL :y
+        =INT :4
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"x": 1, "y": 2}, {"x": 1, "y": 2}, {"x": 3, "y": 4}]

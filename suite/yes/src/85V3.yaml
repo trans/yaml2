@@ -1,0 +1,38 @@
+---
+- name: 'Application types: `!m` on `a: {x: 1, y: 2}; b: {x: 3, y: 4}`, binding point and m'
+  from: part 2, section 12
+  tags: int star bind
+  bind: [point, m]
+  calls: [point, point, m]
+  yaml: |
+    %YAML 2.0
+    --- &
+    point: {x: !int, y: !int}
+    m:
+      !*: !point
+    --- !m
+    a: {x: 1, y: 2}
+    b: {x: 3, y: 4}
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :a
+       +MAP
+        =VAL :x
+        =INT :1
+        =VAL :y
+        =INT :2
+       -MAP
+       =VAL :b
+       +MAP
+        =VAL :x
+        =INT :3
+        =VAL :y
+        =INT :4
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": {"x": 1, "y": 2}, "b": {"x": 3, "y": 4}}

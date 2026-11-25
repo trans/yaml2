@@ -1,0 +1,40 @@
+---
+- name: 'Application types: `---; a: {x: 1, y: 2}; b: {x: 3, y: 4}`, binding point and line'
+  from: part 2, section 12
+  tags: int application bind
+  schema: |
+    %YAML 2.0
+    --- &
+    point: {x: !int, y: !int}
+    line: {a: !point, b: !point}
+  root: line
+  bind: [point, line]
+  calls: [point, point, line]
+  yaml: |
+    %YAML 2.0
+    ---
+    a: {x: 1, y: 2}
+    b: {x: 3, y: 4}
+  typed: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       +MAP
+        =VAL :x
+        =INT :1
+        =VAL :y
+        =INT :2
+       -MAP
+       =VAL :b
+       +MAP
+        =VAL :x
+        =INT :3
+        =VAL :y
+        =INT :4
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": {"x": 1, "y": 2}, "b": {"x": 3, "y": 4}}

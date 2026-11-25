@@ -2,10 +2,10 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 855:
+these tests will change with it. There are 888:
 
 - the draft's 70 examples, tagged `spec`;
-- 748 edge cases from the draft's checker;
+- 781 edge cases from the draft's checker, 33 of them for the code an application binds (section 12);
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
   (see below).
 
@@ -27,6 +27,9 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
 | `holds` | the fraction digits of a time that the parser holds (section 4.8) |
 | `leap-second` | with `holds`: `true` if it holds a second `60` |
 | `year-zero` | with `holds`: `true` if it holds the year `0000` |
+| `bind` | entries the harness binds (section 12), each to code that notes the entry's name and gives back what it was given, so `typed` is the same |
+| `calls` | with `bind`: the names noted, in the order the code ran |
+| `emit` | `refused` if an emitter given the typed events and the schema must refuse to write them (section 13) |
 
 - **`schema` and `root`.** A harness hands them to the parser before the stream. Some of these tests
   have a stream with no document. They check that the schema loads, or is refused, under the limit.
@@ -36,6 +39,17 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   `year-zero` match its own, and skips the tests tagged for what it doesn't hold (below).
 - **`refused`.** A refused test without it is also refused by part 1, through a syntax error or the
   size limit on the stream. The suite doesn't fix which refusal comes first.
+- **`bind` and `calls`.** These test which code runs and in what order (section 12). With `point` and
+  `line` bound, `line: {a: !point, b: !point}` gives `calls: [point, point, line]`: the parts before
+  the whole, in the order the data has them. A value typed through `spot: !point` with both bound
+  gives `[spot]`, since only the outermost bound name runs. A test without `bind` binds nothing.
+- **`emit`.** A harness for an emitter writes each accepted test's typed events again with the test's
+  schema, as section 13 says, from the typed events alone, with no text kept from reading. Where the
+  stream has its own table, each document is written after the table documents that come before it
+  in `yaml`, as they are written there. Read back with the same schema and settings, the result gives
+  the same typed events. Where a test has `emit: refused`, the emitter refuses instead. Each of those
+  22 has a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
+  under `!int(/[-+][0-9]+/)`. The suite doesn't fix how the YAML is laid out or quoted.
 - **`at`.** The path is `/` for the root, then each key or index after a `/`, unescaped. For a key
   the mapping doesn't take, or one it needs and doesn't have, it is the mapping's path (section 2). It
   is the first fault the checker meets. A parser that reports another fault in the same document first
@@ -43,7 +57,8 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
 
 `bin/suite-to-data yes/src yes-data` writes each test to a directory as part 1's are, with `typed.event`
 in place of `test.event`, and `schema.yaml`, `root`, `holds`, `refused`, `at`, `tags`, the flags `cut`,
-`leap-second` and `year-zero`, and a `store/` with a file for each hash, where a test has them.
+`leap-second` and `year-zero`, `bind` and `calls` with a name on each line, and a `store/` with a
+file for each hash, where a test has them.
 
 ### Typed events
 
@@ -85,6 +100,7 @@ following that it uses, so that a parser that does only part of the draft can sk
 | `cut`, `holds` | what an application or a parser does with times (section 4.8) |
 | `long-fraction`, `second-60`, `year-0000` | without `holds`: a time with more than 9 fraction digits, a second `60`, or the year `0000`, which a parser that holds less refuses (section 4.8) |
 | `size` | a size limit other than the default |
+| `bind` | bindings (section 12) |
 | `spec` | an example from the draft |
 | `error` | a refusal |
 | `schema` | none of the above |
@@ -97,7 +113,9 @@ that nothing reaches isn't a type (section 2).
 `suiteyes.py`, on the `ai` branch, writes the suite. It runs the tests of part 2's checker,
 `schemacheck.py`, records each stream they type, and takes the checker's answer. Every one of those
 tests passes, so each answer is also the result the test expected. `suiteyes.py --check` reads the
-suite back the way `suite-to-data` reads the marks, and runs every test again.
+suite back the way `suite-to-data` reads the marks, and runs every test again. `emitcheck.py`, beside
+it, writes each accepted test's typed events again, reads them back, and sets `emit: refused` where
+that can't be done.
 
 The checker is one reading of the draft, not a reference parser. A parser written from the draft that
 disagrees with a test has found a mistake in the test, the checker or the draft.
@@ -131,7 +149,8 @@ The suite also leaves out 3 tests over 200 KB, and 7 that repeat another test.
 
 - the line, column and offset of a refusal, and its place through a reference (section 2);
 - a library letting an application ignore a file's schema (section 3);
-- application types and bindings (section 12), and emitting (section 13);
+- code that refuses a value (section 12);
+- the spelling an emitter writes, past reading back the same: `1e+21` against `1e21` (section 13);
 - an interface that delivers every document at once (`together` in part 1);
 - section 15's open points.
 

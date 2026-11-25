@@ -74,7 +74,7 @@ from 1.2, and section 13.1 what they cost.
   [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Its rules are still changing, and section
   15 lists what is open.
 - **Test suite:** part 1's is in [`suite/`](suite/), 373 tests in yaml-test-suite's format, the draft's
-  examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 855 tests.
+  examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 888 tests.
 - **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser,
   the tree and the emitter for part 1. For part 2 it types documents, binds application types, emits
   typed data and looks up published schemas. Against this repo's `v0.1.0`, it passes all 373 of part

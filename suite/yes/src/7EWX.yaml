@@ -2,6 +2,7 @@
 - name: 'A pattern on !int: `!int(/[-+][0-9]+/)` on `+0`'
   from: part 2, section 4.5
   tags: int pattern sequence
+  emit: refused
   yaml: |
     %YAML 2.0
     --- &

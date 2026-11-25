@@ -2,6 +2,7 @@
 - name: 'Keys not named: `[!a, ...]` on `- {y: +5}; - {x: -3}`'
   from: part 2, section 10
   tags: str int pattern union sequence double-star
+  emit: refused
   yaml: |
     %YAML 2.0
     --- &

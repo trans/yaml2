@@ -1,0 +1,29 @@
+---
+- name: 'Application types: `[!key, ...]` on `- 1; - a; - "2"`, binding id and name'
+  from: part 2, section 12
+  tags: str int union sequence bind
+  bind: [id, name]
+  calls: [id, name, name]
+  yaml: |
+    %YAML 2.0
+    --- &
+    id: !int
+    name: !str
+    key: {!|: [!id, !name]}
+    keys: [!key, ...]
+    --- !keys
+    - 1
+    - a
+    - "2"
+  typed: |
+    +STR
+     +DOC !keys
+      +SEQ
+       =INT :1
+       =VAL :a
+       =VAL :2
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [1, "a", "2"]
