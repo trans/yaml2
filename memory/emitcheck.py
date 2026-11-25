@@ -1,9 +1,10 @@
 """Write every typed test of part 2's suite out again, as section 13 says, and read it back.
 
-    python3 -I emitcheck.py SUITE [--empty-null] [-v]     (SUITE is the code checkout's suite/ directory)
+    python3 -I emitcheck.py SUITE [--mark] [-v]     (SUITE is the code checkout's suite/ directory)
 
---empty-null writes an optional key's null as an empty value, as proposed on 2026-11-24; -v shows
-every document not written back, not only two of each kind.
+Checks that each test is marked `emit: refused` exactly where its typed events can't be written. With
+--mark it marks them instead, as suiteyes.py has it do after writing the suite. -v shows every
+document not written back, not only two of each kind.
 
 A throwaway emitter written from part 2's section 13, not a reference. For each accepted test with
 typed events, it types the stream with schemacheck.py, then writes each document from its typed
@@ -92,7 +93,6 @@ def dq(t):
         else: out.append(c)
     return '"' + ''.join(out) + '"'
 
-EMPTY = '--empty-null' in sys.argv  # The proposed rule: an optional key's null is written as an empty value.
 def text(v, path, quote):
     if isinstance(v, str) and not isinstance(v, Tag): return dq(v) if path in quote or not plain_ok(v) else v
     if v is None and path in quote: return ''
@@ -166,47 +166,58 @@ def check(t, un):
             out = before + emit_doc(name, v, quote)
             try: return out, typed(out, app, store, limit, cut)[0], None
             except REFUSED as e: return out, None, e
-        quote = set(); out, got, err = back(quote)
-        if err is None:
+        # Spell each scalar where it is typed: a string plain if part 1 reads it back, then quoted if the
+        # schema reads it as something else, or refuses it; an optional key's null as no value. Learning
+        # the type at a place by reading back is this checker's shortcut, and it checks section 13's claim
+        # that one respelling changes nothing else.
+        quote = set(); before_d = None
+        for _ in range(64):
+            out, got, err = back(quote)
+            if err is not None:
+                p = place(v, err)
+                if p is None or p in quote or not (isinstance(at(v, p), str) and not isinstance(at(v, p), Tag) or at(v, p) is None and p and isinstance(p[-1], str)):
+                    results.append(('refused', str(err), out)); break
+                quote.add(p); continue
             d = []; diff(v, got, (), d)
-            fix = {p for k, p in d if k == 'scalar' and isinstance(at(v, p), str) and not isinstance(at(v, p), Tag)}
-            if EMPTY: fix |= {p for k, p in d if k == 'scalar' and p and at(v, p) is None and isinstance(p[-1], str)}
-            if fix:
-                out2, got2, err2 = back(fix)
-                if err2 is not None: results.append(('claim', f'quoting {sorted(map(str, fix))} refused the document: {err2}', out2)); continue
-                d2 = []; diff(v, got2, (), d2)
-                if {p for k, p in d2} - {p for k, p in d}: results.append(('claim', f'quoting {fix} changed {sorted(map(str, {p for k, p in d2} - {p for k, p in d}))}', out2)); continue
-                out, got, d = out2, got2, d2
-            if not d: results.append(('ok', 'plain' if not fix else f'{len(fix)} quoted', out)); continue
-            results.append(('refused', '; '.join(f'{"/" + "/".join(map(str, p))} {at(v, p)!r} came back {at(got, p)!r}' if k == 'scalar' else f'shape at {p}' for k, p in d), out))
-        else:
-            # A string spelled plain never refuses a document (section 13), so try them all quoted, then refuse.
-            q = set(); collect(v, (), q)
-            out2, got2, err2 = back(q)
-            if err2 is None:
-                d2 = []; diff(v, got2, (), d2)
-                results.append(('claim', f'plain refused ({err}), all quoted gives {"the same" if not d2 else d2}', out)); continue
-            results.append(('refused', str(err), out))
+            new = {p for k, p in d if k == 'scalar' and p not in quote and (isinstance(at(v, p), str) and not isinstance(at(v, p), Tag) or at(v, p) is None and p and isinstance(p[-1], str))}
+            if before_d is not None and {p for k, p in d} - before_d - quote:
+                results.append(('claim', f'respelling {sorted(map(str, quote))} changed {sorted(map(str, {p for k, p in d} - before_d - quote))}', out)); break
+            before_d = {p for k, p in d}
+            if new: quote |= new; continue
+            if not d: results.append(('ok', f'{len(quote)} respelled' if quote else 'plain', out))
+            else: results.append(('refused', '; '.join(f'{"/" + "/".join(map(str, p))} {at(v, p)!r} came back {at(got, p)!r}' if k == 'scalar' else f'shape at {p}' for k, p in d), out))
+            break
     return results
-def collect(v, path, q):
-    if isinstance(v, dict):
-        for k, x in v.items(): q.add(path + (('key', k),)); collect(x, path + (k,), q)
-    elif isinstance(v, list):
-        for i, x in enumerate(v): collect(x, path + (i,), q)
-    elif isinstance(v, str) and not isinstance(v, Tag): q.add(path)
-    elif v is None and EMPTY and path and isinstance(path[-1], str): q.add(path)
-
+def place(v, err):
+    """The value a refusal names, by its path (part 2, section 2), or None."""
+    m = re.match(r'(/[^:]*): ', str(err))
+    if not m: return None
+    p = ()
+    for step in ([] if m[1] == '/' else m[1].split('/')[1:]):
+        if isinstance(v, list) and step.isdigit() and int(step) < len(v): p += (int(step),); v = v[int(step)]
+        elif isinstance(v, dict) and step in v: p += (step,); v = v[step]
+        else: return None
+    return p
 if __name__ == '__main__':
     import yaml
     suite = sys.argv[1]
     sd = {'__name__': 'sd'}; exec(open(os.path.join(suite, 'bin', 'suite-to-data'), encoding='utf-8').read().split("\nif __name__")[0], sd)
     un = sd['unescape']; src = os.path.join(suite, 'yes', 'src')
-    tally, why = Counter(), Counter(); shown = Counter(); verbose = '-v' in sys.argv
+    tally, why = Counter(), Counter(); shown = Counter(); verbose = '-v' in sys.argv; mark = '--mark' in sys.argv; wrong = []
     for f in sorted(os.listdir(src)):
-        for t in yaml.safe_load(open(os.path.join(src, f), encoding='utf-8')):
+        tests = yaml.safe_load(open(os.path.join(src, f), encoding='utf-8'))
+        assert len(tests) == 1, f
+        for t in tests:
             if t.get('fail') or t.get('keep') or 'typed' not in t: continue
             tally['tests'] += 1
-            for kind, msg, out in check(t, un):
+            res = check(t, un); refused = any(k == 'refused' for k, _, _ in res)
+            tally['marked' if refused else 'unmarked'] += 1
+            if mark and refused and t.get('emit') != 'refused':
+                body = open(os.path.join(src, f), encoding='utf-8').read()
+                assert body.count('\n  yaml: |') == 1, f
+                open(os.path.join(src, f), 'w', encoding='utf-8').write(body.replace('\n  yaml: |', '\n  emit: refused\n  yaml: |'))
+            elif not mark and refused != (t.get('emit') == 'refused'): wrong.append(f'{f}: {"should" if refused else "should not"} be marked emit: refused')
+            for kind, msg, out in res:
                 tally[kind] += 1; tally['documents'] += 1
                 if kind != 'ok':
                     cat = re.sub(r"'[^']*'|\"[^\"]*\"|[0-9]+", '_', msg)[:90]; why[(kind, cat)] += 1
@@ -215,3 +226,5 @@ if __name__ == '__main__':
                         print(f'== {f} {t["name"]}: {kind}: {msg[:300]}'); print('   ' + out.replace('\n', '\n   ')[:600])
     print(dict(tally))
     for (k, c), n in why.most_common(): print(f'{n:5} {k}: {c}')
+    for w in wrong: print(w)
+    sys.exit(1 if wrong or tally['claim'] else 0)

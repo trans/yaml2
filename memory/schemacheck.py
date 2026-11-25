@@ -74,6 +74,10 @@ DATETIME = DATE + r'[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?(?:[Zz]|(
 # Section 4.8: what this parser holds of a date, as (fraction digits, second 60, year 0000). None holds
 # them all, since it delivers the text. A test sets Python's (6, False, False) or JavaScript's (3, False, True).
 DATEHOLD = None
+# Section 12: the entries an application binds, as a suite harness does, with code that only notes its
+# name and gives back what it was given; and the names noted, in the order the code ran.
+BIND = None
+CALLS = []
 def leapyear(y): return (y % 4 == 0 and y % 100 != 0) or y % 400 == 0
 def lastday(y, m): return (31, 29 if leapyear(y) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)[m - 1]
 def days(y, m, d):
@@ -359,9 +363,10 @@ class Schema:
         # object for a reference, so a shared node is one object here. CPython shares strings of one
         # character, so two plain one-character scalars count as one node; no test relies on that.
         s.kept, s.limit, s.count, s.done = kept, limit, 0, {}
-        s.places, s.fulls = {}, {}
+        s.places, s.fulls, s.quiet = {}, {}, 0
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
+        s.top = ('name', root, None, '!' + root)  # The root is typed through its entry's name.
         for name in s.reached: s.place(s.get(name))
         n = sum(s.full(t) for t in s.places.values())
         if n > limit: raise SchemaError(f'a schema of full size {n}')
@@ -384,29 +389,43 @@ class Schema:
     def get(s, name):
         if name not in s.defs: s.defs[name] = to_type(s.table[name])
         return s.defs[name]
-    def flat(s, t, seen=(), done=None):
+    def flat(s, t): return [x for x, _ in s.named(t)]
+    def named(s, t, seen=(), done=None):
+        """t's alternatives, each with the names on its way, outermost first (section 12)."""
         if done is None: done = set()
-        if t[0] == 'alt': return [a for x in t[1] for a in s.flat(x, seen, done)]
-        if t[0] != 'name': return [t]
+        if t[0] == 'alt': return [a for x in t[1] for a in s.named(x, seen, done)]
+        if t[0] != 'name': return [(t, seen)]
         if t[1] in s.table:
             if t[2] is not None: raise SchemaError(f'{t[3]}: a named type takes no limit')
             if t[1] in seen: raise SchemaError(f'{t[1]} only names itself')
             if t[1] in done: return []
             done.add(t[1]); s.reached.add(t[1])
-            return s.flat(s.get(t[1]), seen + (t[1],), done)
+            return s.named(s.get(t[1]), seen + (t[1],), done)
         if t[1] not in STD: raise SchemaError(f'unknown type !{t[1]}')
-        return [t]
+        return [(t, seen)]
     def alts(s, t):
         m = s.memo.get(id(t))
         if m is None:
-            a = []
-            for x in s.flat(t):
+            a, ways = [], []
+            for x, way in s.named(t):
                 if x[0] == 'name' and x[2] is not None and not isinstance(x[2], tuple):
                     x = ('name', x[1], limit(x[2], x[1], x[3]), x[3])
-                a.append(x)
+                a.append(x); ways.append(way)
             s.ceiling(a)
-            m = s.memo[id(t)] = (t, a)
+            m = s.memo[id(t)] = (t, a, ways)
         return m[1]
+    def called(s, t, i, out):
+        """Section 12: the value typed through t's alternative i runs the code of the outermost name on its
+        way that is bound, and no other. Called once its parts are typed, so parts come first."""
+        if BIND and not s.quiet:
+            bound = [n for n in s.memo[id(t)][2][i] if n in BIND]
+            if bound: CALLS.append(bound[0])
+        return out
+    def keymatch(s, kt, k, path):
+        """A type key's type matches a key, which stays a string, so no code runs for it."""
+        s.quiet += 1
+        try: s.convert(kt, str(k), path)
+        finally: s.quiet -= 1
     def ceiling(s, a):
         n = 0
         for x in a:
@@ -440,7 +459,7 @@ class Schema:
         if any(y[0] not in ('lit', 'name') for y in s.alts(kt)): raise SchemaError('a type key takes a scalar type, since a key is a scalar')
     def check(s, v):
         s.count, s.done = 0, {}  # Section 11: typed counts the document being typed.
-        return s.conv(s.root, v, '')
+        return s.conv(s.top, v, '')
     def own(s, v):
         """A node's own size, as held counts it: 1, a scalar's bytes, or a mapping's keys. Not what is below."""
         b = lambda x: 1 + len(str(x).encode('utf-8', 'surrogatepass'))
@@ -467,7 +486,7 @@ class Schema:
             if opt and y == '' and not isinstance(y, Quoted): return None
             return s.conv(ft, y, p, scope)
         for kt, vt in rows:
-            try: s.convert(kt, str(k), path)
+            try: s.keymatch(kt, k, path)
             except Bad: continue
             return s.conv(vt, y, p, scope)
         return s.anywhere(y, p, scope)
@@ -482,22 +501,23 @@ class Schema:
         return s.typing((s.kind(t), id(scope)), v, path, lambda: s.convert(t, v, path, scope))
     def convert(s, t, v, path, scope=None):
         a = s.alts(t)
-        if len(a) == 1: return s.one(a[0], v, path, scope)
-        anys = [x for x in a if x[0] == 'name' and x[1] == 'any']
+        if len(a) == 1: return s.called(t, 0, s.one(a[0], v, path, scope))
+        anys = [i for i, x in enumerate(a) if x[0] == 'name' and x[1] == 'any']
         if isinstance(v, dict):
-            m = [x for x in a if x[0] == 'map']; fit = [x for x in m if s.fits(x, v, scope)]
-            if len(fit) == 1: return s.map(fit[0], v, path, scope)
-            if anys and not fit: return strip(v)
+            m = [i for i, x in enumerate(a) if x[0] == 'map']; fit = [i for i in m if s.fits(a[i], v, scope)]
+            if len(fit) == 1: return s.called(t, fit[0], s.map(a[fit[0]], v, path, scope))
+            if anys and not fit: return s.called(t, anys[0], strip(v))
             raise Bad(path, f'{len(fit)} of {len(m)} mapping alternatives fit')
         if isinstance(v, list):
-            q = [x for x in a if x[0] == 'seq']
-            if q: return s.one(q[0], v, path, scope)
-            if anys: return strip(v)
+            q = [i for i, x in enumerate(a) if x[0] == 'seq']
+            if q: return s.called(t, q[0], s.one(a[q[0]], v, path, scope))
+            if anys: return s.called(t, anys[0], strip(v))
             raise Bad(path, 'a sequence is not allowed here')
-        for x in [x for x in a if x not in anys] + anys:
-            if x[0] not in ('lit', 'name'): continue
-            try: return s.one(x, v, path, scope)
-            except Bad: pass
+        for i in [i for i in range(len(a)) if i not in anys] + anys:
+            if a[i][0] not in ('lit', 'name'): continue
+            try: out = s.one(a[i], v, path, scope)
+            except Bad: continue
+            return s.called(t, i, out)
         raise Bad(path, f'{str(v)[:40]!r} is not allowed here')
     def fits(s, m, v, scope=None):
         for k, (ft, opt) in m[1].items():
@@ -510,7 +530,7 @@ class Schema:
         for k in v:
             if k in m[1]: continue
             for kt, _ in m[2]:
-                try: s.convert(kt, str(k), '')
+                try: s.keymatch(kt, k, '')
                 except Bad: continue
                 break
             else: return False
@@ -537,7 +557,7 @@ class Schema:
                 else: out[str(k)] = s.conv(ft, y, f'{path}/{k}', scope)
                 continue
             for kt, vt in x[2]:
-                try: s.convert(kt, str(k), path)
+                try: s.keymatch(kt, k, path)
                 except Bad: continue
                 out[str(k)] = s.conv(vt, y, f'{path}/{k}', scope); break
             else:
@@ -613,7 +633,7 @@ def typed(stream, app=None, store=None, limit=LIMIT, cut=False, keep=False):
     With neither they stay strings. An application's schema is (schema text, root). A store
     means the application looks published names up. Cut is an application cutting a time to what this parser holds (sections 3 and 4.8). Keep
     types as an interface that keeps references does, counting typed (section 11)."""
-    r = read(stream); out = []; reached = {}; live = None
+    r = read(stream); out = []; reached = {}; live = None; CALLS.clear()
     # Section 3: a schema from outside the stream is a stream too, read under part 1's limit.
     own = None if app is None else Schema(read(app[0], limit).table, app[1], cut, limit, keep)
     for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
@@ -719,6 +739,62 @@ if __name__ == '__main__':
     for t, w in typekeysok:
         try: got = typed('--- &\n' + t)[0]; f += 0 if same(got, w) else 1; same(got, w) or print('DIFFERS', t, got)
         except REFUSED as e: f += 1; print('REFUSED', t, e)
+    # Section 12: which code runs, and in what order. Each name bound is code that notes its name and gives
+    # back what it was given, so the typed result is unchanged; the test is the names noted.
+    PT = 'point: {x: !int, y: !int}\n'
+    LINE = PT + 'line: {a: !point, b: !point}\n'
+    SHAPES = '--- &\npoint:\n  x: !int\n  y: !int\nsweep:\n  target: !int\nshape: {!|: [!point, !sweep]}\nshapes: [!shape, ...]\n--- !shapes\n- {x: 1, y: 2}\n- target: 3\n'
+    MONEY = '--- &\nmoney: !str(/[0-9]+[.][0-9]{2}/)\ninvoice:\n  total: !money\n--- !invoice\ntotal: 19.99\n'
+    DRAW = '--- &\n' + LINE + 'drawing: {lines: [!line, ...], at: !point}\n--- !drawing\n'
+    binds = [
+        (MONEY, ['money'], ['money']), (MONEY, ['invoice'], ['invoice']), (MONEY, ['money', 'invoice'], ['money', 'invoice']),
+        (SHAPES, ['point', 'sweep'], ['point', 'sweep']), (SHAPES, ['sweep'], ['sweep']), (SHAPES, ['shape'], ['shape', 'shape']),
+        (SHAPES, ['shape', 'point', 'sweep'], ['shape', 'shape']), (SHAPES, ['point', 'shapes'], ['point', 'shapes']),
+        # The outermost bound name, and a reference that loses the name.
+        ('--- &\n' + PT + 'spot: !point\n--- !spot\nx: 1\ny: 2\n', ['point'], ['point']),
+        ('--- &\n' + PT + 'spot: !point\n--- !spot\nx: 1\ny: 2\n', ['spot', 'point'], ['spot']),
+        ('--- &\n' + PT + 'spot: *point\n--- !spot\nx: 1\ny: 2\n', ['point'], []),
+        ('--- &\n' + PT + 'spot: *point\n--- !spot\nx: 1\ny: 2\n', ['spot', 'point'], ['spot']),
+        ('--- &\n' + PT + 'spot: !point\nplace: !spot\n--- !place\nx: 1\ny: 2\n', ['point', 'spot'], ['spot']),
+        # Parts first, in the order the data has them, and the root last.
+        ('--- &\n' + LINE + '--- !line\na: {x: 1, y: 2}\nb: {x: 3, y: 4}\n', ['point', 'line'], ['point', 'point', 'line']),
+        ('--- &\n' + LINE + '--- !line\nb: {x: 3, y: 4}\na: {x: 1, y: 2}\n', ['line', 'point'], ['point', 'point', 'line']),
+        ('--- &\norder: {id: !int}\norders: [!order, ...]\n--- !orders\n- id: 1\n- id: 2\n', ['order', 'orders'], ['order', 'order', 'orders']),
+        (DRAW + 'lines:\n  - {a: {x: 1, y: 2}, b: {x: 3, y: 4}}\n  - {a: {x: 5, y: 6}, b: {x: 7, y: 8}}\nat: {x: 0, y: 0}\n',
+         ['point', 'line', 'drawing'], ['point', 'point', 'line', 'point', 'point', 'line', 'point', 'drawing']),
+        (DRAW + 'at: {x: 0, y: 0}\nlines:\n  - {a: {x: 1, y: 2}, b: {x: 3, y: 4}}\n', ['point', 'line', 'drawing'], ['point', 'point', 'point', 'line', 'drawing']),
+        (DRAW + 'at: {x: 0, y: 0}\nlines:\n  - {a: {x: 1, y: 2}, b: {x: 3, y: 4}}\n', ['line'], ['line']),
+        # Once per use: a reference used twice is two calls.
+        ('--- &\n' + PT + 'pts: [!point, ...]\no: {x: 1, y: 2}\n--- !pts\n- *o\n- *o\n- {x: 3, y: 4}\n', ['point'], ['point', 'point', 'point']),
+        # A union reaching one entry two ways goes the first way written (section 9).
+        ('--- &\np: {x: !int}\na: !p\nb: !p\nu: {!|: [!a, !b]}\n--- !u\nx: 1\n', ['a', 'b'], ['a']),
+        ('--- &\np: {x: !int}\na: !p\nb: !p\nu: {!|: [!a, !b]}\n--- !u\nx: 1\n', ['b'], []),
+        ('--- &\np: {x: !int}\na: !p\nb: !p\nu: {!|: [!a, !b]}\n--- !u\nx: 1\n', ['p'], ['p']),
+        # A scalar alternative, and a string the int can't take.
+        ('--- &\nid: !int\nname: !str\nkey: {!|: [!id, !name]}\nkeys: [!key, ...]\n--- !keys\n- 1\n- a\n- "2"\n', ['id', 'name'], ['id', 'name', 'name']),
+        # !any: the union's name runs for what it gives, and nothing below is typed.
+        ('--- &\n' + PT + 'free: {!|: [!point, !any]}\n--- !free\nz: {x: 1, y: 2}\n', ['free', 'point'], ['free']),
+        ('--- &\n' + PT + 'free: {!|: [!point, !any]}\n--- !free\nz: {x: 1, y: 2}\n', ['point'], []),
+        # Under !* and !**.
+        ('--- &\n' + PT + 'm:\n  !*: !point\n--- !m\na: {x: 1, y: 2}\nb: {x: 3, y: 4}\n', ['point', 'm'], ['point', 'point', 'm']),
+        ('--- &\nsigned: !int(/[-+][0-9]+/)\ncfg:\n  !**: {!|: [!signed, !str]}\n--- !cfg\na: +5\nb: x\nc:\n  d: -3\n', ['signed', 'cfg'], ['signed', 'signed', 'cfg']),
+        # Each document in turn.
+        ('--- &\n' + PT + '--- !point\nx: 1\ny: 2\n--- !point\nx: 3\ny: 4\n', ['point'], ['point', 'point']),
+        # Not covered by the text yet (asked 2026-11-25): a key, which stays a string, runs no code, and nor
+        # does the null an optional key with no value delivers.
+        ('--- &\nk: !str(/[a-z]+/)\nm:\n  !k: !int\n--- !m\nab: 1\n', ['k'], []),
+        ('--- &\ncount: !int\njob:\n  retries?: !count\n--- !job\nretries:\n', ['count'], []),
+        ('--- &\ncount: !int\njob:\n  retries?: !count\n--- !job\nretries: 3\n', ['count'], ['count']),
+        # An application's schema runs its code the same way.
+        ('---\na: {x: 1, y: 2}\nb: {x: 3, y: 4}\n', ['point', 'line'], ['point', 'point', 'line'], ('--- &\n' + LINE, 'line')),
+    ]
+    for t, b, w, *app in binds:
+        BIND = tuple(b)
+        try:
+            typed(t, *app); got = list(CALLS)
+            if got != w: f += 1; print('CALLS DIFFER', b, repr(t), got, 'not', w)
+        except REFUSED as e: f += 1; print('REFUSED', b, repr(t), e)
+        finally: BIND = None
     # A pattern on !int: it replaces the spelling, reads base 10, and a claim it can't read refuses.
     I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: {!|: [!q, !str]}\nh: !int(/0x[0-9a-f]+/)\nv: {!|: [!h, !str]}\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: {!|: [!str, !q]}\nlit: {!|: [!q, never]}\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: {!|: [!bigint, !str]}\nbyi: {!|: [!int, !str]}\n'
     ints = [('q', '+5', 5), ('q', '-3', -3), ('q', '+0', 0), ('q', '-0', 0), ('q', '+007', 7), ('w', '5', 5), ('w', '007', 7), ('w', '+5', 5),
@@ -1128,5 +1204,5 @@ if __name__ == '__main__':
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
     prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP)
     f += prec; third_n += prec_n
-    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(typekeys) + len(typekeysok) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
+    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(typekeys) + len(typekeysok) + len(binds) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

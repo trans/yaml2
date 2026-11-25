@@ -52,7 +52,8 @@ def outcome(fn):
     finally: state['tag'] = False; state['depth'] -= 1
 def record(at, stream, app, store, limit, cut, keep):
     res = outcome(lambda: typed0(stream, app, store, limit, cut, keep))
-    records.append(dict(line=at, stream=stream, app=app, store=store, limit=limit, cut=cut, keep=keep, hold=ns['DATEHOLD'], res=res))
+    records.append(dict(line=at, stream=stream, app=app, store=store, limit=limit, cut=cut, keep=keep, hold=ns['DATEHOLD'], res=res,
+                        bind=ns['BIND'], calls=list(ns['CALLS'])))
     return res
 def typed(stream, app=None, store=None, limit=LIMIT, cut=False, keep=False):
     if state['depth'] == 0: record(line(), stream, app, store, limit, cut, keep)
@@ -185,7 +186,7 @@ GROUPS = {
     'good': (None, 'A standard type'), 'no': (None, 'A standard type'), 'schemas': (None, 'A schema refused'),
     'ints': ('4.5', 'A pattern on !int'), 'notints': ('4.5', 'A pattern on !int'),
     'forms': ('4.3', 'A pattern is a plain scalar'), 'says': ('3', 'Who says how to read a document'),
-    'unions': ('9', 'Alternatives'), 'cycles': ('8', 'A cycle of names'), 'ceiling': ('9', 'Unions at the ceiling'), 'typekeys': ('7', 'A type key takes a scalar type'), 'typekeysok': ('7', 'A type key takes a scalar type'), 'star': (None, 'Keys not named'), 'notstar': (None, 'Keys not named'),
+    'unions': ('9', 'Alternatives'), 'cycles': ('8', 'A cycle of names'), 'ceiling': ('9', 'Unions at the ceiling'), 'typekeys': ('7', 'A type key takes a scalar type'), 'typekeysok': ('7', 'A type key takes a scalar type'), 'binds': ('12', 'Application types'), 'star': (None, 'Keys not named'), 'notstar': (None, 'Keys not named'),
     'badstar': (None, 'A schema refused'), 'pub': ('3.1', 'A published name'), 'notpub': ('3.1', 'A published name'),
     'reach': ('2', 'What the root reaches'), 'keyfaults': ('2', 'The path of a refused key'), 'nums': ('4.4', 'Numbers'), 'nope': ('4.4', 'Numbers'),
     'bounds': ('4.2', 'A limit on the number as written'), 'outside': ('4.2', 'A limit on the number as written'),
@@ -315,6 +316,7 @@ def tags(r, sec, fail):
         if re.search(r'!datetime', t) and re.search(r'[Tt][0-9]{2}:[0-9]{2}:60', docs): out.append('second-60')
         if re.search(r'!date(time)?\b', t) and re.search(r'(^|[^0-9])0000-[0-9]{2}-[0-9]{2}', docs): out.append('year-0000')
     if r['limit'] != LIMIT: out.append('size')
+    if r.get('bind'): out.append('bind')
     if not out or out == ['error']: out.insert(0, 'schema')
     if fail: out.append('error')
     return ' '.join(dict.fromkeys(out))
@@ -415,7 +417,7 @@ if not CHECK:
         if r is not r0 and r is not None: conv[r0['res'][0] + ('' if r['res'][0] == r0['res'][0] else ' -> ' + r['res'][0])] += 1
         if r is None: skipped['no document reaches what the checker refuses'] += 1; continue
         key = json.dumps([framed(r['stream']), r['app'], sorted((r['store'] or {}).items()) if r['store'] is not None else None,
-                          r['limit'], r['cut'], r['keep'], r['hold']], default=lambda b: b.decode('utf-8', 'surrogatepass'))
+                          r['limit'], r['cut'], r['keep'], r['hold']] + ([list(r['bind'])] if r.get('bind') else []), default=lambda b: b.decode('utf-8', 'surrogatepass'))
         if key in seen: skipped['the same as another'] += 1; continue
         seen.add(key)
         if r['store']: r['store'] = {h: b.decode('utf-8') for h, b in r['store'].items()}
@@ -434,6 +436,7 @@ if not CHECK:
             sec, title = single(g) if g.startswith('line ') else GROUPS.get(g, (None, None))
             if title is None: sys.exit(f'no group for line {r["line"]} ({g})')
             guessed = not sec; sec = sec or section(r); name = f'{title}: {describe(r)}'
+            if r.get('bind'): b = list(r['bind']); name += ', binding ' + (', '.join(b[:-1]) + ' and ' if b[1:] else '') + b[-1]
             if (r['keep'] or r['app']) and r['limit'] != LIMIT: name += f', at a limit of {r["limit"]}'
         if i in CORRECT:
             if not guessed: wrong.append(f'{i}: its section, {sec}, is not guessed')
@@ -456,6 +459,9 @@ if not CHECK:
             else:
                 t.append('  store:')
                 for h, b in r['store'].items(): t += ['  ' + l if l else l for l in field(f"'{h}'", b)]
+        if r.get('bind'):
+            t.append(f"  bind: [{', '.join(plain(n) for n in r['bind'])}]")
+            if not fail: t.append(f"  calls: [{', '.join(plain(n) for n in r['calls'])}]")
         if r['cut']: t.append('  cut: true')
         if r['hold']:
             d, leap, y0 = r['hold']; t.append(f'  holds: {d}')
@@ -474,6 +480,9 @@ if not CHECK:
     wrong += [f'{i}: in CORRECT, not written' for i in sorted(set(CORRECT) - corrected)]
     if wrong: sys.exit('sections corrected wrongly:\n  ' + '\n  '.join(wrong))
     print(f'sections corrected: {len(corrected)}')
+    # Section 13: mark the tests whose typed events an emitter can't write, as emitcheck.py finds them.
+    import subprocess
+    subprocess.run([sys.executable, '-I', os.path.join(here, 'emitcheck.py'), suite, '--mark'], check=True, stdout=subprocess.DEVNULL)
 
 if CHECK:
     # Read each test as a harness would, through suite-to-data's reading of the marks, and run it.
@@ -487,16 +496,21 @@ if CHECK:
                      store={h: un(x).encode('utf-8') for h, x in t['store'].items()} if 'store' in t else None,
                      limit=t.get('limit', LIMIT), cut=t.get('cut', False), keep=t.get('keep', False),
                      hold=(t['holds'], t.get('leap-second', False), t.get('year-zero', False)) if 'holds' in t else None)
-            ns['DATEHOLD'] = r['hold']
+            ns['DATEHOLD'] = r['hold']; ns['BIND'] = tuple(t['bind']) if 'bind' in t else None
             res = outcome(lambda: typed0(r['stream'], r['app'], r['store'], r['limit'], r['cut'], r['keep'])) if part1(r) else ('fail', No('part 1'))
             if t.get('fail'):
                 if res[0] == 'ok': why.append('accepted')
                 elif 'refused' in t and refused(r, res[1]) != (t['refused'], t.get('at')): why.append(f'refused {refused(r, res[1])}')
             elif res[0] != 'ok': why.append(f'refused: {res[1]}')
             elif 'typed' in t:
+                if 'bind' in t and list(ns['CALLS']) != t['calls']: why.append(f"calls {list(ns['CALLS'])}")
                 docs = read0(r['stream']).docs
                 if events(list(zip([d[0] for d in docs], res[1]))) != un(t['typed']): why.append('typed differs')
                 if ''.join(js(v) + '\n' for v in res[1]) != un(t['json']): why.append('json differs')
             if why: bad += 1; print(f, t['name'], '; '.join(why))
     print(f'part 2 suite: {n} tests, {bad} fail')
-    sys.exit(1 if bad else 0)
+    # And that the tests marked emit: refused are the ones an emitter refuses (section 13).
+    import subprocess
+    e = subprocess.run([sys.executable, '-I', os.path.join(here, 'emitcheck.py'), suite], capture_output=True, text=True)
+    print('emitting: ' + ('the marks agree' if e.returncode == 0 else 'the marks disagree\n' + e.stdout[-2000:] + e.stderr[-2000:]))
+    sys.exit(1 if bad or e.returncode else 0)

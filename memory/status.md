@@ -448,29 +448,32 @@ holding more, skipped):
   tests (schema, typed events, the YAML expected or refused), and every typed test run as "written
   again, reads back the same".
 
-**Emitting, written again and read back (2026-11-24). Open, for the user.** The user approved emitting
-tests ("tests are always a good thing"). `emitcheck.py` writes each of the suite's 410 typed documents
-(420 tests) from its typed values alone, by section 13, and reads it back with the same schema. Quoting
-a string never changed another scalar, so section 13's no-respelling claim holds on the suite, and
-every float came back in section 4.4's spelling. Three gaps in the text:
-1. **A silent change.** Section 13 refuses a spelling that "doesn't fit the type at that place". Under
-   `{!|: [!signed, !str]}`, 5 read from `+5` is written `5`, which fits, as the string "5". 6 suite
-   documents (`4WZ6`, `8A56`, `D4E3`, `DCX7`, `Q36K`, `X9PT`). The agent recommends "refuses if it
-   wouldn't read back as the same type and value", which is Oyl NG's test.
-2. **Null at an optional key.** `retries?: !int` with an empty value delivers null; `retries: null` is
-   refused under `!int`, and under `a?: !str` reads back as the string "null" (silent). 4 documents
-   (`D5T3`, `FGT2`, `H4RC`, `XC3V`). Recommends: an optional key's null is written as an empty value.
-   `--empty-null` runs it so.
-3. **A string whose plain spelling refuses.** `1e999` under `{!|: [!float, !str]}`: plain, it is a
-   float too large, which refuses the document (section 4.4). Section 13 quotes a string that "would read
-   as something else"; recommends adding "or be refused". 1 document (`45KT`).
-With all three, 389 documents come back the same, and 21 are refused, each a pattern on a non-string
-type that the standard spelling doesn't match (`+5` under `!signed`, `007`, `~` under `!null(/~/)`,
-`.5` under `!decimal(/\.[0-9]+/)`), as the user chose (kept text or bound code writes those). Suite
-format not chosen yet: a harness rule (write each typed test again; it reads back the same) and a flag
-on the 21.
-The user asked what the `calls:` idea means (2026-11-24); the agent explained it with
-`line: {a: !point, b: !point}` giving `calls: [point, point, line]`, and recommended it. **Waiting.**
+**Emitting, written again and read back (2026-11-24); `calls:` (2026-11-25).** The user approved emitting
+tests ("tests are always a good thing"). `emitcheck.py` writes each of the suite's typed documents from
+its typed values alone, by section 13, and reads it back with the same schema. It found three gaps, and
+the user took all three (2026-11-25: "1. ok. 2. ok too", then "(a)"):
+1. A spelling that fits only as another type, 5 written `5` under `{!|: [!signed, !str]}`, read back as
+   the string "5" with no error (6 documents). Section 13 now refuses what "wouldn't read back as the
+   same type and value". **Fixed in main `340fe27`.**
+2. An optional key's null, `retries: null`, refused under `!int` and read as "null" under `!str` (4
+   documents). Now written as no value, `retries:`. **Fixed in main `340fe27`.**
+3. `1e999` under `{!|: [!float, !str]}`: plain, a float too large, which refuses the document. The user
+   asked for the options: (a) quote it; (b) let too large count as no match, which reverses section
+   4.4 and makes a number text by its size, silently. The user chose (a). **Fixed in main `8b774fc`.**
+Quoting one scalar never changed another, so section 13's no-respelling claim holds on the suite.
+**Suite, main `16533e7`** (888 tests): a harness for an emitter writes each accepted test's typed events
+again and reads them back the same, and the 22 marked `emit: refused` must be refused, each a value under
+a pattern its standard spelling doesn't match. `suiteyes.py` runs `emitcheck.py --mark` after writing,
+and `--check` runs it to compare the marks. Spellings past reading back (`1e+21` against `1e21`) aren't
+tested yet.
+**`calls:`** (the user: "yes to calls: too", 2026-11-25, after the agent explained it with
+`line: {a: !point, b: !point}` giving `[point, point, line]`). The checker models section 12: each
+alternative carries the names on its way, outermost first; a value runs the first bound one, after its
+parts; a key matched by a type key runs nothing. 33 tests in main `16533e7` with `bind` and `calls`;
+three mutants of the checker (innermost name, calls before parts, code run for keys) each fail some.
+**Open, for the user** (asked 2026-11-25): two cases the text doesn't state, which the tests take as the
+agent recommends: a key, which stays a string, runs no code (`!k: !int` with `k` bound); and an optional
+key's no value, which delivers null, runs no code for the key's type.
 
 **Oyl NG: chains, `!` names and part 1 of keep (2026-11-23)**
 (`mail/received/20261123-062923Z-@oylng--chains-the-rule-and-keep-part-1-are-in-the-engine-08fb6c4e.md`).

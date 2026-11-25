@@ -1056,3 +1056,17 @@ column in characters (a tab is 1), and the offset in bytes counted as section 4.
 sequence's indent on a `-` line is counted as if each `-` were a space. Part 2's section 2 and both
 suites' READMEs say "line, column and offset". Neither suite checks positions yet. Both checkers pass
 (59 and 373; 71 and 811; 855).
+
+## Emitting and bindings (the user, 2026-11-25)
+
+- **Section 13 refuses what wouldn't read back as the same type and value** (main `340fe27`), not what
+  "doesn't fit the type at that place": under `{!|: [!signed, !str]}`, 5 written `5` fits as the string
+  "5". Found by `emitcheck.py`, which writes the suite's typed documents again.
+- **An optional key's null is written as no value** (main `340fe27`): `retries: null` is refused under
+  `retries?: !int` and reads as "null" under `name?: !str`.
+- **A string whose plain spelling would refuse the document is quoted** (main `8b774fc`): `1e999` under
+  `{!|: [!float, !str]}`. The other way, a float too large counting as no match, was set aside: it
+  reverses section 4.4 and makes a number into text by its size.
+- **The suite tests bindings** with `bind` and `calls` (main `16533e7`), @oylng's idea, and emitting by
+  writing each typed test again, with `emit: refused` on the 22 an emitter must refuse.
+
