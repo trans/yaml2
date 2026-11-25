@@ -61,7 +61,8 @@ repository is public. It stays in @oyl's `mail/sent/`, with the advice for the p
   says the form without it is the one npm `yaml` refuses.
 - **A security section for the quadratic rule.** The user approved it on 2026-11-05. It is
   section 15, and adds no rules. **Fixed in `bf225ba`.**
-- **What "column" counts.** **Open**, and not yet taken to the user.
+- **What "column" counts.** **Fixed in main `5f55845`** (taken to the user only on 2026-11-24, after
+  twelve days in "still open" lists). See rules.md, Positions.
 
 ## @oyl on sharing and load-all (2026-11-04, decided 2026-11-05)
 

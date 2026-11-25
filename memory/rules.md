@@ -1038,3 +1038,21 @@ agent was less sure of. The findings and cases are in [review.md](review.md). **
   cap on types per node is an arbitrary number. **In main `56210d7`,** with the checker in step: a `keep`
   mode in `typed()` (part 2: 72 examples, 880 edge cases; nine mutants fail). The checker counts two plain
   one-character scalars as one node, because CPython shares those strings; no test relies on that.
+
+## Positions (the user, 2026-11-24)
+
+**A refusal's place: line, column and byte offset. In main `5f55845`.** Part 1, section 2, said only
+"the line and column". The agent showed the column of `x` counted four ways: in `city: Zürich 😀 x` it
+is 16 in characters, 17 in UTF-16 units, 20 in UTF-8 bytes and 17 on screen; in `名前: 東京 x`, 8, 8, 16
+and 12. It recommended characters from 1. The user asked whether to carry every count with a real use,
+or at least the ones that can't be worked out from another. The agent's answer: UTF-16 and a byte
+column follow from the line's text and a character column; screen width depends on the terminal and
+font, so parsers can't agree on it; a byte offset from the start of the stream is the one a tool
+needs and can't get cheaply, since finding it from a line means reading from the top. Rust's JSON
+errors and SARIF carry both. The user: "yes, required. write it in." So line and column from 1, the
+column in characters (a tab is 1), and the offset in bytes counted as section 4.4 counts it for `...`
+(CR LF is two), with `{名前: 東京, 名前: x}` as the example: line 1, column 10, offset 17. The eight
+"column 0" places now say "starts a line" and the like, so columns are counted one way only; a
+sequence's indent on a `-` line is counted as if each `-` were a space. Part 2's section 2 and both
+suites' READMEs say "line, column and offset". Neither suite checks positions yet. Both checkers pass
+(59 and 373; 71 and 811; 855).

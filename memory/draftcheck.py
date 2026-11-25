@@ -253,7 +253,7 @@ class P:
         while True:
             s.gap()
             if s.eof() or s.marker() or s.dots() or s.ch() == '%': break
-            if s.ch() == ' ': s.bad('table entries are at column 0')
+            if s.ch() == ' ': s.bad('table entries start a line')
             if s.t.startswith('<<:', s.i): s.bad('merge outside an entry')
             k = s.key(); s.colon()
             if k in here: s.bad('key repeated in one table document')
