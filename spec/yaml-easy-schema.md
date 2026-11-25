@@ -1487,8 +1487,9 @@ such as `true` or `${{ expression }}`, is a named string and a few lines of code
 ## 13. Emitting and documenting
 
 An emitter of typed data needs the same schema. It quotes a string that the type at that place
-would read as something else: under `{!|: [!int, !str]}`, the string `3` is written `"3"`. It writes
-a number, a boolean, null or a time in its standard spelling, a float as section 4.4 says, or in the
+would read as something else, or refuse: under `{!|: [!int, !str]}`, the string `3` is written `"3"`,
+and under `{!|: [!float, !str]}`, `1e999` is written `"1e999"`, since plain it is a float too large,
+which refuses the document (section 4.4). It writes a number, a boolean, null or a time in its standard spelling, a float as section 4.4 says, or in the
 text it was read from if the application kept it, and refuses if that wouldn't read back as the
 same type and value: under `!signed` (section 4.5), 5 is refused, and a `+5` that was read and kept is
 written `+5`. Under `{!|: [!signed, !str]}`, 5 is refused too, since `5` fits there only as the string
