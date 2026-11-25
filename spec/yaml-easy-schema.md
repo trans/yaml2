@@ -1481,6 +1481,11 @@ A binding that refuses, refuses the document. It doesn't move on to the next alt
 schema chooses the type, and then the code runs, so code never runs on trial. It is called once per
 use, so `*p` twice makes two calls and two values, since shared objects read as copies.
 
+Code runs only for a value that is typed. A key is always delivered as a string, so no code runs for
+one, even through a type key naming a bound entry: with `k` bound, the key `ab` in `ab: 1` under
+`{!k: !int}` stays the string `ab`. An optional key with no value delivers null without typing it, so
+under `retries?: !count`, `retries:` runs no code, while `retries: 3` runs `count`'s.
+
 A bound name is also how to keep a check that a schema can't state: a rule on two scalar forms,
 such as `true` or `${{ expression }}`, is a named string and a few lines of code.
 
