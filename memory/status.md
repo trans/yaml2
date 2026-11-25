@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-24*
+*Updated 2026-11-25*
 
 **Tags.** The user, 2026-11-24: "nothing should be released on an untagged commit". So a commit of
 main that a release (Oyl NG's, say) runs against gets an annotated tag, pushed with it. The user chose
@@ -547,6 +547,37 @@ suite test, since neither checker models bindings or kept lookups:
   CI pinned to yaml2 `def062b` (`v0.1.0`), all four jobs passing on main and the tag: part 1 373 of 373,
   part 2 801 of 850 with none failing (24 skipped for typing kept trees, not built; 25 for a parser that
   holds times otherwise). Its future releases pin to a tagged yaml2.
+
+**Typing kept trees, four cases (2026-11-25)**
+(`mail/received/20261125-082830Z-@oylng--typing-kept-lines-and-items-four-cases-8eb1cb3d.md`). Oyl NG
+`5c2b31c` types documents read with references kept, and part 2's 24 `keep` tests pass against main
+`9d8b160`. None of them has a `<<:` or `-<<`, and the engine refuses those for now. **Open, for the
+user**, with the agent's recommendations:
+1. **What typing delivers.** @oylng: typing spreads the lines, so the typed value is section 9's result.
+   With `a: {k: v}` and `m: {k: !str, j: !int}`, `--- !m` over `<<: *a` and `j: 1` fits only merged.
+   The agent agrees: section 11 already says a schema types what is delivered, and part 1, section 11,
+   keeps `<<` out of delivered data. Only a sentence is needed.
+2. **What typed counts for a spread.** A real gap: typed counts a kept mapping's written keys and lines,
+   not what the spread builds. `mi: {<<: *m(i-1), ki: 1}`, typed as `[*m0, ..., *mn]`, holds about 15n,
+   types about 6n and builds n²/2 pairs. `ai: [-<< *a(i-1), -<< *a(i-1)]` to 62 holds about 450 and
+   builds 2^63 items. Checking part 1's full first would refuse most kept documents with a merge, since
+   full counts each value's references too. @oylng: count what typing adds, 1 and the bytes for each key
+   a line gives and 1 for each item a `-<<` puts in, either deduplicated or as full counts. The agent
+   recommends counting as full does, by addition and before building, and also 1 for each line followed
+   at any depth: `ei: {<<: *e(i-1), <<: *e(i-1)}` with `e0: {}` gives no pairs but 2^63 lines to a walk
+   that saves nothing (the rule part 1's lookups use). Part 1's "checks full and levels first" then needs
+   a pointer to part 2's own count.
+3. **A type written with `<<:`, read kept.** @oylng: hold each entry used as a type to its full size,
+   then compile it from its merged form. The agent agrees, with all the entries a schema reaches held to
+   full together, so that a kept parser and a full one load the same schemas. Section 9's full size is
+   then counted on the merged form, as a full read gives it.
+4. **`!any`.** @oylng's reading: under `!any` a kept line stays kept, since nothing is typed. A union
+   tries `!any` last, so its other alternatives need the spread. The agent agrees, and would count the
+   spread whenever the type isn't `!any` alone, so that parsers agree.
+@oylng asks for four tests: case 1, the first chain on either side of the limit, case 3's `job` and a
+`<<:` under `!any`. The checker reads merges eagerly and counts a merged mapping's keys, deduplicated.
+In keep mode it builds no spread items, so it needs work before it can give those tests. Part 2's open
+point "built in a checker, but not yet in a parser" is now out of date.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
