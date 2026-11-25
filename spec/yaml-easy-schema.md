@@ -1375,13 +1375,13 @@ Without that memory, a chain of 28 references in 632 bytes takes 1.6 billion vis
 is still typed once for each type that reaches it, so the work can pass what held counts: a string of
 1 MB named by 1,000 references, each under a different type, is read 1,000 times. So typing keeps a
 third number, typed, beside held and full (part 1, section 10). Each time a node is typed, its own
-size is added to typed: what held counts for the node alone, which is 1 with a scalar's bytes or a
-mapping's keys, and not the values or items below it, which add their own when they are typed. Each
-type written in the schema is one type, and a name is its entry's, so `!job` in two places is one type
-and `!str` in two places is two. Typed counts the document being typed. An interface that keeps
-references applies the limit to typed as well as held. One that delivers full data needn't: each type
-that reaches a node comes down a path of its own, so typed never passes full, which that interface
-already limits. A type changes nothing in held or full.
+size is added to typed: what held counts for the node alone, which is 1, with a scalar's bytes or a
+mapping's keys, and 1 for each `<<:` or `-<<` line in it. The values and items below it add their own
+when they are typed. Each type written in the schema is one type, and a name is its entry's, so
+`!job` in two places is one type and `!str` in two places is two. Typed counts the document being
+typed. An interface that keeps references applies the limit to typed as well as held. One that
+delivers full data needn't: each type that reaches a node comes down a path of its own, so typed never
+passes full, which that interface already limits. A type changes nothing in held or full.
 
 ```yaml
 --- &
@@ -1401,6 +1401,43 @@ three: [!str(/a.*/), !str(/.*h/), !str(1..)]
 
 Under `one`, `s` is typed once, since `...` repeats one type, so typed is 10: 1 for the sequence and 9
 for `s`. Under `three` it is typed three times, so typed is 28. Each document's held is 4.
+
+A schema types a merge as part 1's section 9 delivers it, so an interface that keeps references
+spreads a node's `<<:` and `-<<` lines when it types the node. Here `m` needs `k`, which only the line
+gives, and `a` alone doesn't fit `m`:
+
+```yaml
+--- &
+a: {k: v}
+m: {k: !str, j: !int}
+--- !m
+<<: *a
+j: 1
+```
+
+```json
+{"k": "v", "j": 1}
+```
+
+Spreading builds what held doesn't count. A table of 1,000 entries from `m0: {k0: 0}` to
+`m999: {<<: *m998, k999: 999}` holds 15,669, and typing each of them gives 500,500 pairs. So typing a
+node also adds what spreading its lines builds, before building it: 1 for each line in the nodes its
+lines name, and in theirs, 1 and its bytes for each key a line gives, as a written key counts, and 1
+for each item a line puts in a sequence. That is worked out by addition, as full is, and nothing is deduplicated, so a key
+that a later key replaces still counts. Lines count because a line naming `{}` gives nothing: with
+`e0: {}`, and each of `e1` to `e62` merging the one before twice, a line naming `e62` gives
+2^63-2 lines to follow. Above, the document's mapping adds 6: 1 for itself, 2 for `j`, 1 for the line
+and 2 for the `k` it gives. With 2 each for `v` and `1`, typed is 10.
+
+`!any` alone types nothing, so it spreads nothing: a node under it is delivered with its lines kept,
+and adds only its own size. Any other type spreads, a union with `!any` among its alternatives too,
+since it tries the others first.
+
+The schema's own types are read the same way. A parser that keeps references holds the full size of
+the entries a schema reaches, together, to the limit (part 1, section 10), before it compiles them,
+and compiles each from its merged form, as a full read gives it. So with `base: {x: !int}`, the entry
+`job: {<<: *base, y: !int}` is `{x: !int, y: !int}` read either way, and section 9's full size counts it
+so.
 
 A merge is the way to give a default. An author's default is a `<<` from a table entry: local keys
 win and missing ones fill in, visibly in the file, so the same bytes give the same data with or
@@ -1566,8 +1603,6 @@ more alternatives. A plain scalar holding ` | ` outside a type's parentheses is 
 - **The standard types.** The list is short so far, and it should be thorough: times and durations,
   and names such as `!uri` and `!uuid`, checked against other type systems. Names can be added
   later, as section 8 says.
-- **Typing under kept references.** Section 11's typed count is built in a checker, but not yet in a
-  parser.
 - **Ways past a stamp.** Section 3 lets a library ignore a file's schema. Whether one must is open,
   since an application checking files it didn't write depends on it.
 - **`!null` and an empty value.** `!null` takes the plain `null` only, and `key?:` takes an
@@ -1611,7 +1646,8 @@ depth does. Part 1, section 15, covers the data.
   each data key against a type's keys, and `!name` in the table. A compiled schema shared between
   parsers needs a hash key of its own.
 - **References.** A walk through a chain of references doubles at each link, so section 11 types
-  each node once for each type and nearest `!**`, and counts each time in typed.
+  each node once for each type and nearest `!**`, and counts each time in typed, with what spreading
+  its `<<:` and `-<<` lines builds.
 - **Unions.** Names that repeat double at each level if read literally. Section 9 counts each name
   once, and its ceiling fixes how much a scalar can cost per character. A schema's full size, which
   counts a name every time, limits what loading it can cost.

@@ -1,0 +1,74 @@
+---
+- name: 'Typing a merge: `[{!*: !int}, ...]` on `[*m0, *m1, *m2, *m3, *m4, *m5, *m6, *m7…`'
+  from: part 2, section 11
+  tags: int sequence star reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    m0: {k: 0}
+    m1: {<<: *m0, k: 1}
+    m2: {<<: *m1, k: 2}
+    m3: {<<: *m2, k: 3}
+    m4: {<<: *m3, k: 4}
+    m5: {<<: *m4, k: 5}
+    m6: {<<: *m5, k: 6}
+    m7: {<<: *m6, k: 7}
+    m8: {<<: *m7, k: 8}
+    m9: {<<: *m8, k: 9}
+    m10: {<<: *m9, k: 10}
+    l: [{!*: !int}, ...]
+    --- !l
+    [*m0, *m1, *m2, *m3, *m4, *m5, *m6, *m7, *m8, *m9, *m10]
+  typed: |
+    +STR
+     +DOC !l
+      +SEQ
+       +MAP
+        =VAL :k
+        =INT :0
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :1
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :2
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :3
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :4
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :5
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :6
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :7
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :8
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :9
+       -MAP
+       +MAP
+        =VAL :k
+        =INT :10
+       -MAP
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [{"k": 0}, {"k": 1}, {"k": 2}, {"k": 3}, {"k": 4}, {"k": 5}, {"k": 6}, {"k": 7}, {"k": 8}, {"k": 9}, {"k": 10}]

@@ -991,7 +991,8 @@ An interface that delivers data with no references left also applies the limit t
 because a program that loads a file usually walks it, and a chain of references that fits
 in a kilobyte can take terabytes to walk. An interface that keeps references, such as a
 syntax tree (section 11), applies it to held alone. Whatever expands those references later
-checks full and levels first, and refuses before building.
+checks full and levels first, and refuses before building. Typing them checks levels, and counts
+what it builds in place of full (YAML Easy Schema, section 11).
 
 Looking a key up through kept `<<:` lines is such a use, and needs a bound of its own: r lookups
 into the end of a chain of n merges follow r × n lines, which neither number bounds, since held is

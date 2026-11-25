@@ -1,0 +1,26 @@
+---
+- name: 'Typing a merge: `{x: {!|: [!any, !int]}}` on `x: {<<: *e10}`, at a limit of 100'
+  from: part 2, section 11
+  tags: int any union merge reference typed size error
+  fail: true
+  refused: document
+  at: '/x'
+  limit: 100
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    e0: {k: v}
+    e1: {<<: *e0, <<: *e0}
+    e2: {<<: *e1, <<: *e1}
+    e3: {<<: *e2, <<: *e2}
+    e4: {<<: *e3, <<: *e3}
+    e5: {<<: *e4, <<: *e4}
+    e6: {<<: *e5, <<: *e5}
+    e7: {<<: *e6, <<: *e6}
+    e8: {<<: *e7, <<: *e7}
+    e9: {<<: *e8, <<: *e8}
+    e10: {<<: *e9, <<: *e9}
+    t: {x: {!|: [!any, !int]}}
+    --- !t
+    x: {<<: *e10}

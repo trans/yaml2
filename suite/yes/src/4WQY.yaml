@@ -1,0 +1,13 @@
+---
+- name: 'Typing a merge: `{k: !str, j: !int}` on `<<: *a; j: 1`'
+  from: part 2, section 11
+  tags: str int merge reference typed
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {k: v}
+    m: {k: !str, j: !int}
+    --- !m
+    <<: *a
+    j: 1

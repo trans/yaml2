@@ -1,0 +1,15 @@
+---
+- name: 'Typed: `{k: !str, j: !int}` on `<<: *a; j: 1`, at a limit of 9'
+  from: part 2, section 11
+  tags: str int merge reference typed size error
+  fail: true
+  limit: 9
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {k: v}
+    m: {k: !str, j: !int}
+    --- !m
+    <<: *a
+    j: 1

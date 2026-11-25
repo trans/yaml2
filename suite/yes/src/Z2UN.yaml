@@ -1,0 +1,25 @@
+---
+- name: References and merge, example 4
+  from: part 2, section 11
+  tags: spec str int merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    a: {k: v}
+    m: {k: !str, j: !int}
+    --- !m
+    <<: *a
+    j: 1
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :k
+       =VAL :v
+       =VAL :j
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"k": "v", "j": 1}

@@ -1,0 +1,15 @@
+---
+- name: 'Typing a merge: `[-<< *pre, !str]` on `[a, a]`'
+  from: part 2, section 11
+  tags: str sequence merge reference typed error
+  fail: true
+  refused: document
+  at: '/0'
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    pre: [!int]
+    row: [-<< *pre, !str]
+    --- !row
+    [a, a]

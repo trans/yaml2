@@ -2,10 +2,11 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 888:
+these tests will change with it. There are 915:
 
-- the draft's 70 examples, tagged `spec`;
-- 781 edge cases from the draft's checker, 33 of them for the code an application binds (section 12);
+- the draft's 71 examples, tagged `spec`;
+- 807 edge cases from the draft's checker, 33 of them for the code an application binds (section 12),
+  and 26 for typing a merge read with references kept (section 11);
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
   (see below).
 
@@ -128,13 +129,14 @@ The checker takes three shortcuts, and the suite doesn't:
   still refused, or still loads.
 - **The size limit on a stream.** The checker applies a test's limit to the schema and to typed, but
   not to the stream. Part 1 applies it to the stream as well (part 1, section 10). So the suite also
-  reads each stream under part 1's limit. It leaves out 17 tests that part 1 would refuse and the
-  checker accepts. All 17 are section 11's tests of typed, and their limits are below the stream's
-  held size, table included. In their place are 15 tests made from the same 11 streams, scaled so that
-  typed can exceed held. They use a 400-character string or key where the checker uses 8 characters,
-  and they turn the checker's 1 MB test into 1,000 types of a 1 KB string. Each one is set at the
-  lowest limit that both held and typed allow. In the 4 where typed is what binds, it is also set at
-  one less.
+  reads each stream under part 1's limit. It leaves out 19 tests that part 1 would refuse and the
+  checker accepts. All 19 are section 11's tests of typed, and their limits are below the stream's
+  held size, table included. In their place are 15 tests made from 11 of those 12 streams, scaled so
+  that typed can exceed held. They use a 400-character string or key where the checker uses 8
+  characters, and they turn the checker's 1 MB test into 1,000 types of a 1 KB string. Each one is set
+  at the lowest limit that both held and typed allow. In the 4 where typed is what binds, it is also
+  set at one less. The twelfth stream is a merge, and the 26 tests of typing a merge include chains of
+  merges that test its count at limits part 1 allows.
 - **The size limit on a schema.** A schema from outside the stream is read under part 1's limit too
   (section 3), so `a: !str` holds 7 as text. The checker's 22 tests of a schema's full size load the
   schema without reading its text that way, at limits from 0 to 10, which no parser can pass. The
@@ -143,7 +145,7 @@ The checker takes three shortcuts, and the suite doesn't:
   full size passes what the text holds: about 1,010 against 510. Each is set at its full size, where
   it loads, and at one less.
 
-The suite also leaves out 3 tests over 200 KB, and 7 that repeat another test.
+The suite also leaves out 3 tests over 200 KB, and 11 that repeat another test.
 
 ## Not covered yet
 

@@ -1,0 +1,16 @@
+---
+- name: 'Typing a merge: `{<<: *base, y: !int}` on `x: a; y: 2`'
+  from: part 2, section 11
+  tags: int merge reference typed error
+  fail: true
+  refused: document
+  at: '/x'
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    base: {x: !int}
+    job: {<<: *base, y: !int}
+    --- !job
+    x: a
+    y: 2

@@ -1,0 +1,22 @@
+---
+- name: 'Typing a merge: `[-<< *pre, !str]` on `[1, a]`'
+  from: part 2, section 11
+  tags: str sequence merge reference
+  yaml: |
+    %YAML 2.0
+    --- &
+    pre: [!int]
+    row: [-<< *pre, !str]
+    --- !row
+    [1, a]
+  typed: |
+    +STR
+     +DOC !row
+      +SEQ
+       =INT :1
+       =VAL :a
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [1, "a"]

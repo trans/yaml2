@@ -1,0 +1,22 @@
+---
+- name: 'Typing a merge: `{<<: *b5, p: !q}` on `x: 1; p: {x: 2}`, at a limit of 458'
+  from: part 2, section 11
+  tags: merge reference typed size error
+  fail: true
+  refused: schema
+  limit: 458
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    b0: {x: !int}
+    b1: {<<: *b0, <<: *b0}
+    b2: {<<: *b1, <<: *b1}
+    b3: {<<: *b2, <<: *b2}
+    b4: {<<: *b3, <<: *b3}
+    b5: {<<: *b4, <<: *b4}
+    t: {<<: *b5, p: !q}
+    q: {<<: *b5}
+    --- !t
+    x: 1
+    p: {x: 2}

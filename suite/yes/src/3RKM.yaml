@@ -1,0 +1,26 @@
+---
+- name: 'Typing a merge: `[{!*: !int}, ...]` on `[*m0, *m1, *m2, *m3, *m4, *m5, *m6, *m7…`, at a limit of 288'
+  from: part 2, section 11
+  tags: int sequence star reference typed size error
+  fail: true
+  refused: document
+  at: '/10/k10'
+  limit: 288
+  keep: true
+  yaml: |
+    %YAML 2.0
+    --- &
+    m0: {k0: 0}
+    m1: {<<: *m0, k1: 1}
+    m2: {<<: *m1, k2: 2}
+    m3: {<<: *m2, k3: 3}
+    m4: {<<: *m3, k4: 4}
+    m5: {<<: *m4, k5: 5}
+    m6: {<<: *m5, k6: 6}
+    m7: {<<: *m6, k7: 7}
+    m8: {<<: *m7, k8: 8}
+    m9: {<<: *m8, k9: 9}
+    m10: {<<: *m9, k10: 10}
+    l: [{!*: !int}, ...]
+    --- !l
+    [*m0, *m1, *m2, *m3, *m4, *m5, *m6, *m7, *m8, *m9, *m10]
