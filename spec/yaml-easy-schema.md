@@ -124,7 +124,7 @@ Everything a document's root reaches is checked before that document's data, so 
 fine data entry of the same form.
 
 A document that doesn't fit its schema is refused, as a syntax error is. A refusal gives the
-line and column, and the path to the value. For a key the mapping doesn't take, or one it needs and
+line, column and offset, as part 1's section 2 says, and the path to the value. For a key the mapping doesn't take, or one it needs and
 doesn't have, the path is the mapping's, and the refusal names the key. Through a reference, it gives
 the place the reference is used, with the entry's line beside it. There is no lenient mode.
 

@@ -129,7 +129,7 @@ The suite also leaves out 3 tests over 200 KB, and 7 that repeat another test.
 
 ## Not covered yet
 
-- the line and column of a refusal, and its place through a reference (section 2);
+- the line, column and offset of a refusal, and its place through a reference (section 2);
 - a library letting an application ignore a file's schema (section 3);
 - application types and bindings (section 12), and emitting (section 13);
 - an interface that delivers every document at once (`together` in part 1);

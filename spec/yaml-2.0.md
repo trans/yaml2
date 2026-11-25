@@ -53,8 +53,12 @@ Examples leave out `%YAML 2.0` and the plain `---` after it, except where they m
 A parser must refuse any stream that the grammar (section 12) doesn't produce or that
 breaks a rule in this document. There is no error recovery and no lenient mode.
 
-A refusal must give the line and column. A parser may go on to report further errors, so that
-an editor can list them all, but it delivers nothing past the first. A parser reading a stream incrementally may
+A refusal must give the line and the column, both counted from 1, the column in characters, so
+a tab counts as 1. It must also give the offset of the same place in bytes from the start of the
+stream, with a CR LF counted as two, as section 4.4 does for `...`. In `{名前: 東京, 名前: x}`, the
+second `名前` is at line 1, column 10 and offset 17: the four characters before it that aren't
+ASCII are three bytes each. A parser may go on to report further errors, so that an editor
+can list them all, but it delivers nothing past the first. A parser reading a stream incrementally may
 already have delivered earlier documents, but must not deliver the document in error as
 complete: an event interface reports the error before the document's end.
 
@@ -132,7 +136,7 @@ b: 2
 | `--- !name` | a named document |
 | `--- &` | entries for the table (section 8) |
 
-A marker starts at column 0, and `---` is followed by a space, a tab or the end of the
+A marker starts a line, and `---` is followed by a space, a tab or the end of the
 line.
 
 Every document needs a marker, the first one too, so a file starts with `%YAML 2.0` and
@@ -234,7 +238,7 @@ scalar can't start with `!` (section 6.1).
 
 ### 4.4 Ending
 
-A line of `...` at column 0, followed by a space, a tab or the end of the line, ends
+A line starting with `...`, followed by a space, a tab or the end of the line, ends
 the YAML, unless the next non-blank line is a marker, in which case another document
 starts. If that line is `%YAML 2.0` and a marker follows, the same happens: the line counts as
 part of that marker, the table starts empty again (section 8.1), and blank lines and comments
@@ -281,7 +285,7 @@ This gives front matter a specified form. Today it is only a convention: a tool 
 the closing `---` itself and cuts the file in two before any parser sees it. Here the
 parser reads the whole file, stops at `...`, and reports where the body starts.
 
-A line starting a marker or `...` at column 0 is never inside a node: block scalar text
+A line starting with a marker or `...` is never inside a node: block scalar text
 is always indented, other scalars are one line, and a flow collection can't hold such a
 line. So a tool can split a stream into documents without parsing it.
 
@@ -327,7 +331,7 @@ It can't start with any of `, [ ] { } # & * | > ' "`. Each of those has a meanin
 own, except `&`, which is refused so that a 1.x anchor fails loudly. `-`, `?` and `:`
 can't start it if a space or the end of the line follows.
 
-`%`, `@` and `` ` `` are ordinary characters, except that a line starting with `%` at column 0
+`%`, `@` and `` ` `` are ordinary characters, except that `%` as the first character of a line
 is reserved for directives.
 
 ```yaml
@@ -524,7 +528,7 @@ a: - x
 
 A block sequence is one or more lines of `- value` at the same indent. A value follows
 the same rules as in a mapping, except that a block collection may start on the `-`
-line. Its indent is then the column of its first character.
+line. Its indent is then counted as if each `-` before it on the line were a space: 2 in `- a: 1`.
 
 ```yaml
 - a: 1
@@ -618,7 +622,7 @@ a: b
 
 A stream's table starts empty. Each `--- &` document adds entries to it: its top-level
 keys. A `--- &` document is a mapping, block or flow, or empty, and it is never
-delivered. A block mapping there starts at column 0.
+delivered. A block mapping there isn't indented.
 
 A key repeated inside one `--- &` document is refused, as in any mapping. So is one that starts with
 `!`, plain or quoted: `--- !spot` stamps a document with the entry `spot`, so an entry named `!spot`
@@ -1095,9 +1099,9 @@ consumed, `[!> x]` means it must not, and `[< x]` means x must come before. `EOF
 the end of the stream.
 
 Rules the grammar can't state: a `<<:` at the top of a table, a plain scalar starting with `!`
-outside a table, duplicate keys, reference resolution, and the size limit. A line starting a
-marker or `...` at column 0 is only matched by `document`, `table`, `later` and `finish`, and a
-line starting with `%` at column 0 only by `directive`.
+outside a table, duplicate keys, reference resolution, and the size limit. A line starting with a
+marker or `...` is only matched by `document`, `table`, `later` and `finish`, and a
+line starting with `%` only by `directive`.
 
 ### Characters
 
@@ -1247,7 +1251,7 @@ the samples grew over time. "Stop here" counts the files whose first refusal is 
 | Tolerated duplicate keys, which are always refused | Parsers disagree on them | 58 of 4,651 files stop here |
 | Bare documents after `...`, and any YAML after a final `...` | `...` now ends the YAML unless a marker follows, so Markdown can follow front matter (section 4.4) | libyaml already refuses a bare document there |
 | The 1024-character limit on keys | It only bounded lookahead for flow keys, and a 2.0 key is one line | None |
-| The bans on starting a plain scalar with `%`, `@` or `` ` ``, and with `!` in a table | Inherited, and they forced quotes on 1,530 values starting with `%` alone | `%` at column 0 stays reserved for directives. `!` stays refused outside the table, so a leftover tag fails loudly |
+| The bans on starting a plain scalar with `%`, `@` or `` ` ``, and with `!` in a table | Inherited, and they forced quotes on 1,530 values starting with `%` alone | `%` as a line's first character stays reserved for directives. `!` stays refused outside the table, so a leftover tag fails loudly |
 
 Added:
 

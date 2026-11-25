@@ -50,8 +50,8 @@ skip by tag. It needs PyYAML.
 - A test without `limit` uses the default, 64 MiB (section 10). A test with `keep` or `together` is
   for that interface alone, and a parser that doesn't offer it skips the test. A test with `keep`
   has no `tree` or `json`: it checks only that the stream is accepted or refused.
-- A test with `fail` has no `tree`. Section 2 requires a refusal to give the line and column, and
-  the suite doesn't check them yet.
+- A test with `fail` has no `tree`. Section 2 requires a refusal to give the line, the column and the
+  offset, and the suite doesn't check them yet.
 
 ### Characters
 
