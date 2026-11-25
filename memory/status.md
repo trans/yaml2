@@ -4,7 +4,9 @@
 
 **Tags.** The user, 2026-11-24: "nothing should be released on an untagged commit". So a commit of
 main that a release (Oyl NG's, say) runs against gets an annotated tag, pushed with it. The user chose
-`v0.x.y`, Oyl NG's pattern; the first is `v0.1.0`, on main `def062b`.
+`v0.x.y`, Oyl NG's pattern; the first is `v0.1.0`, on main `def062b`. `v0.2.0` is on main `a2c46f4`
+(2026-11-25, the user: "yes, tag it and push"), tagged ahead of any release so Oyl NG has a pin past
+`v0.1.0`: part 2's suite at 915.
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
