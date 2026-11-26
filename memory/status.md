@@ -610,10 +610,17 @@ exactly those 22. Three points:
    Tagged `v0.2.2` and pushed; @oylng told (2026-11-26), with the note that reading back with the
    test's `bind` gives its `calls` again in each written test and other calls in each refused one.
 
-**The `sequence` tag is set by any `[` (found 2026-11-26). Open.** `suiteyes.py` tags a test
-`sequence` when its reached schema holds `[`, so a pattern sets it too: `9UJP`'s `/[-+][0-9]+/` has
-no sequence type and is tagged `sequence`. A parser without sequences skips such tests; no result
-changes. Offered to the user as a separate fix, 2026-11-26.
+**The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
+`sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
+has no sequence type and was tagged `sequence`. A block sequence, with no `[`, didn't set it. A parser
+without sequences skipped such tests; no result changed. The user: "sure" (2026-11-26). **Fixed in
+main `6e1ccbc`:** `sequences()` walks the entries each document reaches, by its own table, and the
+application's schema and the store, as part 1 reads them, and any sequence but a `!|` key's list
+counts. Where part 1 refuses the stream, the text says, leaving out a type's parentheses (`S9EV`'s
+`{!str(/[a-z]+/): !int}`). 138 tests lose the tag, all for a `[` in a pattern, and `FSJ7`
+(`steps:` with `- ...`) gains it: 100 tagged, from 237. Only tags lines changed. A text scan of every
+test's schema, block sequences and block unions included, agrees but for `EDK3` (a sequence in a
+block union, tagged) and `R4PV` (its root reaches none of its sequences, untagged), both right.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,

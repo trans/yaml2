@@ -289,6 +289,35 @@ def tagtext(r):
         ach = chunks(TABLE.findall(r['app'][0] + '\n')[0] if TABLE.findall(r['app'][0] + '\n') else r['app'][0])
         schema += ''.join(ach.get(k, r['app'][0]) for k in reaches(read0(r['app'][0]).table, r['app'][1]))
     return docs + schema + store, schema + store
+def sequenced(v, seen=None):
+    """Whether a value of a table holds a sequence type (section 6): a sequence anywhere in it, other
+    than the alternatives a `!|` key holds. Each shared node is looked at once."""
+    seen = set() if seen is None else seen
+    if id(v) in seen: return False
+    seen.add(id(v))
+    if isinstance(v, list): return True
+    if not isinstance(v, dict): return False
+    return any(any(sequenced(y, seen) for y in x) if k == '!|' and not isinstance(k, ns['Quoted']) and isinstance(x, list)
+               else sequenced(x, seen) for k, x in v.items())
+def sequences(r):
+    """Whether the entries a test's documents reach hold a sequence type, by each document's own table,
+    or None if part 1 refuses the stream. A `[` in the text doesn't say: a pattern such as
+    `/[-+][0-9]+/` has one, and a block sequence has none."""
+    try: rr = read0(r['stream'], None, False, r['keep'])
+    except No: return None
+    vals = []
+    def reach(table, root): vals.extend(table[k] for k in reaches(table, root) if k in table)
+    for (name, _), (table, _) in zip(rr.docs, getattr(rr, 'snaps', [])):
+        if name and '/' not in name and name in table: reach(table, name)
+    if not rr.docs: vals.extend(rr.table.values())
+    if r['app']:
+        try: reach(read0(r['app'][0]).table, r['app'][1])
+        except No: pass
+    # As in tagtext, every file the store holds.
+    for text in (r['store'] or {}).values():
+        try: vals.extend(read0(text).table.values())
+        except No: pass
+    return any(sequenced(v) for v in vals)
 def tags(r, sec, fail):
     t, table = tagtext(r)
     out = []
@@ -299,7 +328,10 @@ def tags(r, sec, fail):
     if re.search(r'!decimal\([^\n)]*[0-9]:[0-9]', t): out.append('precision')
     # A `!|` key, or ` | ` in a plain scalar outside a type's parentheses, which section 14 refuses.
     if UNION.search(t) or piped(table): out.append('union')
-    if '[' in UNION.sub('', table): out.append('sequence')
+    # Where part 1 refuses the stream, the text says, leaving out a type's parentheses: in a flow
+    # mapping, part 1 refuses the `[` of `!str(/[a-z]+/)`, and it is still a pattern.
+    seq = sequences(r)
+    if seq or seq is None and '[' in re.sub(r'!\w+\([^\n]*\)', '', UNION.sub('', table)): out.append('sequence')
     if re.search(r'!\*(?!\*)', t): out.append('star')
     if '!**' in t: out.append('double-star')
     if '<<' in t: out.append('merge')
