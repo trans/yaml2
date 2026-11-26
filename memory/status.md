@@ -609,6 +609,17 @@ exactly those 22. Three points:
    `5b8c82e`** (the user: "add a test for it"): a `writes` key and 8 tests, so part 2's suite is 923.
    Tagged `v0.2.2` and pushed; @oylng told (2026-11-26), with the note that reading back with the
    test's `bind` gives its `calls` again in each written test and other calls in each refused one.
+   **Oyl NG passes them** (mail a3eaeaee, 2026-11-26), with no engine change; CI pins `5b8c82e` as of
+   Oyl NG `9c1d0cb`. Its harness binds each name to the emitter too, writes `writes` or the value
+   given, and reads each document back with the same names bound, checking the calls. Part 2: 898
+   pass, 0 fail, 25 skipped for holding more; 37 documents through bound code, 26 refused as `emit`
+   says. Its mutants: no check by name fails `4EC4`, `9UJP`, `7QQG` and `573L` (`name`'s code writes
+   the string `2` back, which plain reads as an int through `id`); bound code ignoring `writes` fails
+   `ZGD5`, `K8MQ`, `6XE6`, `4EC4`; no names bound on read-back fails 31. **Open, for the user:**
+   @oylng reads a JSON string in `writes` as a spelling only as the code's whole value; inside a
+   mapping it is a string value, as a number is an int, so `{"point": {"x": "1"}}` is refused under
+   `x: !int`. `emitcheck.py`'s `written()` reads it the same way. No test has a string in a mapping.
+   The README doesn't say; a sentence for it is offered to the user.
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
