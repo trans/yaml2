@@ -1540,7 +1540,10 @@ Null under an optional key is written as no value, `retries:`, which always read
 `retries: null` would be refused under `retries?: !int`, and under `name?: !str` it would read back
 as the string `"null"`.
 A bound value needs the way back too: the application gives code that turns a `Point` into the mapping its entry
-takes. Under `!any` nothing is typed, so an emitter writes what it's given as plain data: an object
+takes. An emitter can't compare the application's object with what reading gives, so it checks only that what
+the code writes reads back through the name the code was bound under. `+5` from `signed`'s code is written
+under `at: !signed`, and refused under `at: !str`, where it would read back as the string `"+5"`.
+Under `!any` nothing is typed, so an emitter writes what it's given as plain data: an object
 through the code the application gave for it, which reads back as the mapping that code made, as 3
 reads back as `"3"`. Part 1, section 11, says the rest.
 
