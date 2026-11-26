@@ -31,7 +31,7 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
 | `year-zero` | with `holds`: `true` if it holds the year `0000` |
 | `bind` | entries the harness binds (section 12), each to code that notes the entry's name and gives back what it was given, so `typed` is the same |
 | `calls` | with `bind`: the names noted, in the order the code ran |
-| `writes` | with `bind`: for a bound name, what its code writes for each value typed through it (section 13). A string is a scalar's text, written as spelled, and a mapping is written as a mapping. A bound name without it writes back what it was given |
+| `writes` | with `bind`: for a bound name, what its code writes for each value typed through it (section 13). A string is a scalar's text, written as spelled. A mapping is written as a mapping, and a string inside it is a string value: `{"x": "1"}` is refused under `x: !int`. A bound name without it writes back what it was given |
 | `emit` | `refused` if an emitter given the typed events and the schema must refuse to write them (section 13) |
 
 - **`schema` and `root`.** A harness hands them to the parser before the stream. Some of these tests
