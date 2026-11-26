@@ -1,12 +1,14 @@
 # Status
 
-*Updated 2026-11-25*
+*Updated 2026-11-26*
 
 **Tags.** The user, 2026-11-24: "nothing should be released on an untagged commit". So a commit of
 main that a release (Oyl NG's, say) runs against gets an annotated tag, pushed with it. The user chose
 `v0.x.y`, Oyl NG's pattern; the first is `v0.1.0`, on main `def062b`. `v0.2.0` is on main `a2c46f4`
 (2026-11-25, the user: "yes, tag it and push"), tagged ahead of any release so Oyl NG has a pin past
-`v0.1.0`: part 2's suite at 915.
+`v0.1.0`: part 2's suite at 915. `v0.2.1` is on main `aaba17e` (2026-11-26, the user: "commit, tag
+v0.2.1 and push"): `suite-to-data` writes `emit`, times compare in capitals, section 2's example counts
+from the stream's start, and section 13's check by name.
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -588,21 +590,21 @@ Oyl NG `71a3d21` against `v0.2.0`: 890 pass, 0 fail, 25 skipped for holds. Writt
 events, 408 documents read back the same, the 22 marked `emit: refused` are refused, and 7 with a schema
 from the store aren't tried yet. Its old emitter, which tried a `+` or zeros to fit a pattern, wrote
 exactly those 22. Three points:
-1. `suite-to-data` at `v0.2.0` writes no `emit` file, though the README lists the key. **Fixed, not yet
-   committed:** `emit` added to its tuple and to the README's list of files; it writes 22, all
+1. `suite-to-data` at `v0.2.0` writes no `emit` file, though the README lists the key. **Fixed in main
+   `7c3c580`:** `emit` added to its tuple and to the README's list of files; it writes 22, all
    `refused`, on the same tests as the marks in `src`. Oyl NG marks them itself until then.
 2. A time's typed event is its text, and the engine writes `T` and `Z` in capitals, so test `U268`'s
    `t` and `z` come back as capitals. The user ruled them the same value, with no change to the draft
-   (2026-11-24). **Fixed, not yet committed:** a README sentence saying that a harness compares a time
+   (2026-11-24). **Fixed in main `7c3c580`:** a README sentence saying that a harness compares a time
    with `T` and `Z` in capitals. `emitcheck.py` now writes and compares times that way, with the same totals
    (428 documents, 22 refused).
-3. **Open, for the user:** what an emitter checks for an object that its code writes. The engine
+3. What an emitter checks for an object that its code writes. The engine
    writes the string the code gives as spelled. It checks only that the string reads back through the
    name the code was bound under, since it can't compare the application's object with what reading
    gives. So `+5` is written under `at: !signed`. Under `at: !str` it is refused, since there it would read
    back as the string "+5" with no error. (The agent first gave `!int` as the example, but `!int`
-   doesn't match `+5` at all: section 4.1's spellings are exact.) The agent recommends saying so in
-   section 13, for a mapping as well.
+   doesn't match `+5` at all: section 4.1's spellings are exact.) The user: "yes to the sentence"
+   (2026-11-26). **Fixed in main `aaba17e`**, in section 13; rules.md has it.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,

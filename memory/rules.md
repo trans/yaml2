@@ -1075,7 +1075,7 @@ suites' READMEs say "line, column and offset". Neither suite checks positions ye
 **The example's numbers were counted from the `{`** (@oylng, 2026-11-26,
 `mail/received/20261126-071913Z-@oylng--a-refusal-s-column-counts-characters-in-the-engine-50a88b3d.md`).
 A refusal counts from the start of the stream, which must begin with `%YAML 2.0`, so a parser gives
-line 3 and offset 31 for that place. **Fixed, not yet committed:** section 2 gives column 10, 17 bytes
+line 3 and offset 31 for that place. **Fixed in main `5846de1`:** section 2 gives column 10, 17 bytes
 past the start of its line, and after `%YAML 2.0` and `---` (14 bytes), line 3 and offset 31. Oyl NG
 `734f3c0` counts columns in characters and gives these numbers. It was checked with 12 API checks and its
 fuzzer, and all 12 checks fail with byte counting put back.
@@ -1092,4 +1092,12 @@ fuzzer, and all 12 checks fail with byte counting put back.
   reverses section 4.4 and makes a number into text by its size.
 - **The suite tests bindings** with `bind` and `calls` (main `16533e7`), @oylng's idea, and emitting by
   writing each typed test again, with `emit: refused` on the 22 an emitter must refuse.
+- **What code writes is checked by its name** (the user: "yes to the sentence", 2026-11-26; @oylng's
+  question; main `aaba17e`). An emitter can't compare the application's object with what reading gives, so it checks
+  only that what the code writes reads back through the name the code was bound under. `+5` from
+  `signed`'s code is written under `at: !signed` and refused under `at: !str`, where it would read back
+  as the string "+5" with no error. A sentence in section 13; the suite doesn't test it yet, since its
+  bound code gives back what it was given.
+- **The suite compares a time with `T` and `Z` in capitals** (main `7c3c580`; @oylng's question), following
+  the user's ruling that lowercase is the same value (2026-11-24). `emitcheck.py` writes them so.
 
