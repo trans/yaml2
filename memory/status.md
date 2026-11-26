@@ -581,8 +581,10 @@ exactly those 22. Three points:
 3. **Open, for the user:** what an emitter checks for an object that its code writes. The engine
    writes the string the code gives as spelled. It checks only that the string reads back through the
    name the code was bound under, since it can't compare the application's object with what reading
-   gives. So `+5` is written under `at: !signed` and refused under `at: !int`. The agent recommends
-   saying so in section 13, for a mapping as well.
+   gives. So `+5` is written under `at: !signed`. Under `at: !str` it is refused, since there it would read
+   back as the string "+5" with no error. (The agent first gave `!int` as the example, but `!int`
+   doesn't match `+5` at all: section 4.1's spellings are exact.) The agent recommends saying so in
+   section 13, for a mapping as well.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
