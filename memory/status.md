@@ -9,7 +9,9 @@ main that a release (Oyl NG's, say) runs against gets an annotated tag, pushed w
 `v0.1.0`: part 2's suite at 915. `v0.2.1` is on main `aaba17e` (2026-11-26, the user: "commit, tag
 v0.2.1 and push"): `suite-to-data` writes `emit`, times compare in capitals, section 2's example counts
 from the stream's start, and section 13's check by name. `v0.2.2` is on main `5b8c82e` (2026-11-26,
-the user: "yes"): part 2's suite at 923, with 8 tests of what bound code writes.
+the user: "yes"): part 2's suite at 923, with 8 tests of what bound code writes. `v0.2.3` is on
+main `ae10177` (2026-11-26, the user: "yes"): the `sequence` tag's fix and the README's `writes`
+sentence, with the same tests and results.
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -619,7 +621,8 @@ exactly those 22. Three points:
    @oylng reads a JSON string in `writes` as a spelling only as the code's whole value; inside a
    mapping it is a string value, as a number is an int, so `{"point": {"x": "1"}}` is refused under
    `x: !int`. `emitcheck.py`'s `written()` reads it the same way. No test has a string in a mapping.
-   The README doesn't say; a sentence for it is offered to the user.
+   The user agreed (2026-11-26: "yes"). **Fixed in main `ae10177`:** the README's `writes` row says a
+   string inside a mapping is a string value. Tagged `v0.2.3`; @oylng told.
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
@@ -632,6 +635,7 @@ counts. Where part 1 refuses the stream, the text says, leaving out a type's par
 (`steps:` with `- ...`) gains it: 100 tagged, from 237. Only tags lines changed. A text scan of every
 test's schema, block sequences and block unions included, agrees but for `EDK3` (a sequence in a
 block union, tagged) and `R4PV` (its root reaches none of its sequences, untagged), both right.
+Tagged `v0.2.3` on `ae10177`; @oylng told (2026-11-26).
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
