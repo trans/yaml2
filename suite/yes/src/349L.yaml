@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern on !decimal: `!decimal(/[a-z]+/)` on `abc`'
   from: part 2, section 4.5
-  tags: decimal pattern sequence error
+  tags: decimal pattern error
   fail: true
   refused: document
   at: '/'

@@ -1,7 +1,7 @@
 ---
 - name: 'From the third review: `!n` on `Abc`'
   from: part 2, section 4.3
-  tags: str int pattern union sequence
+  tags: str int pattern union
   yaml: |
     %YAML 2.0
     --- &

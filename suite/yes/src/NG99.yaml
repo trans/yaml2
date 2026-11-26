@@ -1,7 +1,7 @@
 ---
 - name: 'Patterns, precision and limits: `!n` on `1e99999999999999999999`'
   from: part 2, section 4.5
-  tags: str decimal pattern union sequence
+  tags: str decimal pattern union
   yaml: |
     %YAML 2.0
     --- &

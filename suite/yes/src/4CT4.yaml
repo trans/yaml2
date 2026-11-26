@@ -1,7 +1,7 @@
 ---
 - name: 'A type key takes a scalar type: `!m` on `7: true; ab: false`'
   from: part 2, section 7
-  tags: str int bool pattern union sequence
+  tags: str int bool pattern union
   yaml: |
     %YAML 2.0
     --- &

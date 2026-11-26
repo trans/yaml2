@@ -1,7 +1,7 @@
 ---
 - name: Patterns, example 2
   from: part 2, section 4.3
-  tags: spec str pattern sequence error
+  tags: spec str pattern error
   fail: true
   refused: document
   at: '/'

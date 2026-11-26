@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern on !int: `!int(/0x[0-9a-f]+/)` on `0x1f`'
   from: part 2, section 4.5
-  tags: int pattern sequence error
+  tags: int pattern error
   fail: true
   refused: document
   at: '/'

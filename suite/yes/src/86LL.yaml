@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern on !int: `{!|: [!h, !str]}` on `0x1f`'
   from: part 2, section 4.5
-  tags: str int pattern union sequence error
+  tags: str int pattern union error
   fail: true
   refused: document
   at: '/'

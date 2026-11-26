@@ -1,7 +1,7 @@
 ---
 - name: 'A schema that loads: `!float(0..1 /[0-9.]+/)` on `0`'
   from: part 2, section 4.5
-  tags: float pattern range sequence
+  tags: float pattern range
   yaml: |
     %YAML 2.0
     --- &

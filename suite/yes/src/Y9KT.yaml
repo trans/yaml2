@@ -1,7 +1,7 @@
 ---
 - name: Precision, limit and pattern together, example 1
   from: part 2, section 4.7
-  tags: spec int decimal pattern range precision sequence
+  tags: spec int decimal pattern range precision
   emit: refused
   yaml: |
     %YAML 2.0

@@ -1,7 +1,7 @@
 ---
 - name: 'A float width or round: `!float(round 0..1 /[0-9.]+/)` on `x`'
   from: part 2, section 4.4
-  tags: float pattern range sequence error
+  tags: float pattern range error
   fail: true
   refused: schema
   yaml: |

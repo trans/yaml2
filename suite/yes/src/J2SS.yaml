@@ -1,7 +1,7 @@
 ---
 - name: 'Application types: `!cfg` on `a: +5; b: x; c:;   d: -3`, binding signed and cfg'
   from: part 2, section 12
-  tags: str int pattern union sequence double-star bind
+  tags: str int pattern union double-star bind
   bind: [signed, cfg]
   calls: [signed, signed, cfg]
   emit: refused

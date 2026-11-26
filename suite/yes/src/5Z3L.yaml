@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern on !int: `{!|: [!q, !str]}` on `|;   +5`'
   from: part 2, section 4.5
-  tags: str int pattern union sequence
+  tags: str int pattern union
   yaml: |
     %YAML 2.0
     --- &

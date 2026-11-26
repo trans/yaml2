@@ -1,7 +1,7 @@
 ---
 - name: 'A schema that loads: `!decimal(5:2 0..1 /[0-9.]+/)` on `0`'
   from: part 2, section 4.7
-  tags: decimal pattern range precision sequence
+  tags: decimal pattern range precision
   yaml: |
     %YAML 2.0
     --- &

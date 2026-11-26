@@ -1,7 +1,7 @@
 ---
 - name: Wherever this occurs, example 3
   from: part 2, section 10
-  tags: spec str int pattern union sequence double-star
+  tags: spec str int pattern union double-star
   emit: refused
   yaml: |
     %YAML 2.0

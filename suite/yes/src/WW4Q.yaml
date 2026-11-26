@@ -1,7 +1,7 @@
 ---
 - name: A pattern on another type, example 2
   from: part 2, section 4.5
-  tags: spec str float decimal null pattern union sequence
+  tags: spec str float decimal null pattern union
   yaml: |
     %YAML 2.0
     --- &

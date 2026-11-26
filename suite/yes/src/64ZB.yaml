@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern on !int: `!mk` on `+5: a; "-3": b`'
   from: part 2, section 4.5
-  tags: str int pattern sequence
+  tags: str int pattern
   yaml: |
     %YAML 2.0
     --- &

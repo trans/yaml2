@@ -1,7 +1,7 @@
 ---
 - name: 'A schema refused: `a: {!str(/[a-z]+/): !int}`'
   from: part 2, section 4.3
-  tags: str int pattern sequence error
+  tags: str int pattern error
   fail: true
   yaml: |
     %YAML 2.0

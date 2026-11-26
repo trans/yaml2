@@ -1,7 +1,7 @@
 ---
 - name: 'Application types: `!invoice` on `total: 19.99`, binding money'
   from: part 2, section 12
-  tags: str pattern sequence bind
+  tags: str pattern bind
   bind: [money]
   calls: [money]
   yaml: |

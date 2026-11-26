@@ -1,7 +1,7 @@
 ---
 - name: 'Application types: `!m` on `ab: 1`, binding k'
   from: part 2, section 12
-  tags: str int pattern sequence bind
+  tags: str int pattern bind
   bind: [k]
   calls: []
   yaml: |

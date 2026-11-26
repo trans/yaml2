@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern on !int: `!mk` on `5: a`'
   from: part 2, section 4.5
-  tags: str int pattern sequence error
+  tags: str int pattern error
   fail: true
   refused: document
   at: '/'

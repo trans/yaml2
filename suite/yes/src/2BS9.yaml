@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern on !decimal: `!decimal(/[0-9]+e[0-9]+/)` on `1e999999999`'
   from: part 2, section 4.5
-  tags: decimal pattern sequence
+  tags: decimal pattern
   yaml: |
     %YAML 2.0
     --- &

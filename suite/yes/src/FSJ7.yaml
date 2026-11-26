@@ -1,7 +1,7 @@
 ---
 - name: Overview, example 1
   from: part 2, section 1
-  tags: spec str int range union
+  tags: spec str int range union sequence
   yaml: |
     %YAML 2.0
     --- &

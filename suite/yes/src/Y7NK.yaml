@@ -1,7 +1,7 @@
 ---
 - name: 'A schema refused: `!str(/[a[b]/)` on `x`'
   from: part 2, section 4.3
-  tags: str pattern sequence error
+  tags: str pattern error
   fail: true
   refused: schema
   yaml: |

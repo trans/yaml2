@@ -1,7 +1,7 @@
 ---
 - name: 'A pattern is a plain scalar: `!str(/x[ ]#y/)` on `"x #y"`'
   from: part 2, section 4.3
-  tags: str pattern sequence
+  tags: str pattern
   yaml: |
     %YAML 2.0
     --- &
