@@ -198,6 +198,24 @@ Of the 3,418, 21 don't give libyaml's events:
 - **4 hold only comments.** libyaml gives no document, and with `---` put in front, 2.0 gives one empty
   document. That comes from the conversion, not the language.
 
+**What typing costs (2026-11-26)**, from Oyl NG's `make bench-typed` at `980a6e1`
+(`mail/received/20261126-081339Z-@oylng--what-typing-costs-in-the-engine-speed-and-memory-11935813.md`).
+The inputs are the five generated kinds, 1 to 32 MB, each with the schema an application would give. The
+figures are medians of 21 rounds on one core, against reading the same text as trees; two runs agreed to
+within 0.05.
+- Typed by a schema, a document takes 1.6 to 2.4 times the trees' time: 1.6 for config, 1.9 to 2.0 for
+  block and mixed, 2.4 for json. Against events it is 2.4 to 4.2. Ranges and a pattern on every value
+  take 2.2, against 1.9 under plain types. A union of three mapping types, the last the one that fits,
+  takes 2.1, since a union picks by keys. Code bound to the item type, doing nothing, adds 9 to 13%. The
+  time per megabyte is the same at 1, 8 and 32 MB.
+- The peak heap for one large typed document is 8.5 bytes per input byte, against 5 for its tree, the
+  same at every size. Typing keeps the tree and adds a value for each node, and bound code takes it to
+  9.3 to 9.5. These generated inputs have many short scalars. Real files gave trees 1.6, so a typed real
+  file would hold less. A stream typed one document at a time holds about 21 KB at any length (trees 18 KB,
+  events 16 KB). A schema takes 15 to 31 KB.
+- With memory given back between reads, paging it in costs more: an 8 MB document took 41 to 45 ms as
+  trees against 33, and 73 to 80 ms typed against 65. The ratios above are with memory kept.
+
 Oyl's notes are private. Read them in place, and bring only what the user has
 cleared into this repository, which is public.
 
