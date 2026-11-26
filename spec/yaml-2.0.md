@@ -56,8 +56,9 @@ breaks a rule in this document. There is no error recovery and no lenient mode.
 A refusal must give the line and the column, both counted from 1, the column in characters, so
 a tab counts as 1. It must also give the offset of the same place in bytes from the start of the
 stream, with a CR LF counted as two, as section 4.4 does for `...`. In `{名前: 東京, 名前: x}`, the
-second `名前` is at line 1, column 10 and offset 17: the four characters before it that aren't
-ASCII are three bytes each. A parser may go on to report further errors, so that an editor
+second `名前` is at column 10, 17 bytes past the start of its line: the four characters before it
+that aren't ASCII are three bytes each. After `%YAML 2.0` and `---`, the stream's first 14 bytes, it
+is at line 3 and offset 31. A parser may go on to report further errors, so that an editor
 can list them all, but it delivers nothing past the first. A parser reading a stream incrementally may
 already have delivered earlier documents, but must not deliver the document in error as
 complete: an event interface reports the error before the document's end.
