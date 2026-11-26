@@ -1,0 +1,24 @@
+---
+- name: 'What bound code writes: `{!|: [!small, !signed]}` on `+5`, binding signed, its code writing `5`'
+  from: part 2, section 13
+  tags: int pattern range union sequence bind writes
+  bind: [signed]
+  calls: [signed]
+  writes: {"signed": "5"}
+  emit: refused
+  yaml: |
+    %YAML 2.0
+    --- &
+    signed: !int(/[-+][0-9]+/)
+    small: !int(0..9)
+    at: {!|: [!small, !signed]}
+    --- !at
+    +5
+  typed: |
+    +STR
+     +DOC !at
+      =INT :5
+     -DOC
+    -STR
+  json: |
+    5

@@ -1,0 +1,33 @@
+---
+- name: 'What bound code writes: `{!|: [!point, !sweep]}` on `x: 1; y: 2`, binding point, its code writing `{target: 3}`'
+  from: part 2, section 13
+  tags: int union bind writes
+  bind: [point]
+  calls: [point]
+  writes: {"point": {"target": 3}}
+  emit: refused
+  yaml: |
+    %YAML 2.0
+    --- &
+    point:
+      x: !int
+      y: !int
+    sweep:
+      target: !int
+    shape: {!|: [!point, !sweep]}
+    --- !shape
+    x: 1
+    y: 2
+  typed: |
+    +STR
+     +DOC !shape
+      +MAP
+       =VAL :x
+       =INT :1
+       =VAL :y
+       =INT :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": 1, "y": 2}

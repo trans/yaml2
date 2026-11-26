@@ -2,11 +2,12 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 915:
+these tests will change with it. There are 923:
 
 - the draft's 71 examples, tagged `spec`;
-- 807 edge cases from the draft's checker, 33 of them for the code an application binds (section 12),
-  and 26 for typing a merge read with references kept (section 11);
+- 815 edge cases from the draft's checker, 33 of them for the code an application binds (section 12),
+  8 for what that code writes (section 13), and 26 for typing a merge read with references kept
+  (section 11);
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
   (see below).
 
@@ -30,6 +31,7 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
 | `year-zero` | with `holds`: `true` if it holds the year `0000` |
 | `bind` | entries the harness binds (section 12), each to code that notes the entry's name and gives back what it was given, so `typed` is the same |
 | `calls` | with `bind`: the names noted, in the order the code ran |
+| `writes` | with `bind`: for a bound name, what its code writes for each value typed through it (section 13). A string is a scalar's text, written as spelled, and a mapping is written as a mapping. A bound name without it writes back what it was given |
 | `emit` | `refused` if an emitter given the typed events and the schema must refuse to write them (section 13) |
 
 - **`schema` and `root`.** A harness hands them to the parser before the stream. Some of these tests
@@ -50,9 +52,16 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   in `yaml`, as they are written there. Read back with the same schema and settings, the result gives
   the same typed events. A harness compares a time with `T` and `Z` in capitals, since lowercase is
   the same time (section 4.8): test `U268`'s `2001-02-03t04:05:06z` may come back as
-  `2001-02-03T04:05:06Z`. Where a test has `emit: refused`, the emitter refuses instead. Each of those
-  22 has a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
-  under `!int(/[-+][0-9]+/)`. The suite doesn't fix how the YAML is laid out or quoted.
+  `2001-02-03T04:05:06Z`. Where a test has `emit: refused`, the emitter refuses instead. Of those 26,
+  22 have a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
+  under `!int(/[-+][0-9]+/)`. The other 4 have code that writes what doesn't read back through the name
+  it was bound under. The suite doesn't fix how the YAML is laid out or quoted.
+- **`writes`.** An emitter writes a value that bound code made through that code, and checks only that
+  it reads back through the same name, since it can't compare the application's object with what
+  reading gives (section 13). Take `small: !int(0..9)` and `signed: !int(/[-+][0-9]+/)`, with `signed`
+  bound: `+5` under `{!|: [!small, !signed]}` reads as 5 through `signed`. If the code writes `+5`, the
+  emitter writes that. If it writes `5`, the emitter refuses: `5` reads back as the int 5 through
+  `small`, so the typed events are the same, but it doesn't come back through `signed`.
 - **`at`.** The path is `/` for the root, then each key or index after a `/`, unescaped. For a key
   the mapping doesn't take, or one it needs and doesn't have, it is the mapping's path (section 2). It
   is the first fault the checker meets. A parser that reports another fault in the same document first
@@ -60,8 +69,8 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
 
 `bin/suite-to-data yes/src yes-data` writes each test to a directory as part 1's are, with `typed.event`
 in place of `test.event`, and `schema.yaml`, `root`, `holds`, `refused`, `at`, `emit`, `tags`, the
-flags `cut`, `leap-second` and `year-zero`, `bind` and `calls` with a name on each line, and a
-`store/` with a file for each hash, where a test has them.
+flags `cut`, `leap-second` and `year-zero`, `bind` and `calls` with a name on each line, `writes.json` holding
+`writes` as JSON, and a `store/` with a file for each hash, where a test has them.
 
 ### Typed events
 
@@ -104,6 +113,7 @@ following that it uses, so that a parser that does only part of the draft can sk
 | `long-fraction`, `second-60`, `year-0000` | without `holds`: a time with more than 9 fraction digits, a second `60`, or the year `0000`, which a parser that holds less refuses (section 4.8) |
 | `size` | a size limit other than the default |
 | `bind` | bindings (section 12) |
+| `writes` | what bound code writes (section 13) |
 | `spec` | an example from the draft |
 | `error` | a refusal |
 | `schema` | none of the above |

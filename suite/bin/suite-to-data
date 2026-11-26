@@ -6,7 +6,7 @@
 
 Needs PyYAML. The src files use only what YAML 1.1 and 1.2 read alike: strings, `true` and integers.
 """
-import os, re, sys
+import json, os, re, sys
 import yaml
 
 def unescape(t):
@@ -59,6 +59,7 @@ def main(src, out):
             if 'schema' in test: write(os.path.join(d, 'schema.yaml'), unescape(test['schema']))
             for key in ('root', 'holds', 'refused', 'at', 'emit'):
                 if key in test: write(os.path.join(d, key), f'{test[key]}\n')
+            if 'writes' in test: write(os.path.join(d, 'writes.json'), json.dumps(test['writes'], ensure_ascii=False) + '\n')
             if 'store' in test:
                 os.makedirs(os.path.join(d, 'store'))
                 for h, text in test['store'].items(): write(os.path.join(d, 'store', h), unescape(text))
