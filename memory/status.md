@@ -8,7 +8,8 @@ main that a release (Oyl NG's, say) runs against gets an annotated tag, pushed w
 (2026-11-25, the user: "yes, tag it and push"), tagged ahead of any release so Oyl NG has a pin past
 `v0.1.0`: part 2's suite at 915. `v0.2.1` is on main `aaba17e` (2026-11-26, the user: "commit, tag
 v0.2.1 and push"): `suite-to-data` writes `emit`, times compare in capitals, section 2's example counts
-from the stream's start, and section 13's check by name.
+from the stream's start, and section 13's check by name. `v0.2.2` is on main `5b8c82e` (2026-11-26,
+the user: "yes"): part 2's suite at 923, with 8 tests of what bound code writes.
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -606,7 +607,13 @@ exactly those 22. Three points:
    doesn't match `+5` at all: section 4.1's spellings are exact.) The user: "yes to the sentence"
    (2026-11-26). **Fixed in main `aaba17e`**, in section 13; rules.md has it. **Tested in main
    `5b8c82e`** (the user: "add a test for it"): a `writes` key and 8 tests, so part 2's suite is 923.
-   Not pushed or tagged yet.
+   Tagged `v0.2.2` and pushed; @oylng told (2026-11-26), with the note that reading back with the
+   test's `bind` gives its `calls` again in each written test and other calls in each refused one.
+
+**The `sequence` tag is set by any `[` (found 2026-11-26). Open.** `suiteyes.py` tags a test
+`sequence` when its reached schema holds `[`, so a pattern sets it too: `9UJP`'s `/[-+][0-9]+/` has
+no sequence type and is tagged `sequence`. A parser without sequences skips such tests; no result
+changes. Offered to the user as a separate fix, 2026-11-26.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
