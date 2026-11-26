@@ -564,6 +564,26 @@ with one key throughout, the doubling `-<<`, the `{}` chain, a `-<<` in a type, 
 same streams. Seven mutants of the checker each fail some (no spread count, keys deduplicated, no lines
 counted, spread under `!any`, each entry held alone, no hold on types, and a cleaner dedup).
 
+**Oyl NG emits by section 13 (2026-11-26)**
+(`mail/received/20261126-061126Z-@oylng--section-13-in-the-engine-suite-to-data-doesn-t-wri-59666737.md`).
+Oyl NG `71a3d21` against `v0.2.0`: 890 pass, 0 fail, 25 skipped for holds. Written again from typed
+events, 408 documents read back the same, the 22 marked `emit: refused` are refused, and 7 with a schema
+from the store aren't tried yet. Its old emitter, which tried a `+` or zeros to fit a pattern, wrote
+exactly those 22. Three points:
+1. `suite-to-data` at `v0.2.0` writes no `emit` file, though the README lists the key. **Fixed, not yet
+   committed:** `emit` added to its tuple and to the README's list of files; it writes 22, all
+   `refused`, on the same tests as the marks in `src`. Oyl NG marks them itself until then.
+2. A time's typed event is its text, and the engine writes `T` and `Z` in capitals, so test `U268`'s
+   `t` and `z` come back as capitals. The user ruled them the same value, with no change to the draft
+   (2026-11-24). **Fixed, not yet committed:** a README sentence saying that a harness compares a time
+   with `T` and `Z` in capitals. `emitcheck.py` now writes and compares times that way, with the same totals
+   (428 documents, 22 refused).
+3. **Open, for the user:** what an emitter checks for an object that its code writes. The engine
+   writes the string the code gives as spelled. It checks only that the string reads back through the
+   name the code was bound under, since it can't compare the application's object with what reading
+   gives. So `+5` is written under `at: !signed` and refused under `at: !int`. The agent recommends
+   saying so in section 13, for a mapping as well.
+
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
 `--- !spot` looks for `spot`, finds nothing, and the document stays strings. **Fixed in main `c5203b6`:**

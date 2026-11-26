@@ -40,10 +40,11 @@ def scalar(s, name, lim, v, path):
 Schema.scalar = scalar
 
 def key(v):
-    """v with its types, to compare: a float by its bits, so the sign of zero counts."""
+    """v with its types, to compare: a float by its bits, so the sign of zero counts, and a time with
+    T and Z in capitals, since lowercase is the same time (section 4.8)."""
     if isinstance(v, dict): return ('map', tuple((k, key(x)) for k, x in v.items()))
     if isinstance(v, list): return ('seq', tuple(key(x) for x in v))
-    if isinstance(v, Tag): return (v.kind, v.text)
+    if isinstance(v, Tag): return (v.kind, v.text.upper() if v.kind == 'datetime' else v.text)
     if v is None: return ('null',)
     if isinstance(v, bool): return ('bool', v)
     if isinstance(v, int): return ('int', v)
@@ -67,7 +68,9 @@ def floating(x):
 def spelling(v):
     """Every scalar but a string: its standard spelling."""
     if isinstance(v, Tag):
-        return v.text  # A date, a time, base64 and a decimal are delivered as their text (section 4).
+        # A date, a time, base64 and a decimal are delivered as their text (section 4). A time is
+        # written with T and Z in capitals, as the engine does, and compared so (section 4.8).
+        return v.text.upper() if v.kind == 'datetime' else v.text
     if v is None: return 'null'
     if isinstance(v, bool): return 'true' if v else 'false'
     if isinstance(v, int): return str(v)
