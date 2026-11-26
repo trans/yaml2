@@ -55,9 +55,9 @@ def main(src, out):
             # Part 2, section 12: the entries a harness binds, and the calls expected, one name a line.
             for key in ('bind', 'calls'):
                 if key in test: write(os.path.join(d, key), ''.join(f'{n}\n' for n in test[key]))
-            # Part 2: what the application supplies, and where a refusal comes from.
+            # Part 2: what the application supplies, and what is refused, and where.
             if 'schema' in test: write(os.path.join(d, 'schema.yaml'), unescape(test['schema']))
-            for key in ('root', 'holds', 'refused', 'at'):
+            for key in ('root', 'holds', 'refused', 'at', 'emit'):
                 if key in test: write(os.path.join(d, key), f'{test[key]}\n')
             if 'store' in test:
                 os.makedirs(os.path.join(d, 'store'))

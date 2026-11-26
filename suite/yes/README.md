@@ -48,7 +48,9 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   schema, as section 13 says, from the typed events alone, with no text kept from reading. Where the
   stream has its own table, each document is written after the table documents that come before it
   in `yaml`, as they are written there. Read back with the same schema and settings, the result gives
-  the same typed events. Where a test has `emit: refused`, the emitter refuses instead. Each of those
+  the same typed events. A harness compares a time with `T` and `Z` in capitals, since lowercase is
+  the same time (section 4.8): test `U268`'s `2001-02-03t04:05:06z` may come back as
+  `2001-02-03T04:05:06Z`. Where a test has `emit: refused`, the emitter refuses instead. Each of those
   22 has a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
   under `!int(/[-+][0-9]+/)`. The suite doesn't fix how the YAML is laid out or quoted.
 - **`at`.** The path is `/` for the root, then each key or index after a `/`, unescaped. For a key
@@ -57,9 +59,9 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   differs from the test in `at`, but not in whether the document is refused.
 
 `bin/suite-to-data yes/src yes-data` writes each test to a directory as part 1's are, with `typed.event`
-in place of `test.event`, and `schema.yaml`, `root`, `holds`, `refused`, `at`, `tags`, the flags `cut`,
-`leap-second` and `year-zero`, `bind` and `calls` with a name on each line, and a `store/` with a
-file for each hash, where a test has them.
+in place of `test.event`, and `schema.yaml`, `root`, `holds`, `refused`, `at`, `emit`, `tags`, the
+flags `cut`, `leap-second` and `year-zero`, `bind` and `calls` with a name on each line, and a
+`store/` with a file for each hash, where a test has them.
 
 ### Typed events
 
