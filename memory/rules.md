@@ -1072,6 +1072,14 @@ sequence's indent on a `-` line is counted as if each `-` were a space. Part 2's
 suites' READMEs say "line, column and offset". Neither suite checks positions yet. Both checkers pass
 (59 and 373; 71 and 811; 855).
 
+**The example's numbers were counted from the `{`** (@oylng, 2026-11-26,
+`mail/received/20261126-071913Z-@oylng--a-refusal-s-column-counts-characters-in-the-engine-50a88b3d.md`).
+A refusal counts from the start of the stream, which must begin with `%YAML 2.0`, so a parser gives
+line 3 and offset 31 for that place. **Fixed, not yet committed:** section 2 gives column 10, 17 bytes
+past the start of its line, and after `%YAML 2.0` and `---` (14 bytes), line 3 and offset 31. Oyl NG
+`734f3c0` counts columns in characters and gives these numbers. It was checked with 12 API checks and its
+fuzzer, and all 12 checks fail with byte counting put back.
+
 ## Emitting and bindings (the user, 2026-11-25)
 
 - **Section 13 refuses what wouldn't read back as the same type and value** (main `340fe27`), not what
