@@ -77,6 +77,9 @@ DATEHOLD = None
 # Section 12: the entries an application binds, as a suite harness does, with code that only notes its
 # name and gives back what it was given; and the names noted, in the order the code ran.
 BIND = None
+# Section 13: what a bound name's code writes for each value typed through it, by name, for emitcheck.py and
+# the suite. The checker only records it: reading doesn't use it.
+WRITES = None
 # Section 11's hold on the entries a schema reaches, read kept. Off only for the checker's tests of typed
 # alone, whose limits are below what the stream holds, so part 1 refuses them first; the suite leaves those out.
 HOLDTYPES = True
@@ -852,6 +855,31 @@ if __name__ == '__main__':
             if got != w: f += 1; print('CALLS DIFFER', b, repr(t), got, 'not', w)
         except REFUSED as e: f += 1; print('REFUSED', b, repr(t), e)
         finally: BIND = None
+    # Section 13: what bound code writes, for an emitter, which checks only that it reads back through the
+    # name the code was bound under. The checker reads each stream as a binds test; emitcheck.py writes it.
+    SIGNED = '--- &\nsigned: !int(/[-+][0-9]+/)\n'
+    SHAPE = '--- &\npoint:\n  x: !int\n  y: !int\nsweep:\n  target: !int\nshape: {!|: [!point, !sweep]}\n--- !shape\nx: 1\ny: 2\n'
+    writes = [
+        # The draft's case: `+5` from signed's code reads back through signed; `5` refuses the document.
+        (SIGNED + 'at: !signed\n--- !at\n+5\n', ['signed'], ['signed'], {'signed': '+5'}),
+        (SIGNED + 'at: !signed\n--- !at\n+5\n', ['signed'], ['signed'], {'signed': '5'}),
+        # Written plain, 5 comes back as the string "5" with no error, so the code's `+5` is what writes it.
+        (SIGNED + 'at: {!|: [!signed, !str]}\n--- !at\n+5\n', ['signed'], ['signed'], {'signed': '+5'}),
+        (SIGNED + 'at: {!|: [!signed, !str]}\n--- !at\n+5\n', ['signed'], ['signed'], {'signed': '5'}),
+        # `5` comes back as the int 5 through small: the same typed events, and only the name tells.
+        (SIGNED + 'small: !int(0..9)\nat: {!|: [!small, !signed]}\n--- !at\n+5\n', ['signed'], ['signed'], {'signed': '+5'}),
+        (SIGNED + 'small: !int(0..9)\nat: {!|: [!small, !signed]}\n--- !at\n+5\n', ['signed'], ['signed'], {'signed': '5'}),
+        # A mapping: what point's code writes must come back as a point, not a sweep.
+        (SHAPE, ['point'], ['point'], {'point': {'x': 1, 'y': 2}}),
+        (SHAPE, ['point'], ['point'], {'point': {'target': 3}}),
+    ]
+    for t, b, w, wr in writes:
+        BIND, WRITES = tuple(b), wr
+        try:
+            typed(t); got = list(CALLS)
+            if got != w: f += 1; print('CALLS DIFFER', b, repr(t), got, 'not', w)
+        except REFUSED as e: f += 1; print('REFUSED', b, repr(t), e)
+        finally: BIND = WRITES = None
     # A pattern on !int: it replaces the spelling, reads base 10, and a claim it can't read refuses.
     I = '--- &\nq: !int(/[-+][0-9]+/)\nw: !int(/[-+]?[0-9]+/)\nu: {!|: [!q, !str]}\nh: !int(/0x[0-9a-f]+/)\nv: {!|: [!h, !str]}\nk: !int(/[0-9_]+/)\nar: !int(/[٠-٩]+/)\nfirst: {!|: [!str, !q]}\nlit: {!|: [!q, never]}\nsome: !int(/[0-9]*/)\no:\n  a: !some\nmk:\n  !q: !str\nby: {!|: [!bigint, !str]}\nbyi: {!|: [!int, !str]}\n'
     ints = [('q', '+5', 5), ('q', '-3', -3), ('q', '+0', 0), ('q', '-0', 0), ('q', '+007', 7), ('w', '5', 5), ('w', '007', 7), ('w', '+5', 5),
@@ -1314,5 +1342,5 @@ if __name__ == '__main__':
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
     prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP)
     f += prec; third_n += prec_n
-    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(typekeys) + len(typekeysok) + len(binds) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
+    print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(typekeys) + len(typekeysok) + len(binds) + len(writes) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

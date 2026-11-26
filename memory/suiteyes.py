@@ -53,7 +53,7 @@ def outcome(fn):
 def record(at, stream, app, store, limit, cut, keep):
     res = outcome(lambda: typed0(stream, app, store, limit, cut, keep))
     records.append(dict(line=at, stream=stream, app=app, store=store, limit=limit, cut=cut, keep=keep, hold=ns['DATEHOLD'], res=res,
-                        bind=ns['BIND'], calls=list(ns['CALLS'])))
+                        bind=ns['BIND'], calls=list(ns['CALLS']), writes=ns['WRITES']))
     return res
 def typed(stream, app=None, store=None, limit=LIMIT, cut=False, keep=False):
     if state['depth'] == 0: record(line(), stream, app, store, limit, cut, keep)
@@ -186,7 +186,7 @@ GROUPS = {
     'good': (None, 'A standard type'), 'no': (None, 'A standard type'), 'schemas': (None, 'A schema refused'),
     'ints': ('4.5', 'A pattern on !int'), 'notints': ('4.5', 'A pattern on !int'),
     'forms': ('4.3', 'A pattern is a plain scalar'), 'says': ('3', 'Who says how to read a document'),
-    'unions': ('9', 'Alternatives'), 'cycles': ('8', 'A cycle of names'), 'ceiling': ('9', 'Unions at the ceiling'), 'typekeys': ('7', 'A type key takes a scalar type'), 'typekeysok': ('7', 'A type key takes a scalar type'), 'binds': ('12', 'Application types'), 'star': (None, 'Keys not named'), 'notstar': (None, 'Keys not named'),
+    'unions': ('9', 'Alternatives'), 'cycles': ('8', 'A cycle of names'), 'ceiling': ('9', 'Unions at the ceiling'), 'typekeys': ('7', 'A type key takes a scalar type'), 'typekeysok': ('7', 'A type key takes a scalar type'), 'binds': ('12', 'Application types'), 'writes': ('13', 'What bound code writes'), 'star': (None, 'Keys not named'), 'notstar': (None, 'Keys not named'),
     'badstar': (None, 'A schema refused'), 'pub': ('3.1', 'A published name'), 'notpub': ('3.1', 'A published name'),
     'reach': ('2', 'What the root reaches'), 'keyfaults': ('2', 'The path of a refused key'), 'nums': ('4.4', 'Numbers'), 'nope': ('4.4', 'Numbers'),
     'bounds': ('4.2', 'A limit on the number as written'), 'outside': ('4.2', 'A limit on the number as written'),
@@ -318,6 +318,7 @@ def tags(r, sec, fail):
         if re.search(r'!date(time)?\b', t) and re.search(r'(^|[^0-9])0000-[0-9]{2}-[0-9]{2}', docs): out.append('year-0000')
     if r['limit'] != LIMIT: out.append('size')
     if r.get('bind'): out.append('bind')
+    if r.get('writes'): out.append('writes')
     if not out or out == ['error']: out.insert(0, 'schema')
     if fail: out.append('error')
     return ' '.join(dict.fromkeys(out))
@@ -355,6 +356,10 @@ def js(v):
 def entry(stream, name):
     m = re.search(rf'^{re.escape(name)}: *(.*)$', stream, re.M)
     return m[1] if m and m[1] else None
+def flow(w):
+    """What bound code writes, as a test's name shows it: a scalar's text, or a flow mapping."""
+    if isinstance(w, dict): return '{' + ', '.join(f'{k}: {flow(x)}' for k, x in w.items()) + '}'
+    return str(w)
 def short(t, n=60):
     t = esc(t.strip())
     return t if len(t) <= n else t[:n - 1] + '…'
@@ -418,7 +423,7 @@ if not CHECK:
         if r is not r0 and r is not None: conv[r0['res'][0] + ('' if r['res'][0] == r0['res'][0] else ' -> ' + r['res'][0])] += 1
         if r is None: skipped['no document reaches what the checker refuses'] += 1; continue
         key = json.dumps([framed(r['stream']), r['app'], sorted((r['store'] or {}).items()) if r['store'] is not None else None,
-                          r['limit'], r['cut'], r['keep'], r['hold']] + ([list(r['bind'])] if r.get('bind') else []), default=lambda b: b.decode('utf-8', 'surrogatepass'))
+                          r['limit'], r['cut'], r['keep'], r['hold']] + ([list(r['bind'])] if r.get('bind') else []) + ([r['writes']] if r.get('writes') else []), default=lambda b: b.decode('utf-8', 'surrogatepass'))
         if key in seen: skipped['the same as another'] += 1; continue
         seen.add(key)
         if r['store']: r['store'] = {h: b.decode('utf-8') for h, b in r['store'].items()}
@@ -438,6 +443,7 @@ if not CHECK:
             if title is None: sys.exit(f'no group for line {r["line"]} ({g})')
             guessed = not sec; sec = sec or section(r); name = f'{title}: {describe(r)}'
             if r.get('bind'): b = list(r['bind']); name += ', binding ' + (', '.join(b[:-1]) + ' and ' if b[1:] else '') + b[-1]
+            if r.get('writes'): name += ', ' + ', '.join(f'its code writing `{flow(w)}`' for w in r['writes'].values())
             if (r['keep'] or r['app']) and r['limit'] != LIMIT: name += f', at a limit of {r["limit"]}'
         if i in CORRECT:
             if not guessed: wrong.append(f'{i}: its section, {sec}, is not guessed')
@@ -463,6 +469,7 @@ if not CHECK:
         if r.get('bind'):
             t.append(f"  bind: [{', '.join(plain(n) for n in r['bind'])}]")
             if not fail: t.append(f"  calls: [{', '.join(plain(n) for n in r['calls'])}]")
+        if r.get('writes'): t.append(f"  writes: {json.dumps(r['writes'], ensure_ascii=False)}")
         if r['cut']: t.append('  cut: true')
         if r['hold']:
             d, leap, y0 = r['hold']; t.append(f'  holds: {d}')

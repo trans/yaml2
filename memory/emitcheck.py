@@ -13,6 +13,11 @@ that text, else double-quoted; every other scalar in its standard spelling (a fl
 says). No text kept from the reading is used. It reads the result back with the same schema, and
 quotes a string that came back as something else. What still comes back different is refused.
 
+With `bind`, each bound name's value is the application's object, and it must come back through the
+same name. A bound name's code gives back what it was given, unless the test has `writes`, which gives
+what the code writes instead: a string, written as spelled, or a mapping. For those, only the name is
+checked, since the code answers for the value (section 13).
+
 Section 13 says an emitter never has to respell anything, since a scalar's spelling never changes the
 type of anything above it. Quoting a string after reading back is this checker's shortcut for knowing
 the type at its place, and it checks the claim: quoting one scalar must change no other.
@@ -38,6 +43,35 @@ def scalar(s, name, lim, v, path):
     if name == 'decimal': return Tag(name, ns['canon'](str(v)) if lim and lim[1] else str(v))
     return out
 Schema.scalar = scalar
+
+class Obj:
+    """An application's object: what a bound name's code made (section 12), with the name and what it was given."""
+    def __init__(s, name, v): s.name, s.v = name, v
+    def __repr__(s): return f'{s.name}({s.v!r})'
+def called(s, t, i, out):
+    """As the checker's, and the value becomes the application's object."""
+    if ns['BIND'] and not s.quiet:
+        bound = [n for n in s.memo[id(t)][2][i] if n in ns['BIND']]
+        if bound: ns['CALLS'].append(bound[0]); return Obj(bound[0], out)
+    return out
+Schema.called = called
+class Spelled(str):
+    """The text a bound name's code writes for a scalar, written as spelled (section 13)."""
+WR = {}
+def written(v):
+    """What the emitter is given to write: each object through its code. A name the test gives `writes` for
+    writes that, a string as spelled and a mapping as it is; any other bound name's code gives back what it
+    was given, as the suite's bindings do."""
+    if isinstance(v, Obj):
+        if v.name not in WR: return written(v.v)
+        w = WR[v.name]
+        return Spelled(w) if isinstance(w, str) else w
+    if isinstance(v, dict): return {k: written(x) for k, x in v.items()}
+    if isinstance(v, list): return [written(x) for x in v]
+    return v
+def quotable(v):
+    """A string the emitter may quote: not a time or the like, and not text bound code spelled."""
+    return isinstance(v, str) and not isinstance(v, (Tag, Spelled))
 
 def key(v):
     """v with its types, to compare: a float by its bits, so the sign of zero counts, and a time with
@@ -97,6 +131,7 @@ def dq(t):
     return '"' + ''.join(out) + '"'
 
 def text(v, path, quote):
+    if isinstance(v, Spelled): return str(v) if plain_ok(v) else dq(v)
     if isinstance(v, str) and not isinstance(v, Tag): return dq(v) if path in quote or not plain_ok(v) else v
     if v is None and path in quote: return ''
     return spelling(v)
@@ -141,7 +176,13 @@ def emit_doc(name, v, quote):
     return f'{head} {b}\n' if isinstance(b, str) else head + '\n' + '\n'.join(b) + '\n'
 
 def diff(a, b, path, out):
-    """Paths of scalars that differ; ('shape', path) where the trees themselves differ."""
+    """Paths of scalars that differ; ('shape', path) where the trees themselves differ; ('name', path)
+    where an object doesn't come back through its name."""
+    if isinstance(a, Obj) or isinstance(b, Obj):
+        if not (isinstance(a, Obj) and isinstance(b, Obj) and a.name == b.name): out.append(('name', path))
+        if isinstance(a, Obj) and a.name in WR: return  # Section 13: the code answers for the value, so only the name is checked.
+        # Code that gives back what it was given: compare the values too, so a string can still be quoted.
+        a, b = (x.v if isinstance(x, Obj) else x for x in (a, b))
     if isinstance(a, dict):
         if not isinstance(b, dict) or list(a) != list(b): out.append(('shape', path)); return
         for k in a: diff(a[k], b[k], path + (k,), out)
@@ -150,7 +191,7 @@ def diff(a, b, path, out):
         for i, (x, y) in enumerate(zip(a, b)): diff(x, y, path + (i,), out)
     elif key(a) != key(b): out.append(('scalar', path))
 def at(v, path):
-    for p in path: v = v[p]
+    for p in path: v = (v.v if isinstance(v, Obj) else v)[p]
     return v
 
 def check(t, un):
@@ -159,14 +200,16 @@ def check(t, un):
     store = {h: un(x).encode('utf-8') for h, x in t['store'].items()} if 'store' in t else None
     limit, cut = t.get('limit', LIMIT), t.get('cut', False)
     ns['DATEHOLD'] = (t['holds'], t.get('leap-second', False), t.get('year-zero', False)) if 'holds' in t else None
+    global WR
+    ns['BIND'] = tuple(t['bind']) if 'bind' in t else None; WR = t.get('writes') or {}
     docs = read(stream).docs; vals = typed(stream, app, store, limit, cut)
     cs = chunks(stream); slots = [i for i, c in enumerate(cs) if c[0] == 'doc']
     assert len(slots) == len(docs), (t['name'], len(slots), len(docs))
     results = []
     for n, ((name, _), v) in enumerate(zip(docs, vals)):
-        before = ''.join(c[1] for c in cs[:slots[n]] if c[0] != 'doc')
+        before = ''.join(c[1] for c in cs[:slots[n]] if c[0] != 'doc'); W = written(v)
         def back(quote):
-            out = before + emit_doc(name, v, quote)
+            out = before + emit_doc(name, W, quote)
             try: return out, typed(out, app, store, limit, cut)[0], None
             except REFUSED as e: return out, None, e
         # Spell each scalar where it is typed: a string plain if part 1 reads it back, then quoted if the
@@ -177,18 +220,19 @@ def check(t, un):
         for _ in range(64):
             out, got, err = back(quote)
             if err is not None:
-                p = place(v, err)
-                if p is None or p in quote or not (isinstance(at(v, p), str) and not isinstance(at(v, p), Tag) or at(v, p) is None and p and isinstance(p[-1], str)):
+                p = place(W, err)
+                if p is None or p in quote or not (quotable(at(W, p)) or at(W, p) is None and p and isinstance(p[-1], str)):
                     results.append(('refused', str(err), out)); break
                 quote.add(p); continue
             d = []; diff(v, got, (), d)
-            new = {p for k, p in d if k == 'scalar' and p not in quote and (isinstance(at(v, p), str) and not isinstance(at(v, p), Tag) or at(v, p) is None and p and isinstance(p[-1], str))}
+            new = {p for k, p in d if k == 'scalar' and p not in quote and (quotable(at(W, p)) or at(W, p) is None and p and isinstance(p[-1], str))}
             if before_d is not None and {p for k, p in d} - before_d - quote:
                 results.append(('claim', f'respelling {sorted(map(str, quote))} changed {sorted(map(str, {p for k, p in d} - before_d - quote))}', out)); break
             before_d = {p for k, p in d}
             if new: quote |= new; continue
             if not d: results.append(('ok', f'{len(quote)} respelled' if quote else 'plain', out))
-            else: results.append(('refused', '; '.join(f'{"/" + "/".join(map(str, p))} {at(v, p)!r} came back {at(got, p)!r}' if k == 'scalar' else f'shape at {p}' for k, p in d), out))
+            else: results.append(('refused', '; '.join(f'{"/" + "/".join(map(str, p))} {at(v, p)!r} came back {at(got, p)!r}' if k == 'scalar' else
+                                                       f'{"/" + "/".join(map(str, p))} {at(v, p)!r} came back {at(got, p)!r}, not through its name' if k == 'name' else f'shape at {p}' for k, p in d), out))
             break
     return results
 def place(v, err):

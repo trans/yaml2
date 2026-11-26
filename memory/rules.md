@@ -1096,8 +1096,13 @@ fuzzer, and all 12 checks fail with byte counting put back.
   question; main `aaba17e`). An emitter can't compare the application's object with what reading gives, so it checks
   only that what the code writes reads back through the name the code was bound under. `+5` from
   `signed`'s code is written under `at: !signed` and refused under `at: !str`, where it would read back
-  as the string "+5" with no error. A sentence in section 13; the suite doesn't test it yet, since its
-  bound code gives back what it was given.
+  as the string "+5" with no error. A sentence in section 13. **Tested** (the user: "add a test for it",
+  2026-11-26): the suite's `writes` key gives what a bound name's code writes, a string as spelled or a
+  mapping. There are 8 tests, 4 of them `emit: refused`. In one, the code's `5` for a `+5` read under
+  `{!|: [!small, !signed]}` comes back as the int 5 through `small`, so only the name check refuses it.
+  `emitcheck.py` now honours `bind`: an object must come back through its name, and code without
+  `writes` gives back what it was given, which changed no existing mark. Three mutants fail: no name
+  check, the value compared in place of the name (it fails only that one test), and `writes` ignored.
 - **The suite compares a time with `T` and `Z` in capitals** (main `7c3c580`; @oylng's question), following
   the user's ruling that lowercase is the same value (2026-11-24). `emitcheck.py` writes them so.
 
