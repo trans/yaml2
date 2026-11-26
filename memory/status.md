@@ -604,7 +604,9 @@ exactly those 22. Three points:
    gives. So `+5` is written under `at: !signed`. Under `at: !str` it is refused, since there it would read
    back as the string "+5" with no error. (The agent first gave `!int` as the example, but `!int`
    doesn't match `+5` at all: section 4.1's spellings are exact.) The user: "yes to the sentence"
-   (2026-11-26). **Fixed in main `aaba17e`**, in section 13; rules.md has it.
+   (2026-11-26). **Fixed in main `aaba17e`**, in section 13; rules.md has it. **Tested in main
+   `5b8c82e`** (the user: "add a test for it"): a `writes` key and 8 tests, so part 2's suite is 923.
+   Not pushed or tagged yet.
 
 **Two silent schemas, found 2026-11-16** (the user asked what `!spot: !point` means). (1) A table key
 starting with `!`, plain or quoted, made an entry whose name has the `!`: with `!spot: !point`,
