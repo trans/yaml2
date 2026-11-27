@@ -640,6 +640,13 @@ which (`9BY6`, `G6JA`, `ZLJ2`) also become `emit: refused` and one (`45KT`, `"1e
 draft's text on it: part 2 sections 4.1, 4.5, 9, 10 and 13; part 1 sections 11 (the emitter) and 13
 (JSON: "a quoted scalar stays a string", the 1,015 files). On 408 workflows and 311 Compose files the
 rule changed no result (rules.md).
+Two more options came up. (3) The user's: a plain `!int` ignores quotes, and a second form
+(`!int*` or `!!int`, spelling open) matches plain only. (4) The agent's: quotes count only when a union
+chooses, a quoted scalar skipping number, boolean and null alternatives where the union offers a
+string. The agent leans to 4 over 3: no silent trap in `{!|: [!int, !str]}`, no second forms, no
+spelling clash (`!!int "3"` is 3 in 1.x). The user: "run it past oylng and let's get a second
+opinion" (2026-11-27). Sent to @oylng 2026-11-27 with all four options and their cases, the agent's
+lean left out. **Waiting on @oylng.**
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
