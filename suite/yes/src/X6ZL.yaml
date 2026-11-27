@@ -1,13 +1,18 @@
 ---
-- name: 'Patterns, precision and limits: `!decimal(5:2)` on `"1.5"`'
+- name: 'Patterns, words, precision and limits: `!decimal(5:2)` on `"1.5"`'
   from: part 2, section 4.6
-  tags: decimal precision error
-  fail: true
-  refused: document
-  at: '/'
+  tags: decimal precision
   yaml: |
     %YAML 2.0
     --- &
     n: !decimal(5:2)
     --- !n
     "1.5"
+  typed: |
+    +STR
+     +DOC !n
+      =DEC :1.5
+     -DOC
+    -STR
+  json: |
+    1.5

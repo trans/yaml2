@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `{!|: [!decimal(5:2), !str]}` on `1.005`'
+- name: 'Patterns, words, precision and limits: `{!|: [!decimal(5:2), !str]}` on `1.005`'
   from: part 2, section 4.6
   tags: str decimal precision union
   yaml: |

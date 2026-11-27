@@ -1,10 +1,7 @@
 ---
 - name: 'A standard type: `!null` on ``'
   from: part 2, section 4.1
-  tags: null error
-  fail: true
-  refused: document
-  at: '/'
+  tags: 'null'
   yaml: |
     %YAML 2.0
     --- &
@@ -24,3 +21,11 @@
       b?: !int
     --- !z
     ↵
+  typed: |
+    +STR
+     +DOC !z
+      =NULL
+     -DOC
+    -STR
+  json: |
+    null

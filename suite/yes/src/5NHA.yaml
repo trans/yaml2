@@ -1,0 +1,25 @@
+---
+- name: 'Application types: `!job` on `retries:`, binding count'
+  from: part 2, section 12
+  tags: int null union bind
+  bind: [count]
+  calls: []
+  yaml: |
+    %YAML 2.0
+    --- &
+    count: !int
+    job:
+      retries?: {!|: [!null, !count]}
+    --- !job
+    retries:
+  typed: |
+    +STR
+     +DOC !job
+      +MAP
+       =VAL :retries
+       =NULL
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"retries": null}

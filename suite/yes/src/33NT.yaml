@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `!decimal(0..1)` on `-0e-99999999999999999999`'
+- name: 'Patterns, words, precision and limits: `!decimal(0..1)` on `-0e-99999999999999999999`'
   from: part 2, section 4.2
   tags: decimal range
   yaml: |

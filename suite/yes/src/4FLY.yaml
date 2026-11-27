@@ -1,10 +1,7 @@
 ---
 - name: 'A standard type: `!int` on `"3"`'
   from: part 2, section 4.4
-  tags: int error
-  fail: true
-  refused: document
-  at: '/'
+  tags: int
   yaml: |
     %YAML 2.0
     --- &
@@ -24,3 +21,11 @@
       b?: !int
     --- !n
     "3"
+  typed: |
+    +STR
+     +DOC !n
+      =INT :3
+     -DOC
+    -STR
+  json: |
+    3

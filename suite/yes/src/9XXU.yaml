@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, words, precision and limits: `!false` on `false`'
+  from: part 2, section 14
+  tags: 'false'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !false
+    --- !n
+    false
+  typed: |
+    +STR
+     +DOC !n
+      =BOOL :false
+     -DOC
+    -STR
+  json: |
+    false

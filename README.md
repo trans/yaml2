@@ -50,8 +50,9 @@ job:
 - **Keys are strings**, each one once, and their order is kept.
 - **One size limit** stops a small file from expanding into a huge one.
 - **JSON is a subset** once `%YAML 2.0` and `---` are on top, apart from repeated keys, a lone CR
-  between tokens, a tab before the value or on a line after it, and a lone surrogate escape. A small
-  schema restores JSON's types.
+  between tokens, a tab before the value or on a line after it, and a lone surrogate escape. Its
+  numbers, `true`, `false` and `null` are text until a schema types them, and a schema reads `1` and
+  `"1"` the same way.
 - **A schema is a shadow of the data**, and it is optional. Its base form is the data's keys and
   structure with a type where each value would be. Table definitions, recursion and the key globs
   `!*` and `!**` compress that form.
@@ -74,7 +75,7 @@ from 1.2, and section 13.1 what they cost.
   [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Its rules are still changing, and section
   15 lists what is open.
 - **Test suite:** part 1's is in [`suite/`](suite/), 373 tests in yaml-test-suite's format, the draft's
-  examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 923 tests.
+  examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 984 tests.
 - **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser,
   the tree and the emitter for part 1. For part 2 it types documents, binds application types, emits
   typed data and looks up published schemas. Against this repo's `v0.1.0`, it passes all 373 of part

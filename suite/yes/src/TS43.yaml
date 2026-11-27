@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `!float(0..1 /[0-9]*\\.[0-9]+/)` on `.1`'
+- name: 'Patterns, words, precision and limits: `!float(0..1 /[0-9]*\\.[0-9]+/)` on `.1`'
   from: part 2, section 4.5
   tags: float pattern range
   yaml: |

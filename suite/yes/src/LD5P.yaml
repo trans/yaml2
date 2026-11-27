@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `!decimal(/[0-9e]+/)` on `007e5`'
+- name: 'Patterns, words, precision and limits: `!decimal(/[0-9e]+/)` on `007e5`'
   from: part 2, section 4.5
   tags: decimal pattern
   yaml: |

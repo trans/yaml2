@@ -3,7 +3,7 @@
   from: part 2, section 12
   tags: str int union sequence bind
   bind: [id, name]
-  calls: [id, name, name]
+  calls: [id, name, id]
   yaml: |
     %YAML 2.0
     --- &
@@ -21,9 +21,9 @@
       +SEQ
        =INT :1
        =VAL :a
-       =VAL :2
+       =INT :2
       -SEQ
      -DOC
     -STR
   json: |
-    [1, "a", "2"]
+    [1, "a", 2]

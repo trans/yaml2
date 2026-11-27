@@ -1,0 +1,13 @@
+---
+- name: 'Patterns, words, precision and limits: `{!|: [!true(yes), !false(no)]}` on ``'
+  from: part 2, section 9
+  tags: true false words union error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!true(yes), !false(no)]}
+    --- !n
+    ↵

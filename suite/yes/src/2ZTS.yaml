@@ -1,10 +1,7 @@
 ---
 - name: 'A standard type: `!bool` on `"true"`'
   from: part 2, section 4.1
-  tags: bool error
-  fail: true
-  refused: document
-  at: '/'
+  tags: bool
   yaml: |
     %YAML 2.0
     --- &
@@ -24,3 +21,11 @@
       b?: !int
     --- !b
     "true"
+  typed: |
+    +STR
+     +DOC !b
+      =BOOL :true
+     -DOC
+    -STR
+  json: |
+    true

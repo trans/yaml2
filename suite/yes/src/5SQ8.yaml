@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `!float(/[a-z]+/)` on `abc`'
+- name: 'Patterns, words, precision and limits: `!float(/[a-z]+/)` on `abc`'
   from: part 2, section 4.5
   tags: float pattern error
   fail: true

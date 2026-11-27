@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, words, precision and limits: `{!|: [!bool, !true(yes)]}` on `yes`'
+  from: part 2, section 9
+  tags: bool true words union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!bool, !true(yes)]}
+    --- !n
+    yes
+  typed: |
+    +STR
+     +DOC !n
+      =BOOL :true
+     -DOC
+    -STR
+  json: |
+    true

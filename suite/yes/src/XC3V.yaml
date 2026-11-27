@@ -26,9 +26,9 @@
      +DOC !o
       +MAP
        =VAL :a
-       =NULL
+       =VAL :
       -MAP
      -DOC
     -STR
   json: |
-    {"a": null}
+    {"a": ""}

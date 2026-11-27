@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `!n` on `3.14159265358979323846`'
+- name: 'Patterns, words, precision and limits: `!n` on `3.14159265358979323846`'
   from: part 2, section 4.5
   tags: str float pattern union
   yaml: |

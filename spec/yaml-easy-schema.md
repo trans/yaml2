@@ -240,42 +240,22 @@ fixes uses an application's schema instead.
 | Type | Matches | Delivers |
 |---|---|---|
 | `!str` | any scalar | its text |
-| `!int` | a plain scalar: `-?(0\|[1-9][0-9]*)`, and one outside -2^63 to 2^64-1 refuses the document (section 4.4) | an integer |
-| `!bigint` | a plain scalar, spelled as `!int` is, of any size | that integer, as written (section 4.4) |
-| `!float` | a plain scalar: `-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, JSON's number, and one too large for binary64 refuses the document (section 4.4) | the nearest binary64 number |
-| `!decimal` | a plain scalar, spelled as `!float` is | that exact number, as written |
-| `!bool` | a plain `true` or `false` | a boolean |
-| `!null` | a plain `null` | null |
-| `!date` | any scalar: an RFC 3339 full-date (section 4.8) | a date |
-| `!datetime` | any scalar: an RFC 3339 date-time (section 4.8) | a date and time |
-| `!binary` | any scalar: base64, RFC 4648 section 4, padded, with its pad bits zero, and with line feeds skipped | bytes |
+| `!int` | `-?(0\|[1-9][0-9]*)`, and one outside -2^63 to 2^64-1 refuses the document (section 4.4) | an integer |
+| `!bigint` | the same, of any size | that integer, as written (section 4.4) |
+| `!float` | `-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, JSON's number, and one too large for binary64 refuses the document (section 4.4) | the nearest binary64 number |
+| `!decimal` | the same as `!float` | that exact number, as written |
+| `!bool` | `true` or `false`, so it is `{!\|: [!true, !false]}` | a boolean |
+| `!true` | `true` | the boolean true |
+| `!false` | `false` | the boolean false |
+| `!null` | `null`, or the empty text | null |
+| `!date` | an RFC 3339 full-date (section 4.8) | a date |
+| `!datetime` | an RFC 3339 date-time (section 4.8) | a date and time |
+| `!binary` | base64, RFC 4648 section 4, padded, with its pad bits zero, and with line feeds skipped | bytes |
 | `!any` | any node | that node, untyped |
 
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans. A
-pattern can change this for a type that takes one (section 4.5), and nothing else can.
-
-`!int`, `!bigint`, `!float`, `!decimal`, `!bool` and `!null` match plain scalars only. So `3` can
-be an integer, and `"3"` never is. A block scalar isn't plain. This is what a YAML 1.2 parser with JSON Schema
-does today.
-
-```yaml
---- &
-n: [!int, ...]
---- !n
-- 3
-- -4
-```
-
-```json
-[3, -4]
-```
-
-```yaml refused
---- &
-n: !int
---- !n
-"3"
-```
+pattern can change this for a number (section 4.5), and words can for `!true`, `!false` and
+`!null`, and nothing else can.
 
 ```yaml refused
 --- &
@@ -284,8 +264,51 @@ n: !bool
 yes
 ```
 
-JSON has no date, so a date in JSON is quoted, and `!date` has to read it. That's why the last
-three take a scalar however it's written.
+`!true`, `!false` and `!null` take a list of words in their parentheses, the words read as that
+value. Words are separated by `|`, and they replace the standard spelling, so `true` isn't true
+under `!true(yes|on)`. An empty word is the empty text, and stands only beside another, as in
+`!null(null|)`. A word holds no space, `|`, `/`, `(` or `)`, and a list with a word twice is
+refused. An emitter writes the first word (section 13). `!bool` takes no words, so a boolean
+written another way is a union (section 9). YAML 1.2 Core Schema's booleans are
+`{!|: [!true(true|True|TRUE), !false(false|False|FALSE)]}`, and its nulls `!null(null|Null|NULL|~|)`.
+`!true` alone takes only `true`, so `enabled: !true` is a key that must be true.
+
+```yaml
+--- &
+switch: {!|: [!true(yes|on), !false(no|off)]}
+flags: {!*: !switch}
+--- !flags
+debug: on
+cache: no
+```
+
+```json
+{"debug": true, "cache": false}
+```
+
+```yaml refused
+--- &
+switch: {!|: [!true(yes|on), !false(no|off)]}
+--- !switch
+true
+```
+
+A type reads a scalar's text, and how the scalar is written doesn't count, since it isn't data
+(part 1, section 5). So `3`, `"3"` and `'3'` are all the integer 3 under `!int`, and all the
+string `3` under `!str`. A block scalar's text is what its lines give, so `|-` before a line `3`
+is 3 too, while `|` keeps a line break after it.
+
+```yaml
+--- &
+n: [!int, ...]
+--- !n
+- 3
+- "-4"
+```
+
+```json
+[3, -4]
+```
 
 `!binary` skips line feeds, because a `|` block of wrapped base64 is how a long value is usually
 laid out, and RFC 4648 leaves that choice to the format using it. Anything else outside the
@@ -537,13 +560,12 @@ id: {!|: [!int, !str]}
 
 ### 4.5 A pattern on another type
 
-`!int`, `!bigint`, `!float`, `!decimal` and `!null` take a pattern too, and it replaces the type's
-standard spelling. The type matches a plain scalar that the pattern matches, and reads the value from it:
+`!int`, `!bigint`, `!float` and `!decimal` take a pattern too, and it replaces the type's standard
+spelling. The type matches a scalar that the pattern matches, and reads the value from it:
 
 - `!int` and `!bigint` read an optional sign and base-10 digits, so `+5` is 5 and `007` is 7.
 - `!float` and `!decimal` read an optional sign, digits with at most one `.`, and an optional
   exponent, so `+19.99` is 19.99, `.5` is 0.5 and `1.` is 1.
-- `!null` is null whatever the pattern matched, so `!null(/~|null/)` reads both.
 
 What section 4.3 says of patterns holds, and so does what section 4.4 says of numbers. A pattern says
 which text is the type, and not how many digits a value may have: section 4.6 does that.
@@ -564,7 +586,7 @@ offsets: [!signed, ...]
 ```yaml
 --- &
 cents: !decimal(/[0-9]+\.[0-9]{2}/)
-none: !null(/(~|null)?/)
+none: !null(~|null|)
 item:
   price: !cents
   ratio: !float(/[0-9]*\.[0-9]+/)
@@ -586,8 +608,7 @@ cents: !decimal(/[0-9]+\.[0-9]{2}/)
 19.9
 ```
 
-The pattern takes the place of the spelling and doesn't add to it, so `5` isn't `!signed`, and under
-`!null(/~/)` a plain `null` isn't null. A quoted scalar never matches one, as section 4.1 says.
+The pattern takes the place of the spelling and doesn't add to it, so `5` isn't `!signed`.
 
 ```yaml refused
 --- &
@@ -828,9 +849,11 @@ A mapping is written as a mapping. It takes only the keys it names, and any that
 takes below, unless a `!**` reaches it (section 10). Order isn't checked, and typed data keeps the
 document's order.
 
-A key ending in `?` is optional. It may be absent, or written with no value, which delivers
-null. A quoted key is always a literal key, so a key that ends in `?` or starts with `!` can
-be written. A type can name one key two ways: `a` and `a?` in one mapping, or `why?` and `"why?"`
+A key ending in `?` is optional: it may be absent. A key written with no value has the empty
+string as its value (part 1, section 7), which its type reads as it reads any other text, so
+`retries:` is refused under `retries?: !int`, and is null under `{!|: [!null, !int]}`, since
+`!null` takes the empty text (section 4.1). A quoted key is always a literal key, so a key that
+ends in `?` or starts with `!` can be written. A type can name one key two ways: `a` and `a?` in one mapping, or `why?` and `"why?"`
 through a merge, which takes them as one key (part 1, section 9.1). The later one wins, with its
 spelling and its value, though a merged key keeps its place.
 
@@ -838,7 +861,7 @@ spelling and its value, though a merged key keeps its place.
 --- &
 job:
   name: !str
-  retries?: !int
+  retries?: {!|: [!null, !int]}
   "why?": !str
 --- !job
 retries:
@@ -848,6 +871,14 @@ name: build
 
 ```json
 {"retries": null, "why?": "because", "name": "build"}
+```
+
+```yaml refused
+--- &
+job:
+  retries?: !int
+--- !job
+retries:
 ```
 
 ```yaml refused
@@ -1045,36 +1076,30 @@ limits: [!limit, ...]
 [30, "never"]
 ```
 
-```yaml refused
---- &
-limit: {!|: [!int, never]}
---- !limit
-"30"
-```
-
 This puts a choice in the schema's hands. A schema that tries a number before a string reads
-`1.10` as 1.1. It only happens where a schema asks for it, every parser gives the same result,
-and a quoted value stays a string.
+`1.10` as 1.1, quoted or not, since quotes don't count (section 4.1). It only happens where a
+schema asks for it, and every parser gives the same result. Where `1.10` must stay as written,
+the schema says `!str`.
 
 ```yaml
 --- &
-version: {!|: [!float, !str]}
 versions:
-  a: !version
-  b: !version
+  a: {!|: [!float, !str]}
+  b: !str
 --- !versions
 a: 1.10
-b: "1.10"
+b: 1.10
 ```
 
 ```json
 {"a": 1.1, "b": "1.10"}
 ```
 
-Quotes don't keep `!date`, `!datetime` or `!binary` away, since they match any scalar (section 4.1).
-So a union that tries `!date` before `!str` reads any date-shaped text as a date, quoted or not, and
-can't hold the string `2001-02-03`: an emitter refuses to write it (section 13). Writing `!str`
-first reads every date as a string instead, so the author chooses one.
+So `{!|: [!float, !str]}` can't hold the string `1.10`, `{!|: [!bool, !str]}` can't hold the
+string `true`, and one that tries `!date` first can't hold the string `2001-02-03`: an emitter
+refuses to write them (section 13). Writing `!str` first reads all of them as strings instead,
+so the author chooses one. Words change which text `!null` takes (section 4.1), so
+`{!|: [!null(~), !str]}` holds the string `null`, and only `~` is null.
 
 The block form is the same union. Here a step is a command, or a mapping written in place:
 
@@ -1157,46 +1182,67 @@ list: [!a, ...]
 
 `!**` as a key means here and at every level below. It takes every key the mapping doesn't name, at
 this level and under it, and a sequence adds no level. Collections are walked and its type applies
-to the scalars it reaches, so that type can't hold a sequence or a mapping. This is a JSON object:
+to the scalars it reaches, so that type can't hold a sequence or a mapping. This reads a JSON
+object:
 
 ```yaml
 --- &
 object:
-  !**: {!|: [!null, !bool, !int, !float, !str]}
+  !**: {!|: [!null(null), !bool, !int, !float, !str]}
 --- !object
-{"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
+{"a": 1, "b": "x", "c": null, "d": [true, {"e": 1.5}], "f": ""}
 ```
 
 ```json
-{"a": 1, "b": "1", "c": null, "d": [true, {"e": 1.5}]}
+{"a": 1, "b": "x", "c": null, "d": [true, {"e": 1.5}], "f": ""}
 ```
 
-A type with `!**` is still a mapping, so `5` and `[1, 2]` are refused here. JSON allows any value
-at the top, and a union takes them all (section 9):
+`!null(null)` takes only `null`, so JSON's `""` stays a string, as it wouldn't under `!null`
+(section 4.1). A type with `!**` is still a mapping, so `5` and `[1, 2]` are refused here. JSON
+allows any value at the top, and a union takes them all (section 9):
 
 ```yaml
 --- &
-json: {!|: [!null, !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}
+json: {!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}
 --- !json
-[1, "1", null, {"d": [true, {"e": 1.5}]}]
+[1, "x", null, {"d": [true, {"e": 1.5}]}]
 ```
 
 ```json
-[1, "1", null, {"d": [true, {"e": 1.5}]}]
+[1, "x", null, {"d": [true, {"e": 1.5}]}]
 ```
 
-Read by a parser built from part 1's grammar, `json` matched a JSON parser exactly on 1,015
-real JSON files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept.
-The other 2 are repeated keys, which part 1 refuses. All 1,015 are objects, and the first schema
-matches them too.
+Quotes don't count for a type (section 4.1), so these schemas read a JSON string that looks like a
+number, a boolean or null as one, and can't hold it as a string: `"1"` is the number 1, and
+`"null"` is null.
 
-An integer outside `!int`'s range refuses the document here. None of those 1,015 files holds one, and
+```yaml
+--- &
+json: {!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}
+--- !json
+{"a": "1", "b": "null"}
+```
+
+```json
+{"a": 1, "b": null}
+```
+
+Read by a parser built from part 1's grammar, `json` gave a JSON parser's result exactly on 565 of
+1,015 real JSON files from SchemaStore. Of the 450 others, 333 hold the string `"null"`, mostly
+JSON Schema's `"type": "null"`. Others hold a string that reads as a float (85 files), an integer
+(78) or a boolean (66), and 83 files hold more than one of these kinds. On the 95 files in
+JSONTestSuite that every JSON parser must accept, it gave the same result on 92. 2 of the other 3
+are repeated keys, which part 1 refuses, and the third holds the string `"1"`. A schema that says
+where the strings are keeps them, as one written for a format does.
+
+An integer outside `!int`'s range refuses the document here. None of those 1,015 files holds one,
+as a number or as a string, and
 3 of JSONTestSuite's `i_` files do, which RFC 8259 lets a parser read or refuse. With `!bigint` in place
 of `!int`, they are read. A float too large for binary64 refuses the document too (section 4.4). None of the
 1,015 files holds one, and 5 `i_` files do, which Python's `json` reads as infinity. The 2 `i_` files
 whose float is too small for binary64 read as 0, as `json` reads them.
 
-`!**` can pick out a value by how it looks. Here any plain scalar with a sign is an integer, at any
+`!**` can pick out a value by how it looks. Here any scalar with a sign is an integer, at any
 depth, and everything else stays a string:
 
 ```yaml
@@ -1209,19 +1255,17 @@ a: +5
 b: 5
 c: [-3, x]
 d: {e: {f: +7}}
-g: "+5"
 ```
 
 ```json
-{"a": 5, "b": "5", "c": [-3, "x"], "d": {"e": {"f": 7}}, "g": "+5"}
+{"a": 5, "b": "5", "c": [-3, "x"], "d": {"e": {"f": 7}}}
 ```
 
 Its value can instead be a mapping of rules, which apply at this level and every level below. A key
 there picks out that key at every level, and a key that is a type picks out the keys it fits. `!*`
 there takes every other key, as it does anywhere, but a `!**` walks every collection, so it only
 sees scalars and its type has to fit one. With no `!*` there, other scalars stay strings. A rule's
-value can be any type. A rule is never required, and `?` on one only lets the key be written with no
-value.
+value can be any type. A rule is never required, so `?` on one changes nothing.
 
 ```yaml
 --- &
@@ -1520,25 +1564,26 @@ use, so `*p` twice makes two calls and two values, since shared objects read as 
 
 Code runs only for a value that is typed. A key is always delivered as a string, so no code runs for
 one, even through a type key naming a bound entry: with `k` bound, the key `ab` in `ab: 1` under
-`{!k: !int}` stays the string `ab`. An optional key with no value delivers null without typing it, so
-under `retries?: !count`, `retries:` runs no code, while `retries: 3` runs `count`'s.
+`{!k: !int}` stays the string `ab`.
 
 A bound name is also how to keep a check that a schema can't state: a rule on two scalar forms,
 such as `true` or `${{ expression }}`, is a named string and a few lines of code.
 
 ## 13. Emitting and documenting
 
-An emitter of typed data needs the same schema. It quotes a string that the type at that place
-would read as something else, or refuse: under `{!|: [!int, !str]}`, the string `3` is written `"3"`,
-and under `{!|: [!float, !str]}`, `1e999` is written `"1e999"`, since plain it is a float too large,
-which refuses the document (section 4.4). It writes a number, a boolean, null or a time in its standard spelling, a float as section 4.4 says, or in the
-text it was read from if the application kept it, and refuses if that wouldn't read back as the
-same type and value: under `!signed` (section 4.5), 5 is refused, and a `+5` that was read and kept is
-written `+5`. Under `{!|: [!signed, !str]}`, 5 is refused too, since `5` fits there only as the string
-`"5"`. An application that wants `+5` from a 5 binds `signed` to code that writes it (section 12).
-Null under an optional key is written as no value, `retries:`, which always reads back as null:
-`retries: null` would be refused under `retries?: !int`, and under `name?: !str` it would read back
-as the string `"null"`.
+An emitter of typed data needs the same schema. It refuses a string that the type at that place
+would read as something else, or refuse, since quoting it wouldn't help (section 4.1): under
+`{!|: [!int, !str]}`, the string `3` is refused, and under `{!|: [!float, !str]}`, so is `1e999`,
+which reads as a float too large and refuses the document (section 4.4). It quotes a string only
+where part 1 needs it, as for `a: b`. It writes a number, a boolean, null or a time in its standard
+spelling, a float as section 4.4 says, or in the text it was read from if the application kept it,
+and refuses if that wouldn't read back as the same type and value: under `!signed` (section 4.5), 5
+is refused, and a `+5` that was read and kept is written `+5`. Under `{!|: [!signed, !str]}`, 5 is
+refused too, since `5` fits there only as a string. An application that wants `+5` from a 5 binds
+`signed` to code that writes it (section 12). Null is written `null`. Under words (section 4.1), a
+boolean or null is written as the first word of its type's list: true as `yes` under
+`{!|: [!true(yes|on), !false(no|off)]}`, and null as `~` under `!null(~|null)`, or as `""` where that
+word is empty.
 A bound value needs the way back too: the application gives code that turns a `Point` into the mapping its entry
 takes. An emitter can't compare the application's object with what reading gives, so it checks only that what
 the code writes reads back through the name the code was bound under. `+5` from `signed`'s code is written
@@ -1566,6 +1611,9 @@ scalar     ::= type | literal
 type       ::= "!" name args?
 args       ::= "(" body ")"
 body       ::= (precision " ")? (range " ")? regex | (precision " ")? range | precision
+             | words
+words      ::= word ("|" word)*, not one empty word alone, on !true, !false and !null only
+word       ::= zero or more characters, none of them a space, "|", "/", "(" or ")"
 precision  ::= whole ":" whole, the first at least 1 and the second no larger than the first
 whole      ::= "0" | digit+ not starting with "0"
 range      ::= number ".." number? | ".." number, the first no larger than the second
@@ -1608,13 +1656,10 @@ more alternatives. A plain scalar holding ` | ` outside a type's parentheses is 
   later, as section 8 says.
 - **Ways past a stamp.** Section 3 lets a library ignore a file's schema. Whether one must is open,
   since an application checking files it didn't write depends on it.
-- **`!null` and an empty value.** `!null` takes the plain `null` only, and `key?:` takes an
-  empty value. Whether `!null` should take both is open. A pattern can already say both:
-  `!null(/(null)?/)` (section 4.5).
-- **Patterns on `!bool` and dates.** These take none, because a pattern can't say which text is true,
-  or which digits are the month, as in `11/07/2026`. Two patterns on `!bool`, one for each value, could.
+- **Patterns on dates.** These take none, because a pattern can't say which digits are the month, as
+  in `11/07/2026`.
 - **Bases.** Section 4.5 reads base 10 only. Hex and octal would need a way to say which base a
-  pattern means, and with those, `.inf` and `True`, a schema could state 1.2's Core Schema.
+  pattern means, and with those and `.inf`, a schema could state 1.2's Core Schema.
 - **Patterns.** I-Regexp is proposed. An alternative worth weighing makes every character literal
   except what sits in brackets, so `v{0-9}.{0-9}` needs no escapes, and `{{` is a literal brace.
   With brackets outside ASCII, such as `⦃0-9⦄`, a pattern could also sit in a flow collection,

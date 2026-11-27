@@ -1,0 +1,14 @@
+---
+- name: Mappings, example 2
+  from: part 2, section 7
+  tags: spec int error
+  fail: true
+  refused: document
+  at: '/retries'
+  yaml: |
+    %YAML 2.0
+    --- &
+    job:
+      retries?: !int
+    --- !job
+    retries:

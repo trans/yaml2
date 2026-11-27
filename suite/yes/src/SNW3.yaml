@@ -1,10 +1,8 @@
 ---
 - name: 'A pattern on !int: `!int(/[-+][0-9]+/)` on `''+5''`'
   from: part 2, section 4.5
-  tags: int pattern error
-  fail: true
-  refused: document
-  at: '/'
+  tags: int pattern
+  emit: refused
   yaml: |
     %YAML 2.0
     --- &
@@ -26,3 +24,11 @@
     byi: {!|: [!int, !str]}
     --- !q
     '+5'
+  typed: |
+    +STR
+     +DOC !q
+      =INT :5
+     -DOC
+    -STR
+  json: |
+    5

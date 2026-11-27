@@ -297,9 +297,10 @@ A stream delivers documents in order. Each is a node and, optionally, a name.
 A node is a **string**, a **sequence** (ordered nodes) or a **mapping** (ordered pairs
 of a string key and a node, each key once).
 
-With no schema, the value of a scalar doesn't depend on how it is written. `42`, `"42"`
-and `'42'` are the same string, so a file alone can't say "this is really a number": that
-takes a schema (section 11). Quotes only decide which characters can be written.
+The value of a scalar doesn't depend on how it is written. `42`, `"42"` and `'42'` are the
+same string, so a file alone can't say "this is really a number": that takes a schema
+(section 11), and the schema reads all three the same way. Quotes only decide which
+characters can be written.
 
 ```yaml
 a: no
@@ -1072,9 +1073,8 @@ the caller's choice.
 
 The table, `<<`, `-<<`, comments and the way a scalar was written are not data, and no
 interface that delivers data may show them, so an application can't behave differently
-because of a comment. A schema is the one exception for scalars: a parser applying a
-schema lets it see how a scalar was written, so a schema can read `1` and `"1"`
-differently. With no schema, they are the same value.
+because of a comment. That holds for a schema too: `1` and `"1"` are the same value, and
+a schema reads them the same way (part 2, section 4.1).
 
 A parser may also offer a syntax tree that keeps all of them, with their exact
 positions, for tools that edit files. It isn't required, and it is separate from the
@@ -1089,9 +1089,9 @@ blank line comes between. Any other comment belongs to no node.
 
 An emitter writes `%YAML 2.0` first and never sorts keys. It writes a shared node in full
 at each place, because which nodes are shared isn't data. An emitter of typed data needs
-the same schema, so that it can quote a string the schema would read as something else.
-With no schema, changing how a scalar is quoted is always safe. With one, it can change
-the data.
+the same schema, so that it can refuse a string the schema would read as something else,
+since quoting it wouldn't help (part 2, section 13). Changing how a scalar is quoted is
+always safe, with a schema or without.
 
 ## 12. Grammar
 
@@ -1283,10 +1283,13 @@ Existing files need converting. Of 4,651 public files, 3,418 read as written onc
 JSON is a subset of 2.0 once `%YAML 2.0` and `---` are on top, apart from repeated keys, which YAML
 1.2 forbids too, a lone CR between tokens, a tab before the value or on a line after it, and a `\u`
 escape for a lone surrogate, which names no character. Without a schema, numbers, `true`, `false`
-and `null` are text. A small schema restores them: a plain scalar takes its JSON type,
-and a quoted scalar stays a string. That matched a JSON parser exactly on 1,015 real JSON
-files, and on 93 of the 95 files in JSONTestSuite that every JSON parser must accept. The
-other 2 are repeated keys.
+and `null` are text. A schema gives them their types, but quotes don't count for a type, so a
+small schema for all of JSON also reads a string that looks like a number, a boolean or null as
+one: `"1"` is the number 1. Part 2's (section 10) gave a JSON parser's result exactly on 565 of
+1,015 real JSON files. Of the 450 others, 333 hold the string `"null"`, mostly JSON Schema's
+`"type": "null"`. It did on 92 of the 95 files in JSONTestSuite that every JSON parser must
+accept, where 2 of the other 3 are repeated keys. A schema that says where the strings are keeps
+them, as one written for a format does.
 
 A tool that turns YAML into JSON and decodes the result into typed structures, as
 `sigs.k8s.io/yaml` does for Kubernetes, gets `replicas: 3` as a string unless it applies

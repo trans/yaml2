@@ -2,6 +2,7 @@
 - name: 'A pattern on !int: `{!|: [!q, !str]}` on `"+5"`'
   from: part 2, section 4.5
   tags: str int pattern union
+  emit: refused
   yaml: |
     %YAML 2.0
     --- &
@@ -26,8 +27,8 @@
   typed: |
     +STR
      +DOC !u
-      =VAL :+5
+      =INT :5
      -DOC
     -STR
   json: |
-    "+5"
+    5

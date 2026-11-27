@@ -1,7 +1,7 @@
 ---
 - name: 'A schema refused: `!null(0..1 /x/)` on `x`'
   from: part 2, section 4.5
-  tags: null pattern range error
+  tags: null words error
   fail: true
   refused: schema
   yaml: |

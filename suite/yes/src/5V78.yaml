@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, words, precision and limits: `!true` on `true`'
+  from: part 2, section 14
+  tags: 'true'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !true
+    --- !n
+    true
+  typed: |
+    +STR
+     +DOC !n
+      =BOOL :true
+     -DOC
+    -STR
+  json: |
+    true

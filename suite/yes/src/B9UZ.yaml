@@ -1,0 +1,25 @@
+---
+- name: Standard types, example 2
+  from: part 2, section 4.1
+  tags: spec true false words union star
+  yaml: |
+    %YAML 2.0
+    --- &
+    switch: {!|: [!true(yes|on), !false(no|off)]}
+    flags: {!*: !switch}
+    --- !flags
+    debug: on
+    cache: no
+  typed: |
+    +STR
+     +DOC !flags
+      +MAP
+       =VAL :debug
+       =BOOL :true
+       =VAL :cache
+       =BOOL :false
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"debug": true, "cache": false}

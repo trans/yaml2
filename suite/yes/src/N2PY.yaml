@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `!n` on `"5"`'
+- name: 'Patterns, words, precision and limits: `!n` on `"5"`'
   from: part 2, section 4.5
   tags: str float pattern union
   yaml: |
@@ -14,8 +14,8 @@
   typed: |
     +STR
      +DOC !n
-      =VAL :5
+      =FLT :5.0
      -DOC
     -STR
   json: |
-    "5"
+    5.0

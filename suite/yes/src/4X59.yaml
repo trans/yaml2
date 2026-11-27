@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `!decimal(5:4)` on `0.0012`'
+- name: 'Patterns, words, precision and limits: `!decimal(5:4)` on `0.0012`'
   from: part 2, section 4.6
   tags: decimal precision
   yaml: |

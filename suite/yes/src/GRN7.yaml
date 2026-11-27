@@ -1,0 +1,21 @@
+---
+- name: 'Patterns, words, precision and limits: `[{!|: [!true(y), !false(n)]}, ...]` on `[y, n]`'
+  from: part 2, section 9
+  tags: true false words union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: [{!|: [!true(y), !false(n)]}, ...]
+    --- !n
+    [y, n]
+  typed: |
+    +STR
+     +DOC !n
+      +SEQ
+       =BOOL :true
+       =BOOL :false
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [true, false]

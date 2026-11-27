@@ -2,10 +2,10 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 923:
+these tests will change with it. There are 984:
 
-- the draft's 71 examples, tagged `spec`;
-- 815 edge cases from the draft's checker, 33 of them for the code an application binds (section 12),
+- the draft's 73 examples, tagged `spec`;
+- 874 edge cases from the draft's checker, 33 of them for the code an application binds (section 12),
   8 for what that code writes (section 13), and 26 for typing a merge read with references kept
   (section 11);
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
@@ -52,8 +52,8 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   in `yaml`, as they are written there. Read back with the same schema and settings, the result gives
   the same typed events. A harness compares a time with `T` and `Z` in capitals, since lowercase is
   the same time (section 4.8): test `U268`'s `2001-02-03t04:05:06z` may come back as
-  `2001-02-03T04:05:06Z`. Where a test has `emit: refused`, the emitter refuses instead. Of those 26,
-  22 have a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
+  `2001-02-03T04:05:06Z`. Where a test has `emit: refused`, the emitter refuses instead. Of those 30,
+  26 have a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
   under `!int(/[-+][0-9]+/)`. The other 4 have code that writes what doesn't read back through the name
   it was bound under. The suite doesn't fix how the YAML is laid out or quoted.
 - **`writes`.** An emitter writes a value that bound code made through that code, and checks only that
@@ -84,8 +84,8 @@ since a key is always a string.
 | `=BIG :n` | `!bigint` | the same |
 | `=FLT :n` | `!float` | the binary64 value in the shortest digits that read back to it: `0.1`, `1e+23`, `-0.0`, `5e-324`. A harness reads it as binary64 and compares the bits, so the sign of zero counts |
 | `=DEC :n` | `!decimal` | the number as written, after a pattern's reading (section 4.5): `+19.99` is `19.99`, `.5` is `0.5`, and `100e-2` stays `100e-2`. A harness compares the text |
-| `=BOOL :b` | `!bool` | `true` or `false` |
-| `=NULL` | `!null`, or an optional key with an empty value | none |
+| `=BOOL :b` | `!bool`, `!true` or `!false` | `true` or `false` |
+| `=NULL` | `!null` | none |
 | `=DATE :text` | `!date` | the date as written |
 | `=DATETIME :text` | `!datetime` | the time as written, or as cut (section 4.8) |
 | `=BIN :hex` | `!binary` | the bytes, as two lowercase hex digits each |
@@ -98,6 +98,7 @@ following that it uses, so that a parser that does only part of the draft can sk
 | Tag | What the test uses |
 |---|---|
 | `pattern` | a pattern (sections 4.3 and 4.5) |
+| `words` | words on `!true`, `!false` or `!null` (section 4.1) |
 | `range` | a limit such as `0..10` (section 4.2) |
 | `precision` | precision and scale on `!decimal` (section 4.6) |
 | `union` | a union (section 9), or ` \| ` in a plain scalar, which section 14 refuses |
@@ -157,7 +158,7 @@ The checker takes three shortcuts, and the suite doesn't:
   full size passes what the text holds: about 1,010 against 510. Each is set at its full size, where
   it loads, and at one less.
 
-The suite also leaves out 3 tests over 200 KB, and 11 that repeat another test.
+The suite also leaves out 3 tests over 200 KB, and 12 that repeat another test.
 
 ## Not covered yet
 

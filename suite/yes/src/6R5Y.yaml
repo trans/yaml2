@@ -1,0 +1,13 @@
+---
+- name: 'Patterns, words, precision and limits: `!true` on `yes`'
+  from: part 2, section 14
+  tags: true error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !true
+    --- !n
+    yes

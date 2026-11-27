@@ -1,5 +1,5 @@
 ---
-- name: 'Patterns, precision and limits: `{!|: [!int(1..10), !int(20..30), !str]}` on `15`'
+- name: 'Patterns, words, precision and limits: `{!|: [!int(1..10), !int(20..30), !str]}` on `15`'
   from: part 2, section 4.2
   tags: str int range union
   yaml: |

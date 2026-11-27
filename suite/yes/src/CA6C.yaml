@@ -1,0 +1,23 @@
+---
+- name: Wherever this occurs, example 3
+  from: part 2, section 10
+  tags: spec str int float bool null words union sequence star
+  yaml: |
+    %YAML 2.0
+    --- &
+    json: {!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}
+    --- !json
+    {"a": "1", "b": "null"}
+  typed: |
+    +STR
+     +DOC !json
+      +MAP
+       =VAL :a
+       =INT :1
+       =VAL :b
+       =NULL
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": 1, "b": null}

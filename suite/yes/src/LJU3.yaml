@@ -22,9 +22,9 @@
         -MAP
        -SEQ
        =VAL :c
-       =VAL :2
+       =INT :2
       -MAP
      -DOC
     -STR
   json: |
-    {"a": [1, {"b": null}], "c": "2"}
+    {"a": [1, {"b": null}], "c": 2}

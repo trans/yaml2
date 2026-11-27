@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, words, precision and limits: `!null(~)` on `''~''`'
+  from: part 2, section 4.1
+  tags: null words
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: !null(~)
+    --- !n
+    '~'
+  typed: |
+    +STR
+     +DOC !n
+      =NULL
+     -DOC
+    -STR
+  json: |
+    null

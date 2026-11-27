@@ -1,0 +1,18 @@
+---
+- name: 'Patterns, words, precision and limits: `{!|: [!true(true|True|TRUE), !false(fal…` on `FALSE`'
+  from: part 2, section 9
+  tags: true false words union
+  yaml: |
+    %YAML 2.0
+    --- &
+    n: {!|: [!true(true|True|TRUE), !false(false|False|FALSE)]}
+    --- !n
+    FALSE
+  typed: |
+    +STR
+     +DOC !n
+      =BOOL :false
+     -DOC
+    -STR
+  json: |
+    false

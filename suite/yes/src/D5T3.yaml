@@ -1,7 +1,10 @@
 ---
 - name: 'A standard type: `!o` on `b:`'
   from: part 2, section 4.4
-  tags: str int
+  tags: str int error
+  fail: true
+  refused: document
+  at: '/b'
   yaml: |
     %YAML 2.0
     --- &
@@ -21,14 +24,3 @@
       b?: !int
     --- !o
     b:
-  typed: |
-    +STR
-     +DOC !o
-      +MAP
-       =VAL :b
-       =NULL
-      -MAP
-     -DOC
-    -STR
-  json: |
-    {"b": null}
