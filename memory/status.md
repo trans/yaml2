@@ -669,7 +669,23 @@ to come from one rule: the key (a `?` key makes an empty value null, however wri
 (`!null` takes `null` and the empty text; `?` only means the key may be absent; section 15's open
 point). The agent leans to the type; the user: "I'll take your lean, but run it past olyng first"
 (2026-11-27). There is no need for a null symbol: under option 2 null comes from the schema, and
-`!null(/~/)` already takes `~`. Sent to @oylng 2026-11-27. **Waiting on @oylng.**
+`!null(/~/)` already takes `~`. Sent to @oylng 2026-11-27. **@oylng chose the type too** (mail
+b550240a, 2026-11-27), so the user's condition is met: the type decides. Its reasons: a value comes from
+its text and type only; an optional `!str` that can't hold "" surprises; a type key takes no `?`, so
+Compose's `volumes: {db-data:}` works only this way; Actions' `workflow_dispatch:` takes a mapping of
+inputs too, so it needs a union anyway. Two additions: (1) section 10's json schema should write
+`!null(/null/)`, or JSON's `""` reads as null (the engine: `{"a": "", "b": null}` gives a: null, b:
+null; with the pattern, a: "", b: null); (2) section 13 must say which spelling the emitter writes
+for null; it leans to no value where one can stand (a mapping's value, a block sequence item, the
+root) and `null` elsewhere, as today under `?` keys, so `db-data:` round-trips. **Open, for the user.**
+Measured on engine copies at `9c1d0cb` against the suite at `ae10177`: option 2 alone fails the 29;
+the key deciding adds JB3U and NFX4; the type deciding adds 7XDC, D5T3, FGT2, H4RC (section 7's
+example 1, which needs `{!|: [!null, !int]}` or another case) and XC3V, and C94T (`!null` on an empty
+document) gives null. Cases: `<<` behaves as written in place; `{a: 1, b:}` as the block form; an
+empty block sequence item is null only with the type; `a?: !any` with `a:` is the untyped ""; an
+empty block scalar is the empty text. And 45KT: under option 2, `"1e999"` under
+`{!|: [!float, !str]}` refuses the document (section 4.4), and `{!|: [!int, !str]}` can't hold a
+quoted integer past 2^64-1.
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
