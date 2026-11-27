@@ -664,6 +664,12 @@ key. Part 1 says a value left out is the empty string, so a tool may write one f
 **The user chose option 2** (2026-11-27: "I prefer opton 2 as well. The oen downside, no simple
 schema give JSON compatability. But then maybe that is the way it should be."). Quotes never count for
 a scalar's type. **Not yet applied** to the draft, the checker or the suite.
+**An empty value under option 2. Open.** `name:` and `name: ""` become the same text, so null has
+to come from one rule: the key (a `?` key makes an empty value null, however written) or the type
+(`!null` takes `null` and the empty text; `?` only means the key may be absent; section 15's open
+point). The agent leans to the type; the user: "I'll take your lean, but run it past olyng first"
+(2026-11-27). There is no need for a null symbol: under option 2 null comes from the schema, and
+`!null(/~/)` already takes `~`. Sent to @oylng 2026-11-27. **Waiting on @oylng.**
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
