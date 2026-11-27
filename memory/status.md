@@ -686,6 +686,20 @@ empty block sequence item is null only with the type; `a?: !any` with `a:` is th
 empty block scalar is the empty text. And 45KT: under option 2, `"1e999"` under
 `{!|: [!float, !str]}` refuses the document (section 4.4), and `{!|: [!int, !str]}` can't hold a
 quoted integer past 2^64-1.
+**Null as `~` in part 1? Open, for the user.** Through @oylng (mail ed0a3970, 2026-11-27): the user
+leans to the emitter always writing null explicitly, not as no value, and suggested a null character
+such as `~`, so `null` and `"null"` can't be confused. @oylng worked it out as part 1 syntax, like `<<`:
+a plain `~` that is the whole scalar is null, and `"~"` is the string; as a mere spelling of `!null`,
+option 2 would make `"~"` null too. It gives: `{!|: [!null, !str]}` holds every string; 1.2 Core's
+`~`; an emitter can write `~` anywhere. In the public sample of 4,651 files, 23 have a value `~` (986
+lines; 18 Helm values, 2 Jekyll, 1 each workflows, rails-i18n, OpenAPI), all meaning null, and 85 have
+a bare `null`. Costs: part 1's data model gains null (section 5, and its first principle,
+"Everything is a string", line 22), so events, trees, the emitter, `--json` and part 1's suite gain a
+kind. Questions: refuse `~` as a key; plain `null` stays a string; the json schema needs
+`!null(/null/)` and a rule that a pattern never removes `~`; whether `!null` takes the empty text.
+The agent's view, to the user: it breaks the principle behind option 2, and real files write `null`
+about four times as often as `~`, so for most the collision stays; the alternative is part 1 unchanged,
+the emitter writing `null`, and a schema that must hold "null" using `!null(/~/)`.
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
