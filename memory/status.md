@@ -624,6 +624,23 @@ exactly those 22. Three points:
    The user agreed (2026-11-26: "yes"). **Fixed in main `ae10177`:** the README's `writes` row says a
    string inside a mapping is a string value. Tagged `v0.2.3`; @oylng told.
 
+**Do quotes in the data count for the type? Reopened by the user, 2026-11-27. Open.** The user, on
+part 2's section 4.1 rule that `!int`, `!bigint`, `!float`, `!decimal`, `!bool` and `!null` match plain
+scalars only: "For YAML2 all values are strings. only the schema differentiates types. So why would
+`1` and `"1"` be considered different?" The rule came in with "wherever this occurs" (the agent's
+proposal, which the user accepted on 2026-11-05; see rules.md), for JSON: one generic schema gives
+JSON's own types only if quotes count. `!date`, `!datetime` and `!binary` taking quoted scalars was the
+agent's, never ruled on. The user is unsure, and asked what each choice costs. Measured 2026-11-27 with
+copies of `schemacheck.py` in the scratchpad: (A) line 628 removed, so a quoted scalar can be any type;
+(B) A, and `name: ""` under an optional key is null like `name:` (lines 543 and 613). A fails 6 of the
+draft's 72 examples (4.1's `"3"` and `"30"`, section 9's `b: "1.10"`, and section 10's three: the
+generic object, the JSON schema, `g: "+5"`), 23 of 879 edge cases, and 29 of 923 suite tests, 3 of
+which (`9BY6`, `G6JA`, `ZLJ2`) also become `emit: refused` and one (`45KT`, `"1e999"` under
+`{!|: [!float, !str]}`) refuses the document. B adds 2 edge cases and 2 tests (`JB3U`, `NFX4`). The
+draft's text on it: part 2 sections 4.1, 4.5, 9, 10 and 13; part 1 sections 11 (the emitter) and 13
+(JSON: "a quoted scalar stays a string", the 1,015 files). On 408 workflows and 311 Compose files the
+rule changed no result (rules.md).
+
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
 has no sequence type and was tagged `sequence`. A block sequence, with no `[`, didn't set it. A parser
