@@ -192,7 +192,7 @@ GROUPS = {
     'bounds': ('4.2', 'A limit on the number as written'), 'outside': ('4.2', 'A limit on the number as written'),
     'hard': ('4.4', 'The nearest binary64'), 'floats': ('4.4', 'Floats'), 'floatnot': ('4.4', 'Floats'),
     'gone': ('4.4', 'A float width or round'), 'decs': ('4.5', 'A pattern on !decimal'), 'decnot': ('4.5', 'A pattern on !decimal'),
-    'more': (None, 'Patterns, precision and limits'), 'morenot': (None, 'Patterns, precision and limits'),
+    'more': (None, 'Patterns, words, precision and limits'), 'morenot': (None, 'Patterns, words, precision and limits'),
     'fulls': ('9', "A schema's full size"), 'emptyseq': ('6', 'An empty sequence'),
     'goods3': (None, 'From the third review'), 'bads3': (None, 'From the third review'), 'schemas3': (None, 'A schema refused'),
     'loads3': (None, 'A schema that loads'), 'counts': ('11', 'Typed'), 'goodsP': ('4.8', 'Dates'), 'badsP': ('4.8', 'Dates'),
@@ -253,7 +253,7 @@ def piped(text):
         except ns['SchemaError']: pass
     return False
 UNION = re.compile(r'(?<!["\'])!\|:[ \t]*\[?')  # a `!|` key, and the bracket of its flow sequence
-TYPES = ('str', 'int', 'bigint', 'float', 'decimal', 'bool', 'null', 'any', 'date', 'datetime', 'binary')
+TYPES = ('str', 'int', 'bigint', 'float', 'decimal', 'bool', 'true', 'false', 'null', 'any', 'date', 'datetime', 'binary')
 TABLE = re.compile(r'^--- &[ \t]*\n((?:(?!---|\.\.\.).*\n?)*)', re.M)
 def chunks(text):
     """A table's entries, by key: each one's lines, from its key to the next key at the margin."""
@@ -323,8 +323,9 @@ def tags(r, sec, fail):
     out = []
     if r['line'] in range(first, last): out.append('spec')
     out += [n for n in TYPES if re.search(rf'!{n}(?![A-Za-z0-9_-])', t)]
-    if re.search(r'!(str|int|bigint|float|decimal|null)\([^\n]*/', t): out.append('pattern')
-    if re.search(r'\([^\n)]*\.\.', t): out.append('range')
+    if re.search(r'!(str|int|bigint|float|decimal)\([^\n]*/', t): out.append('pattern')
+    if re.search(r'!(true|false|null)\(', t): out.append('words')
+    if re.search(r'(?<!true)(?<!false)(?<!null)\([^\n)]*\.\.', t): out.append('range')
     if re.search(r'!decimal\([^\n)]*[0-9]:[0-9]', t): out.append('precision')
     # A `!|` key, or ` | ` in a plain scalar outside a type's parentheses, which section 14 refuses.
     if UNION.search(t) or piped(table): out.append('union')

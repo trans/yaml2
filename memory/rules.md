@@ -436,6 +436,13 @@ tests settled on, all proposals, left open for the core team:
   **Reversed by the user, 2026-11-27:** quotes never count for a scalar's type (option 2 in
   status.md), after @oylng showed that a tool with no schema may requote `v: "3"` as `v: 3`, which
   part 1 allows, and so change the type. The union that tries several scalar types in order stays.
+  With it (the user, 2026-11-27: "yes, go ahead"): no `~` in part 1, so everything stays a string;
+  `!null` takes `null` and the empty text, and the type, not a `?` key, decides an empty value; the
+  emitter writes null as `null`. And the user asked "can we do the same for true and false, the schema
+  can define how to write it?", then chose words over patterns, and `!true` and `!false` over a
+  two-list `!bool` (2026-11-27): `{!|: [!true(yes|on), !false(no|off)]}` and `!null(~|null|)` replace
+  the standard spelling, `!bool` is `{!|: [!true, !false]}`, and an emitter writes the first word
+  (part 2, sections 4.1 and 13). Section 10's json schema writes `!null(null)`.
 - **Universal matchers (the user chose this, 2026-11-05).** "any value matching `/[+-][0-9]+/` is an
   `!int`". The reach already existed: a recursive type (above), and since 2026-11-06 `!*`. What was missing was the claim, since
   only `!str` took a pattern. So `!int(/pattern/)` replaces the standard spelling with the pattern

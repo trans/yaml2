@@ -1,6 +1,6 @@
 # Status
 
-*Updated 2026-11-26*
+*Updated 2026-11-27*
 
 **Tags.** The user, 2026-11-24: "nothing should be released on an untagged commit". So a commit of
 main that a release (Oyl NG's, say) runs against gets an annotated tag, pushed with it. The user chose
@@ -11,7 +11,10 @@ v0.2.1 and push"): `suite-to-data` writes `emit`, times compare in capitals, sec
 from the stream's start, and section 13's check by name. `v0.2.2` is on main `5b8c82e` (2026-11-26,
 the user: "yes"): part 2's suite at 923, with 8 tests of what bound code writes. `v0.2.3` is on
 main `ae10177` (2026-11-26, the user: "yes"): the `sequence` tag's fix and the README's `writes`
-sentence, with the same tests and results.
+sentence, with the same tests and results. `v0.2.4` is on main `961fd4c` (2026-11-27, the user:
+"yes, commit, tag and push"): quotes never count for a type, `!null` takes the empty text, `!true`,
+`!false` and words; part 2's suite at 984. @oylng told (2026-11-27, mail f9f3e7ed, and a correction:
+G6JA is now 8Y5W).
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
@@ -663,8 +666,14 @@ block scalars (`|-` then `3` is refused under `!int` now), escapes, `!**` rules,
 key. Part 1 says a value left out is the empty string, so a tool may write one for the other too.
 **The user chose option 2** (2026-11-27: "I prefer opton 2 as well. The oen downside, no simple
 schema give JSON compatability. But then maybe that is the way it should be."). Quotes never count for
-a scalar's type. **Not yet applied** to the draft, the checker or the suite.
-**An empty value under option 2. Open.** `name:` and `name: ""` become the same text, so null has
+a scalar's type. **In main `961fd4c`, tagged `v0.2.4`** (2026-11-27), with the empty value and null below:
+part 1 sections 5, 11 and 13.1; part 2 sections 4.1, 4.5, 7, 9, 10, 12, 13 and 15; the checker,
+`emitcheck.py` (no quoting to change a type; null as `null`), the suite and both READMEs. JSON,
+measured with section 10's json schema and `!null(/null/)`: 565 of 1,015 SchemaStore files give
+`json.loads`'s result (333 of the 450 others hold `"null"`, mostly `"type": "null"`; 85 a float-like
+string, 78 an int-like one, 66 a boolean, 83 more than one kind), and 92 of 95 JSONTestSuite `y_`
+files (2 repeated keys, and `y_array_heterogeneous` holds `"1"`). Before: 1,015 and 93.
+**An empty value under option 2. The type decides; in main `961fd4c`, tagged `v0.2.4`.** `name:` and `name: ""` become the same text, so null has
 to come from one rule: the key (a `?` key makes an empty value null, however written) or the type
 (`!null` takes `null` and the empty text; `?` only means the key may be absent; section 15's open
 point). The agent leans to the type; the user: "I'll take your lean, but run it past olyng first"
@@ -677,7 +686,10 @@ inputs too, so it needs a union anyway. Two additions: (1) section 10's json sch
 `!null(/null/)`, or JSON's `""` reads as null (the engine: `{"a": "", "b": null}` gives a: null, b:
 null; with the pattern, a: "", b: null); (2) section 13 must say which spelling the emitter writes
 for null; it leans to no value where one can stand (a mapping's value, a block sequence item, the
-root) and `null` elsewhere, as today under `?` keys, so `db-data:` round-trips. **Open, for the user.**
+root) and `null` elsewhere, as today under `?` keys, so `db-data:` round-trips. **Applied as `null`
+everywhere** (2026-11-27), the user's own lean (through @oylng, mail ed0a3970: always explicit), not
+@oylng's; told to the user with the result. `null` reads back under `!null`, `{!|: [!null, ...]}` and
+`!null(null|)`, so `db-data: null` round-trips too.
 Measured on engine copies at `9c1d0cb` against the suite at `ae10177`: option 2 alone fails the 29;
 the key deciding adds JB3U and NFX4; the type deciding adds 7XDC, D5T3, FGT2, H4RC (section 7's
 example 1, which needs `{!|: [!null, !int]}` or another case) and XC3V, and C94T (`!null` on an empty
@@ -686,7 +698,11 @@ empty block sequence item is null only with the type; `a?: !any` with `a:` is th
 empty block scalar is the empty text. And 45KT: under option 2, `"1e999"` under
 `{!|: [!float, !str]}` refuses the document (section 4.4), and `{!|: [!int, !str]}` can't hold a
 quoted integer past 2^64-1.
-**Null as `~` in part 1? Open, for the user.** Through @oylng (mail ed0a3970, 2026-11-27): the user
+**Null as `~` in part 1? The user chose no** (2026-11-27). The agent's case: the reason for `~` (so
+`{!|: [!null, !str]}` can hold "null") is the reason for symbols for true, false and numbers too,
+which option 2 already declined; null's other roles (absent: a `?` key; no text: `!null` takes the
+empty text) need no syntax. The user: "yes, go ahead". So `!null` takes `null` and the empty text, and
+a schema that wants `~` writes `!null(~)` (words, below). In main `961fd4c` with option 2. Earlier: Through @oylng (mail ed0a3970, 2026-11-27): the user
 leans to the emitter always writing null explicitly, not as no value, and suggested a null character
 such as `~`, so `null` and `"null"` can't be confused. @oylng worked it out as part 1 syntax, like `<<`:
 a plain `~` that is the whole scalar is null, and `"~"` is the string; as a mere spelling of `!null`,
@@ -700,6 +716,24 @@ kind. Questions: refuse `~` as a key; plain `null` stays a string; the json sche
 The agent's view, to the user: it breaks the principle behind option 2, and real files write `null`
 about four times as often as `~`, so for most the collision stays; the alternative is part 1 unchanged,
 the emitter writing `null`, and a schema that must hold "null" using `!null(/~/)`.
+
+**`!true`, `!false` and words. In main `961fd4c`, tagged `v0.2.4`** (2026-11-27). The user: "can we do the
+same for true and false, the schema can define how to write it?" The agent first gave `!bool` two
+patterns, which left the emitter writing `true` and so refusing every such value (11 marks). The
+user chose a list of words instead ("I think 3 makes more sense. What do we need patterns for null,
+true or false?"), and then, since `!bool(yes|on no|off)` needed two lists, `!true` and `!false`
+("Perhaps we should have !true and !false instead?"; then "Let's do that."). So, in part 2 section
+4.1: `!true` matches `true`, `!false` `false`, and `!bool` is `{!|: [!true, !false]}` and takes no
+words; `!true`, `!false` and `!null` take one list, `!true(yes|on)`, `!null(~|null|)`; words split
+at `|`, an empty word is the empty text and only beside another, a word holds no space, `|`, `/`,
+`(` or `)`, a word twice in a list refuses the schema; the words replace the standard spelling; an
+emitter writes the first word (section 13), `""` for an empty one. A word in both `!true(yes)` and
+`!false(yes)` of a union isn't refused: the first wins, as in any union. `!true` alone is a boolean
+constant. Patterns on `!null` are gone: section 4.5 is numbers only, section 10's json schema writes
+`!null(null)`, and `!null(0..1)` now loads, as the word `0..1`. A table name still wins over the
+new standard names (section 8). Checker: `Words`, `words()`, `VALUE`; `emitcheck.py` writes the
+first word. Suite: 984 tests, a `words` tag (60), 30 `emit: refused` (26 patterns on numbers, 4
+bound code), none for a boolean or null.
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
