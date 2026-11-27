@@ -661,6 +661,9 @@ block scalars (`|-` then `3` is refused under `!int` now), escapes, `!**` rules,
 "offers a string" means (`!any`, a literal, a patterned `!str`, nested unions). The agent now leans to
 2: the requote case undoes 4. Still to choose under 2: `name: ""` against `name:` under an optional
 key. Part 1 says a value left out is the empty string, so a tool may write one for the other too.
+**The user chose option 2** (2026-11-27: "I prefer opton 2 as well. The oen downside, no simple
+schema give JSON compatability. But then maybe that is the way it should be."). Quotes never count for
+a scalar's type. **Not yet applied** to the draft, the checker or the suite.
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`

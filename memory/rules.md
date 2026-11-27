@@ -433,6 +433,9 @@ tests settled on, all proposals, left open for the core team:
   Quoted-means-string changed no verdict on 408 workflows and 311 Compose files, which is
   weak evidence: those two shadows use non-string types in 9 places, and no quoted value
   reached one. It matches what a 1.2 parser with JSON Schema does today.
+  **Reversed by the user, 2026-11-27:** quotes never count for a scalar's type (option 2 in
+  status.md), after @oylng showed that a tool with no schema may requote `v: "3"` as `v: 3`, which
+  part 1 allows, and so change the type. The union that tries several scalar types in order stays.
 - **Universal matchers (the user chose this, 2026-11-05).** "any value matching `/[+-][0-9]+/` is an
   `!int`". The reach already existed: a recursive type (above), and since 2026-11-06 `!*`. What was missing was the claim, since
   only `!str` took a pattern. So `!int(/pattern/)` replaces the standard spelling with the pattern
