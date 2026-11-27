@@ -646,7 +646,21 @@ chooses, a quoted scalar skipping number, boolean and null alternatives where th
 string. The agent leans to 4 over 3: no silent trap in `{!|: [!int, !str]}`, no second forms, no
 spelling clash (`!!int "3"` is 3 in 1.x). The user: "run it past oylng and let's get a second
 opinion" (2026-11-27). Sent to @oylng 2026-11-27 with all four options and their cases, the agent's
-lean left out. **Waiting on @oylng.**
+lean left out. **@oylng chose option 2** (mail 25c87bb6, 2026-11-27, checked on its engine at
+`9c1d0cb`); second choice 1 with part 1 requiring tools to keep quoting; against 3 and 4. Its reasons:
+part 1 section 5 says that with no schema a scalar's value doesn't depend on how it is written
+("Quotes only decide which characters can be written"), and refuses `{1: a, "1": b}` as a repeated
+key; part 2 section 7 already ignores a key's quoting (`!int` as a key takes `"1"`), so values and keys
+follow two rules now; and a tool with no schema may requote. Measured: `v: "3"` under
+`{!|: [!int, !str]}` types as "3", the engine's untyped emitter writes `v: 3` (part 1: the same string),
+and typed again it is the int 3 with no error. So under 1, 3 and 4 quoting is data in practice while
+part 1 says it isn't. The engine reports quoting on every scalar anyway (part 1 needs it: `<<`, schema
+literals, the emitter), so no option costs the parser to know. Option 2 makes the engine smaller (one
+check in `match_std` goes; the emitter stops quoting to keep a string). Cases the table missed: keys,
+block scalars (`|-` then `3` is refused under `!int` now), escapes, `!**` rules, and for 4, what
+"offers a string" means (`!any`, a literal, a patterned `!str`, nested unions). The agent now leans to
+2: the requote case undoes 4. Still to choose under 2: `name: ""` against `name:` under an optional
+key. Part 1 says a value left out is the empty string, so a tool may write one for the other too.
 
 **The `sequence` tag was set by any `[` (found 2026-11-26).** `suiteyes.py` tagged a test
 `sequence` when its reached schema's text held `[`, so a pattern set it too: `9UJP`'s `/[-+][0-9]+/`
