@@ -44,8 +44,25 @@ the user to check. One corrects the agent's earlier "every type except `!str` an
 types for numbers, booleans and null match plain only, and `!date`, `!datetime` and `!binary` take any
 scalar, as before `v0.2.4`. The JSON figures (1,015 and 93) are from before `v0.2.4`, and are to be
 measured again. The user (2026-11-28): "if you want to run past oylng, fine by me. then proceed if there
-are no issues." Sent to @oylng 2026-11-28 for a second opinion. **Waiting on @oylng;** apply if it
-finds no issues.
+are no issues." Sent to @oylng 2026-11-28 for a second opinion. **@oylng's answer**
+(`mail/received/20261128-042023Z-@oylng--quotes-as-an-option-seven-places-that-need-a-line-ce89fcc5.md`):
+nothing hard to build and the plan unchanged. Its engine already carries `plain` on every scalar event
+and tree node, through references. It found seven places that need a line, all taken:
+1. Section 4.4 goes on after `...` only for `%YAML 2.0` alone, so `%YAML 2.0 quotes` there was a stop.
+   It now goes on with or without a word, and a stream with an unknown word there is refused.
+2. A type key such as `!int` still takes any key, quoted or not.
+3. A schema's own keys use quoting in any stream (type against literal), so part 1 says "a document's
+   keys". A word on a schema's own stream changes nothing, and a `.yes` file can't have one.
+4. Words in a marked stream: the emitter writes the first word that can be plain where it goes, an
+   empty word as a value left out, and refuses if none can. A word that can't be plain (`#t`) never
+   matches there.
+5. Section 11: requoting is safe only without a word, and a tool that can't keep a value plain (`a, b`
+   in flow) refuses.
+6. The `json` default covers any document that would otherwise stay strings: a stamp that stamps
+   nothing, and one the application set aside.
+7. The suites: part 1's `tree` writes `=VAL "` for a value that isn't plain in a marked stream, and
+   keys stay `:`. The emit harness asks the emitter for the input's word.
+**Applying, not yet committed.**
 
 **A beta release. Open, the user's plan (2026-11-28):** "I am ready to bring this project to at least
 a β1 tagged version ... yeah I like β1", before it goes to the core team, who "are most likely going to
