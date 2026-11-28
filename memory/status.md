@@ -82,6 +82,15 @@ sense in crushing every minutiae now. Just so long as it works well in general."
 tag `v1.0.0-beta.1`, after the quotes option, a read of both specs for contradictions left by the
 changes of 2026-11-27 and 28, the headers (both say "Draft 1, 2026-11-07"; part 2 has a WORK IN
 PROGRESS banner), and Oyl NG passing it. Then the covering notes.
+**β1 tagged and pushed, 2026-11-28: `v1.0.0-beta.1` on main `d2cb12f`.** @oylng's figures, from its
+working tree against `37c1353` (the tests of `a7f2a1e`), in `mail/received/20261128-075257Z-@oylng--the-engine-against-a7f2a1e-all-pass-889cd14b.md`:
+part 1, 393 of 393; part 2, 1,026 pass, 0 fail, the same 25 skipped; 78 spec examples; 2,012 cases
+agree with `schemacheck.py` and 20,352 mutated streams with `draftcheck.py`; clean under ASan, UBSan
+and libFuzzer (722,180 runs). Oyl NG's own commit of that work waits on the user, so the README's
+figure is reproducible once that lands. Its three notes need nothing here: 2K6X shows an emitter must
+walk the whole word list (part 2, section 13 says so); its `-<<` quoting was its own bug; and a stream
+with no documents writes `%YAML 2.0` alone, which the grammar allows and the word doesn't reach. The
+covering notes now have the β1 figures (short letter 997 words).
 **The tag and the banner, the user's choices (2026-11-28):** "v1.0.0-beta.1 is fine (also you can
 tag it β1; it works too), and yet soften the banner." In main `37c1353`, not pushed: both specs read
 "Draft 1, β1, 2026-11-28", part 2's banner is now "This part is less settled than part 1, and its rules
