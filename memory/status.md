@@ -14,7 +14,8 @@ main `ae10177` (2026-11-26, the user: "yes"): the `sequence` tag's fix and the R
 sentence, with the same tests and results. `v0.2.4` is on main `961fd4c` (2026-11-27, the user:
 "yes, commit, tag and push"): quotes never count for a type, `!null` takes the empty text, `!true`,
 `!false` and words; part 2's suite at 984. @oylng told (2026-11-27, mail f9f3e7ed, and a correction:
-G6JA is now 8Y5W).
+G6JA is now 8Y5W). `v0.2.5` is on main `48ded98` (2026-11-28, the user: "yes, commit, tag and push"): the
+README's Oyl NG figure against `v0.2.4`, with the same spec and suites as `v0.2.4`.
 **Oyl NG against `v0.2.4`** (2026-11-28,
 `mail/received/20261128-001852Z-@oylng--the-engine-against-v0.2.4-373-and-959-of-984-0d0b6fbf.md`):
 - **Part 1:** 373 of 373 pass.
@@ -33,7 +34,7 @@ G6JA is now 8Y5W).
   with CI pinned to `v0.2.4`, and all four jobs passed. The figures above are that commit's.
 - **The figure in the README and covering notes.** Both covering notes were updated on 2026-11-28; they
   are local. The README on main is edited to "Against this repo's `v0.2.4`… 959 of part 2's 984",
-  replacing `v0.1.0` and 801 of 850. **Not committed yet:** it waits for the user.
+  replacing `v0.1.0` and 801 of 850. **In main `48ded98`, tagged `v0.2.5`.**
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
