@@ -15,6 +15,22 @@ sentence, with the same tests and results. `v0.2.4` is on main `961fd4c` (2026-1
 "yes, commit, tag and push"): quotes never count for a type, `!null` takes the empty text, `!true`,
 `!false` and words; part 2's suite at 984. @oylng told (2026-11-27, mail f9f3e7ed, and a correction:
 G6JA is now 8Y5W).
+**Oyl NG against `v0.2.4`** (2026-11-28,
+`mail/received/20261128-001852Z-@oylng--the-engine-against-v0.2.4-373-and-959-of-984-0d0b6fbf.md`):
+- **Part 1:** 373 of 373 pass.
+- **Part 2:** 959 of 984 pass, 0 fail and 25 are skipped, all for times. 24 have a `holds` unlike the
+  engine's: 13 with 6, 6 with 3 and 5 with 0. The 25th is M8HN, whose 12-digit fraction is tagged
+  `long-fraction`.
+- **No more `keep` skips:** typing with references kept is built now.
+- **Writing again:** 492 typed documents read back the same, 37 of them through bound code, and the 30
+  `emit: refused` tests are refused. The 7 tests with published names aren't tried.
+- **Examples:** the 74 draft examples pass. The suite has 73, since one repeats another test.
+- **schemadiff:** the engine agrees with the checker on all 1,878 cases.
+- **E2PH** is refused at a path other than its `at`, because the engine meets the typed limit first.
+  The suite README allows that.
+- **Open: not committed yet.** The change that catches up is done, but not committed in Oyl NG. It
+  will send the commit. The README's figure (`v0.1.0`, 801 of 850) waits for that commit. The covering
+  notes are local and were updated on 2026-11-28.
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
