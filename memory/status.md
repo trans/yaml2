@@ -43,7 +43,17 @@ stamp, so an application's own schema still applies. A parser that does only par
 the user to check. One corrects the agent's earlier "every type except `!str` and `!any`": only the
 types for numbers, booleans and null match plain only, and `!date`, `!datetime` and `!binary` take any
 scalar, as before `v0.2.4`. The JSON figures (1,015 and 93) are from before `v0.2.4`, and are to be
-measured again. **Waiting on the user's review.**
+measured again. The user (2026-11-28): "if you want to run past oylng, fine by me. then proceed if there
+are no issues." Sent to @oylng 2026-11-28 for a second opinion. **Waiting on @oylng;** apply if it
+finds no issues.
+
+**A beta release. Open, the user's plan (2026-11-28):** "I am ready to bring this project to at least
+a β1 tagged version ... yeah I like β1", before it goes to the core team, who "are most likely going to
+reject it, but they may have insights nonetheless". Only what HAS to be addressed: "There is little
+sense in crushing every minutiae now. Just so long as it works well in general." The agent's proposal:
+tag `v1.0.0-beta.1`, after the quotes option, a read of both specs for contradictions left by the
+changes of 2026-11-27 and 28, the headers (both say "Draft 1, 2026-11-07"; part 2 has a WORK IN
+PROGRESS banner), and Oyl NG passing it. Then the covering notes.
 
 **Oyl NG against `v0.2.4`** (2026-11-28,
 `mail/received/20261128-001852Z-@oylng--the-engine-against-v0.2.4-373-and-959-of-984-0d0b6fbf.md`):
