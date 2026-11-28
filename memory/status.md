@@ -28,9 +28,12 @@ G6JA is now 8Y5W).
 - **schemadiff:** the engine agrees with the checker on all 1,878 cases.
 - **E2PH** is refused at a path other than its `at`, because the engine meets the typed limit first.
   The suite README allows that.
-- **Open: not committed yet.** The change that catches up is done, but not committed in Oyl NG. It
-  will send the commit. The README's figure (`v0.1.0`, 801 of 850) waits for that commit. The covering
-  notes are local and were updated on 2026-11-28.
+- **Committed in Oyl NG `40e4f0f`** (2026-11-28,
+  `mail/received/20261128-010149Z-@oylng--v0.2.4-in-the-engine-40e4f0f-1660daa7.md`). It is on GitHub,
+  with CI pinned to `v0.2.4`, and all four jobs passed. The figures above are that commit's.
+- **The figure in the README and covering notes.** Both covering notes were updated on 2026-11-28; they
+  are local. The README on main is edited to "Against this repo's `v0.2.4`… 959 of part 2's 984",
+  replacing `v0.1.0` and 801 of 850. **Not committed yet:** it waits for the user.
 
 **Goal.** The user set it on 2026-11-03: design YAML 2.0, and fix a YAML
 ecosystem that has become a minefield.
