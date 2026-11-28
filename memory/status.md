@@ -32,8 +32,13 @@ proposal, which the user accepted as the direction ("that seems like a good idea
 The user asked (2026-11-28) whether `quotes` is the same as JSON. The agent's answer: no. It only lets a
 schema see plain against quoted, and with no schema a stream is still strings. The JSON reading still
 comes from a schema, which an application supplies, since a JSON file has no table to stamp from.
-Next: the user's answer on a separate `json` form, then spellings, then a draft for part 1, section 4.1
-and part 2, section 4.1, to show the user before anything goes into main.
+The user chose (2026-11-28) "quotes alone, plus the json standard name", and asked whether that is
+`%YAML 2.0 json`, "equivalent to `%YAML 2.0 quotes` with a small schema". The agent's proposal: yes,
+defined as `quotes` plus a default: a document the file doesn't stamp, and that the application gives
+no schema, is read with part 2's standard `!json` (section 10's one-line schema). It's a default, not a
+stamp, so an application's own schema still applies. A parser that does only part 1 reads `json` as
+`quotes`. The body may be any 2.0 syntax. **Waiting on the user** to confirm this, and the two words on
+`%YAML 2.0`, before drafting part 1, section 4.1 and part 2, sections 3, 4.1 and 10.
 
 **Oyl NG against `v0.2.4`** (2026-11-28,
 `mail/received/20261128-001852Z-@oylng--the-engine-against-v0.2.4-373-and-959-of-984-0d0b6fbf.md`):
