@@ -1,12 +1,10 @@
 # A proposal for YAML 2.0: YAML Easy Schema (YES)
 
-**WORK IN PROGRESS. This part isn't finished. Its rules are still changing, and section 15 lists
-what is still open.**
-
-*Draft 1, 2026-11-07*
+*Draft 1, β1, 2026-11-28*
 
 This is part 2 of a proposal to the YAML core team, not a YAML specification. Part 1 is
-[the language](yaml-2.0.md). Section 15 lists what is still open.
+[the language](yaml-2.0.md). This part is less settled than part 1, and its rules may still change.
+Section 15 lists what is still open.
 
 ## 1. Overview
 

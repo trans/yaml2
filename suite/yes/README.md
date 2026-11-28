@@ -1,7 +1,7 @@
 # Test suite for part 2
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
-format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
+format of [part 1's suite](../README.md), with the additions below. Part 2 is less settled than part 1, and
 these tests will change with it. There are 1,051:
 
 - the draft's 77 examples, tagged `spec`;

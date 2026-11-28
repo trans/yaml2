@@ -1,6 +1,6 @@
 # A proposal for YAML 2.0: the language
 
-*Draft 1, 2026-11-07*
+*Draft 1, β1, 2026-11-28*
 
 This is a proposal to the YAML core team, not the YAML specification. "YAML" and
 its version numbers are theirs. Part 2 is [YAML Easy Schema (YES)](yaml-easy-schema.md). Section 14
