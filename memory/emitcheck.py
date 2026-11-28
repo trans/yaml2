@@ -13,7 +13,11 @@ that text, else double-quoted; every other scalar in its standard spelling (a fl
 says), null as `null`, and a boolean or null under words as the first word of its list (section
 4.1). No text kept from the reading is used. It reads the result back with the same
 schema. Quotes don't count for a type (section 4.1), so quoting a string never changes what it reads
-back as, and whatever comes back different is refused.
+back as, and whatever comes back different is refused. In a stream marked `quotes` or `json`, the
+document is written under the input's first line, as a harness asks the emitter for the input's word.
+There every string is double-quoted, which is where section 13 has it quote a string that plain would
+read as another type, and gives the same result; a word is the first in its list that can be plain,
+an empty word a value left out.
 
 With `bind`, each bound name's value is the application's object, and it must come back through the
 same name. A bound name's code gives back what it was given, unless the test has `writes`, which gives
@@ -34,14 +38,15 @@ class Tag:
     def __init__(s, kind, text): s.kind, s.text = kind, text
     def __repr__(s): return f'!{s.kind} {s.text}'
 class Word:
-    """A boolean or null typed under words (section 4.1): its value, and the first word of its list,
-    which is what an emitter writes. Reading it back gives the same, so it compares by value."""
-    def __init__(s, v, word): s.v, s.word = v, word
+    """A boolean or null typed under words (section 4.1): its value, and its type's words in order. An
+    emitter writes the first, or in a marked stream the first that can be plain (section 13). Reading it
+    back gives the same, so it compares by value."""
+    def __init__(s, v, words): s.v, s.words, s.word = v, words, words[0]
     def __repr__(s): return f'{s.v!r} as {s.word!r}'
 scalar0 = Schema.scalar
 def scalar(s, name, lim, v, path):
     out = scalar0(s, name, lim, v, path)
-    if name in ('true', 'false', 'null') and lim and isinstance(lim[1], ns['Words']): return Word(out, lim[1].first)
+    if name in ('true', 'false', 'null') and lim and isinstance(lim[1], ns['Words']): return Word(out, lim[1].order)
     if name in ('date', 'datetime', 'binary'): return Tag(name, out)
     if name == 'bigint': return Tag(name, str(out))
     if name == 'decimal': return Tag(name, ns['canon'](str(v)) if lim and lim[1] else str(v))
@@ -132,9 +137,17 @@ def dq(t):
         else: out.append(c)
     return '"' + ''.join(out) + '"'
 
+MARKED = [False]  # The document is in a stream marked `quotes` or `json` (part 1, section 4.1).
 def text(v):
-    if isinstance(v, Word): return v.word if plain_ok(v.word) else dq(v.word)
-    if isinstance(v, str) and not isinstance(v, Tag): return v if plain_ok(v) else dq(v)
+    if isinstance(v, Word):
+        if MARKED[0]:
+            # Section 13: the first word that can be plain where it goes, an empty one as a value left
+            # out. If none can, it is written quoted, which reads back as a string, so it is refused.
+            return next((w for w in v.words if w == '' or plain_ok(w)), dq(v.word))
+        return v.word if plain_ok(v.word) else dq(v.word)
+    if isinstance(v, Spelled): return v if plain_ok(v) else dq(v)
+    # In a marked stream a string is quoted, so no type for numbers, booleans or null takes it (section 13).
+    if isinstance(v, str) and not isinstance(v, Tag): return dq(v) if MARKED[0] else v if plain_ok(v) else dq(v)
     return spelling(v)
 def block(v, ind):
     """Lines for v at indent ind; or one inline text, for a scalar or an empty collection."""
@@ -203,12 +216,12 @@ def check(t, un):
     ns['DATEHOLD'] = (t['holds'], t.get('leap-second', False), t.get('year-zero', False)) if 'holds' in t else None
     global WR
     ns['BIND'] = tuple(t['bind']) if 'bind' in t else None; WR = t.get('writes') or {}
-    docs = read(stream).docs; vals = typed(stream, app, store, limit, cut)
+    rd = read(stream); docs = rd.docs; vals = typed(stream, app, store, limit, cut)
     cs = chunks(stream); slots = [i for i, c in enumerate(cs) if c[0] == 'doc']
     assert len(slots) == len(docs), (t['name'], len(slots), len(docs))
     results = []
     for n, ((name, _), v) in enumerate(zip(docs, vals)):
-        before = ''.join(c[1] for c in cs[:slots[n]] if c[0] != 'doc'); W = written(v)
+        before = ''.join(c[1] for c in cs[:slots[n]] if c[0] != 'doc'); W = written(v); MARKED[0] = bool(rd.marks[n])
         out = before + emit_doc(name, W)
         try: got = typed(out, app, store, limit, cut)[0]
         except REFUSED as e: results.append(('refused', str(e), out)); continue

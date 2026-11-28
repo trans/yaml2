@@ -198,13 +198,16 @@ GROUPS = {
     'loads3': (None, 'A schema that loads'), 'counts': ('11', 'Typed'), 'goodsP': ('4.8', 'Dates'), 'badsP': ('4.8', 'Dates'),
     'spreads': ('11', 'Typing a merge'), 'spreadok': ('11', 'Typing a merge'), 'spreadno': ('11', 'Typing a merge'), 'keptfull': ('11', 'Typing a merge'), 'fullno': ('11', 'Typing a merge'),
     'oks': ('4.8', 'What a parser holds of a date'), 'nos': ('4.8', 'What a parser holds of a date'),
+    'marked': ('4.1', 'Quotes in a stream marked quotes or json'), 'markednot': ('4.1', 'Quotes in a stream marked quotes or json'),
+    'jsons': ('10', 'The standard json'), 'jsonsnot': ('10', 'The standard json'), 'jsonschemas': ('10', 'The standard json'),
     'schemasP': ('4.8', 'A date level or round'), 'loadsP': (None, 'A schema that loads'), 'extra': ('11', 'Typed'), 'extrafull': ('9', "A schema's full size"),
 }
 # Tests outside a list, found by what their line holds.
 SINGLES = [('DIFFERS renamed', '8', "The names are the author's"), ('QUOTED PATTERN NOT A LITERAL', '5', 'A quoted pattern is a literal'),
            ('doubling(', '9', 'Names that double'), ('read(chain)', '9', "A schema's full size"), ('read(wide)', '9', 'Unions at the ceiling'),
            ('a stamp past the limit', '9', "A schema's full size"), ("('--- &\\na: !str\\n', 'a'), limit=", '3', "Part 1's limit on an application's schema"), ('pub3(', '3.1', 'A published schema'), ("for t in ('retries: abc", '3', 'Who says how to read a document'),
-           ('for z3 in', '4.4', 'The sign of zero'), ('for body3 in', '3.1', 'A published schema is one table'), ('many', '11', 'Typed'), ('app=app2', '11', 'Typed'), ('typed(spreadno[-1][0])', '11', 'Typing a merge')]
+           ('for z3 in', '4.4', 'The sign of zero'), ('for body3 in', '3.1', 'A published schema is one table'), ('many', '11', 'Typed'), ('app=app2', '11', 'Typed'), ('typed(spreadno[-1][0])', '11', 'Typing a merge'),
+           ('a published schema with a word', '3.1', 'A published schema starts with %YAML 2.0 alone')]
 # Where section() guesses wrong: the section whose rule a test is about, by its ID, which is a hash of its
 # stream. A test inside `!**`, `!*` or `<<` keeps that section, since reaching inside it is what it tests.
 # The writer stops if an ID here isn't written, if its section isn't guessed, or if the guess is already right.
@@ -253,7 +256,7 @@ def piped(text):
         except ns['SchemaError']: pass
     return False
 UNION = re.compile(r'(?<!["\'])!\|:[ \t]*\[?')  # a `!|` key, and the bracket of its flow sequence
-TYPES = ('str', 'int', 'bigint', 'float', 'decimal', 'bool', 'true', 'false', 'null', 'any', 'date', 'datetime', 'binary')
+TYPES = ('str', 'int', 'bigint', 'float', 'decimal', 'bool', 'true', 'false', 'null', 'any', 'date', 'datetime', 'binary', 'json')
 TABLE = re.compile(r'^--- &[ \t]*\n((?:(?!---|\.\.\.).*\n?)*)', re.M)
 def chunks(text):
     """A table's entries, by key: each one's lines, from its key to the next key at the margin."""
@@ -323,6 +326,10 @@ def tags(r, sec, fail):
     out = []
     if r['line'] in range(first, last): out.append('spec')
     out += [n for n in TYPES if re.search(rf'!{n}(?![A-Za-z0-9_-])', t)]
+    # Section 10: `json` is the standard one only where no entry the test reaches has that name.
+    if 'json' in out and re.search(r'^json[ \t]*:', table, re.M): out.remove('json')
+    # Section 3: under `%YAML 2.0 json`, a document that would stay strings is read with `!json`.
+    if re.search(r'^%YAML 2\.0 json(?=[ \t\n]|$)', r['stream'], re.M) and 'json' not in out: out.append('json')
     if re.search(r'!(str|int|bigint|float|decimal)\([^\n]*/', t): out.append('pattern')
     if re.search(r'!(true|false|null)\(', t): out.append('words')
     if re.search(r'(?<!true)(?<!false)(?<!null)\([^\n)]*\.\.', t): out.append('range')
@@ -349,6 +356,8 @@ def tags(r, sec, fail):
         if re.search(r'!datetime', t) and re.search(r'[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{10,}', docs): out.append('long-fraction')
         if re.search(r'!datetime', t) and re.search(r'[Tt][0-9]{2}:[0-9]{2}:60', docs): out.append('second-60')
         if re.search(r'!date(time)?\b', t) and re.search(r'(^|[^0-9])0000-[0-9]{2}-[0-9]{2}', docs): out.append('year-0000')
+    # Part 1, section 4.1: a stream marked `quotes` or `json`, where whether a value is plain is data.
+    if re.search(r'^%YAML 2\.0 (quotes|json)(?=[ \t\n]|$)', r['stream'], re.M): out.append('quotes')
     if r['limit'] != LIMIT: out.append('size')
     if r.get('bind'): out.append('bind')
     if r.get('writes'): out.append('writes')

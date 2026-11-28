@@ -16,7 +16,7 @@ sentence, with the same tests and results. `v0.2.4` is on main `961fd4c` (2026-1
 `!false` and words; part 2's suite at 984. @oylng told (2026-11-27, mail f9f3e7ed, and a correction:
 G6JA is now 8Y5W). `v0.2.5` is on main `48ded98` (2026-11-28, the user: "yes, commit, tag and push"): the
 README's Oyl NG figure against `v0.2.4`, with the same spec and suites as `v0.2.4`.
-**Quotes counting as an option, declared in the stream. Open: in design, nothing drafted.** The user,
+**Quotes counting as an option, declared in the stream. In main `a7f2a1e`, not pushed.** The user,
 2026-11-28: "we will be bringing plain distinction back, but in a more controlled manner. It won't be
 'canonical' YAML 2, but an option nonetheless, so YAML 2 can still handle JSON seamlessly." The agent's
 proposal, which the user accepted as the direction ("that seems like a good idea. works for me"):
@@ -62,7 +62,18 @@ and tree node, through references. It found seven places that need a line, all t
    nothing, and one the application set aside.
 7. The suites: part 1's `tree` writes `=VAL "` for a value that isn't plain in a marked stream, and
    keys stay `:`. The emit harness asks the emitter for the input's word.
-**Applying, not yet committed.**
+**In main `a7f2a1e`, not pushed** (2026-11-28): part 1, sections 4.1, 4.4, 5, 11, 12 and
+13.1; part 2, sections 3, 3.1, 4.1 (and a `!json` row), 7, 9, 10 and 13; both suite READMEs and the
+README. Part 1: 61 examples, 393 tests (20 new, tag `quotes`; the tree writes `=VAL "` for a value
+that isn't plain in a marked stream). Part 2: 78 examples, 1,005 edge cases, 1,051 tests (77
+examples, 937 edge cases, 15 typed, 22 full; 15 repeats left out), 31 `emit: refused` (27 patterns, 4
+bound code); tags `quotes` (54) and `json` for the standard one (21). Measured: under `%YAML 2.0 json`,
+1,015 of 1,015 SchemaStore and 93 of 95 JSONTestSuite `y_` files give `json.loads`'s result; plain
+`%YAML 2.0` still 565 and 92. Mutants (1G, 60 s), all caught but one that changes nothing:
+noplain, datesplain, strplain, wordsquoted, nojsondefault, quotesdefault, tablejson, keysmarked,
+pubword, nojsonname, appafterjson; part 1's wordsticky, wordreset, unknownstop, nowordafter, tabword,
+keystree, emptyquoted, nomarkstree; the emitter's emitplain, emitfirstword, emitemptyquoted.
+`jsonargs` changes nothing: `!json(...)` is refused by the rule that `!json` takes nothing in parentheses.
 
 **A beta release. Open, the user's plan (2026-11-28):** "I am ready to bring this project to at least
 a β1 tagged version ... yeah I like β1", before it goes to the core team, who "are most likely going to

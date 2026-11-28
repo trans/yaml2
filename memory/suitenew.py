@@ -11,7 +11,7 @@ import hashlib, json, os, re, sys
 here = os.path.dirname(os.path.abspath(__file__))
 g = {}
 exec(open(here + '/draftcheck.py', encoding='utf-8').read().split("\nspec = open(sys.argv[1]")[0], g)
-P, No = g['P'], g['No']
+P, No, Quoted = g['P'], g['No'], g['Quoted']
 DEFAULT = 64 * 2 ** 20
 MARKS = '␣»—←⇔↵∎'
 ESCAPED = re.compile('[\x00-\x1f\x7f-\x9f ­ ᠎ -‏ -  -⁯　﻿￹-￻￾￿' + MARKS + ']')
@@ -43,18 +43,18 @@ def field(key, text):
     if v is None: return [f'  {key}: {dq(text)}']
     first = next((l for l in v if l not in ('', '↵')), '')
     return [f'  {key}: |' + ('2' if first.startswith(' ') else '')] + [('    ' + l) if l else '' for l in v]
-def events(docs):
+def events(docs, marks=()):
     out = ['+STR']
-    def node(v, d):
-        if isinstance(v, str): out.append(' ' * d + '=VAL :' + esc(v))
+    def node(v, d, marked, key=False):
+        if isinstance(v, str): out.append(' ' * d + ('=VAL "' if marked and not key and isinstance(v, Quoted) else '=VAL :') + esc(v))
         elif isinstance(v, list):
-            out.append(' ' * d + '+SEQ'); [node(x, d + 1) for x in v]; out.append(' ' * d + '-SEQ')
+            out.append(' ' * d + '+SEQ'); [node(x, d + 1, marked) for x in v]; out.append(' ' * d + '-SEQ')
         else:
             out.append(' ' * d + '+MAP')
-            for k, x in v.items(): node(k, d + 1); node(x, d + 1)
+            for k, x in v.items(): node(k, d + 1, marked, True); node(x, d + 1, marked)
             out.append(' ' * d + '-MAP')
-    for name, v in docs:
-        out.append(' +DOC' + (' !' + esc(name) if name else '')); node(v, 2); out.append(' -DOC')
+    for i, (name, v) in enumerate(docs):
+        out.append(' +DOC' + (' !' + esc(name) if name else '')); node(v, 2, i < len(marks) and bool(marks[i])); out.append(' -DOC')
     return '\n'.join(out + ['-STR']) + '\n'
 def jline(v):
     return ''.join(f'\\u{ord(c):04x}' if ESCAPED.match(c) else c for c in json.dumps(v, ensure_ascii=False))
@@ -87,7 +87,7 @@ def main(suite, name, section, tags, *flags):
         if o.get(f): lines.append(f'  {f}: true')
     lines += field('yaml', text)
     if not o.get('fail') and not o.get('keep'):
-        lines += field('tree', events(r.docs))
+        lines += field('tree', events(r.docs, r.marks))
         lines += field('json', ''.join(jline(d[1]) + '\n' for d in r.docs))
         if r.offset() is not None:
             lines += field('rest', text.encode('utf-8', 'surrogatepass')[r.offset():].decode('utf-8', 'surrogatepass'))

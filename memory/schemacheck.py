@@ -13,12 +13,7 @@ src = open(here + '/draftcheck.py', encoding='utf-8').read().split("\nspec = ope
 g = {'__name__': 'dc'}; exec(compile(src, 'dc', 'exec'), g)
 P, No, read = g['P'], g['No'], g['read']
 sys.setrecursionlimit(20000); sys.set_int_max_str_digits(0)
-class Quoted(str):
-    """A scalar not written plain: quoted, or a block scalar."""
-for f in ('double', 'single', 'block'):
-    def wrap(orig):
-        return lambda s, *a: Quoted(orig(s, *a))
-    setattr(P, f, wrap(getattr(P, f)))
+Quoted = g['Quoted']  # A scalar not written plain: quoted, or a block scalar.
 deliver = P.deliver
 def snapshot(s, name, v):
     s.__dict__.setdefault('snaps', []).append((dict(s.table), s.table)); deliver(s, name, v)
@@ -62,7 +57,19 @@ def canon(t):
     m = re.fullmatch(r'([-+]?)([0-9]*)(?:\.([0-9]*))?([eE][-+]?[0-9]+)?', t)
     return ('-' if m[1] == '-' else '') + (m[2].lstrip('0') or '0') + ('.' + m[3] if m[3] else '') + (m[4] or '')
 
-STD = {'str', 'int', 'bigint', 'float', 'decimal', 'bool', 'true', 'false', 'null', 'any', 'date', 'datetime', 'binary'}
+STD = {'str', 'int', 'bigint', 'float', 'decimal', 'bool', 'true', 'false', 'null', 'any', 'date', 'datetime', 'binary', 'json'}
+# Section 4.1: in a stream marked `quotes` or `json`, these match plain scalars only.
+PLAINONLY = ('int', 'bigint', 'float', 'decimal', 'bool', 'true', 'false', 'null')
+# Section 10: the standard name `json`, and section 3's default under `%YAML 2.0 json`.
+JSONSRC = '%YAML 2.0\n--- &\njson: {!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}\n'
+_JSON = []
+def jsontable():
+    if not _JSON: _JSON.append(read(JSONSRC).table)
+    return _JSON[0]
+_JSONT = []
+def jsontype():
+    if not _JSONT: _JSONT.append(to_type(jsontable()['json']))
+    return _JSONT[0]
 FLOAT = r'-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?'
 INT = r'-?(0|[1-9][0-9]*)'
 INTS = ('int', 'bigint')
@@ -183,7 +190,7 @@ class Words:
     """Section 4.1: the words `!true`, `!false` or `!null` reads as its value, in place of the standard
     spelling. The first is what an emitter writes. A type counts 1, as any does."""
     count = 1
-    def __init__(s, words): s.words, s.first = set(words), words[0]
+    def __init__(s, words): s.words, s.first, s.order = set(words), words[0], list(words)
 WORDCHARS = re.compile(r'[^ |/()]*')
 def words(text, whole):
     """Section 4.1: one list, split at `|`; an empty word only beside another, and no word twice."""
@@ -408,6 +415,7 @@ class Schema:
         # and `types` the reader of the schema's own text, whose entries a schema holds to full (section 11).
         s.types, s.typefull, s.gave = types, 0, {}
         s.places, s.fulls, s.quiet = {}, {}, 0
+        s.marked = False  # Section 4.1: the document is in a stream marked `quotes` or `json`.
         if root not in table: raise SchemaError(f'no entry {root}')
         s.root = s.get(root); s.walk(s.root)
         s.top = ('name', root, None, '!' + root)  # The root is typed through its entry's name.
@@ -453,6 +461,12 @@ class Schema:
             if t[1] in done: return []
             done.add(t[1]); s.reached.add(t[1])
             return s.named(s.get(t[1]), seen + (t[1],), done)
+        if t[1] == 'json':
+            # Section 10: the standard `json`, when the table has no entry of that name.
+            if t[2] is not None: raise SchemaError(f'{t[3]}: a named type takes no limit')
+            if 'json' in done: return []
+            done.add('json')
+            return s.named(jsontype(), seen, done)
         if t[1] not in STD: raise SchemaError(f'unknown type !{t[1]}')
         return [(t, seen)]
     def alts(s, t):
@@ -509,8 +523,9 @@ class Schema:
     def keytype(s, kt):
         """Section 7: a key is a scalar (part 1, section 7.4), so a type key takes a type a scalar can fit."""
         if any(y[0] not in ('lit', 'name') for y in s.alts(kt)): raise SchemaError('a type key takes a scalar type, since a key is a scalar')
-    def check(s, v):
+    def check(s, v, mark=''):
         s.count, s.done = 0, {}  # Section 11: typed counts the document being typed.
+        s.marked = bool(mark)
         return s.conv(s.top, v, '')
     def own(s, v):
         """A node's own size, as held counts it: 1, a scalar's bytes, or a mapping's keys, and 1 for each
@@ -638,6 +653,9 @@ class Schema:
     def scalar(s, name, lim, v, path):
         if name == 'any': return strip(v)
         if not isinstance(v, str): raise Bad(path, f'expected {name}')
+        # Section 4.1: in a marked stream, the types for numbers, booleans and null take plain scalars only.
+        # A key comes here as a str, so a type key takes any key (section 7).
+        if s.marked and name in PLAINONLY and isinstance(v, Quoted): raise Bad(path, f'not plain, so not {name}')
         t = str(v); out = None; pat = lim[1] if lim else None
         def outside(n):
             if lim and lim[2]:
@@ -698,6 +716,7 @@ def published(name, store, cut, limit=LIMIT, keep=False):
     marks = re.findall(r'^(?:---|\.\.\.)(?=[ \t\n]|$).*', text, re.M)
     if r.docs or not r.table or len(marks) != 1 or not marks[0].startswith('--- &'):
         raise SchemaError(f'{name}: a published schema is one table and nothing else')
+    if r.word: raise SchemaError(f'{name}: a published schema starts with %YAML 2.0 alone')
     # Section 3.1: the root is the entry named like the file.
     if root not in r.table: raise SchemaError(f'{name}: the file has no entry {root}')
     return Schema(r.table, root, cut, limit, keep, r if keep and HOLDTYPES else None)
@@ -712,15 +731,17 @@ def typed(stream, app=None, store=None, limit=LIMIT, cut=False, keep=False):
     # Section 3: a schema from outside the stream is a stream too, read under part 1's limit.
     if app is not None: ra = read(app[0], limit, keep=keep)
     own = None if app is None else Schema(ra.table, app[1], cut, limit, kept, ra if hold else None)
-    for (name, v), (table, obj) in zip(r.docs, getattr(r, 'snaps', [])):
+    for (name, v), (table, obj), mark in zip(r.docs, getattr(r, 'snaps', []), r.marks):
         if obj is not live: reached, live = {}, obj
         for k, e in reached.items():
             if table.get(k) is not e: raise SchemaError(f'{k} was replaced after a type reached it')
         if name and '/' not in name and name in table:
-            sc = Schema(table, name, cut, limit, kept, r if hold else None); out.append(sc.check(v))
+            sc = Schema(table, name, cut, limit, kept, r if hold else None); out.append(sc.check(v, mark))
             reached.update((k, table[k]) for k in sc.reached)
-        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, cut, limit, kept).check(v))
-        elif own: out.append(own.check(v))
+        elif store is not None and name and PUB.fullmatch(name): out.append(published(name, store, cut, limit, kept).check(v, mark))
+        elif own: out.append(own.check(v, mark))
+        # Section 3: under `%YAML 2.0 json`, a document that would stay strings is read with `!json`.
+        elif mark == 'json': out.append(Schema(jsontable(), 'json', cut, limit, kept).check(v, mark))
         else: out.append(strip(v))
     if r.docs and r.table is live:
         for k, e in reached.items():
@@ -1370,5 +1391,82 @@ if __name__ == '__main__':
         except REFUSED as e: prec += 1; print('SCHEMA REFUSED', sP, e)
     prec_n = len(goodsP) + len(badsP) + nholds + len(schemasP) + len(loadsP)
     f += prec; third_n += prec_n
+    # Section 4.1: in a stream marked `quotes` or `json`, the types for numbers, booleans and null take plain
+    # scalars only, and the rest take any scalar. Keys never count. Each `%YAML 2.0` line's word holds up to the next.
+    Q2, J2 = '%YAML 2.0 quotes\n', '%YAML 2.0 json\n'
+    U2 = '--- &\nn: {!|: [!int, !str]}\n'
+    marked = [(Q2 + '--- &\nport: {!|: [!int, !str]}\nports: [!port, ...]\n--- !ports\n- 8080\n- "8080"\n', None, [[8080, '8080']]),
+              ('%YAML 2.0\n--- &\nport: {!|: [!int, !str]}\nports: [!port, ...]\n--- !ports\n- 8080\n- "8080"\n', None, [[8080, 8080]]),
+              (Q2 + U2 + "--- !n\n'1'\n", None, ['1']), (Q2 + U2 + '--- !n\n|-\n  1\n', None, ['1']), (Q2 + U2 + '--- !n\n1\n', None, [1]),
+              (Q2 + '--- &\nu: {!|: [!float, !bool, !null, !str]}\nm: {!*: !u}\n--- !m\na: "1.5"\nb: "true"\nc: "null"\nd: ""\ne:\nf: 1.5\ng: true\nh: null\n', None,
+               [{'a': '1.5', 'b': 'true', 'c': 'null', 'd': '', 'e': None, 'f': 1.5, 'g': True, 'h': None}]),
+              (Q2 + '--- &\nz: !null\n--- !z\n', None, [None]),
+              (Q2 + '--- &\nd: {!|: [!date, !str]}\ns: [!d, ...]\n--- !s\n- "2001-02-03"\n- 2001-02-03\n', None, [['2001-02-03', '2001-02-03']]),
+              (Q2 + '--- &\nx: !binary\n--- !x\n"aGk="\n', None, ['aGk=']),
+              (Q2 + '--- &\nm:\n  !int: !str\n--- !m\n"1": a\n2: b\n', None, [{'1': 'a', '2': 'b'}]),
+              (Q2 + '--- &\nm:\n  a: !int\n--- !m\n"a": 1\n', None, [{'a': 1}]),
+              (Q2 + '--- &\nw: {!|: [!true(yes|on), !false(no|off), !str]}\nm: {!*: !w}\n--- !m\na: yes\nb: "yes"\nc: \'off\'\n', None, [{'a': True, 'b': 'yes', 'c': 'off'}]),
+              (Q2 + '--- &\nz: {!|: [!null(~|), !str]}\nm: {!*: !z}\n--- !m\na: ~\nb: "~"\nc:\nd: ""\n', None, [{'a': None, 'b': '~', 'c': None, 'd': ''}]),
+              (Q2 + '--- &\nq:\n  !|:\n    - !int(/[-+][0-9]+/)\n    - !str\nm: {!*: !q}\n--- !m\na: +5\nb: "+5"\n', None, [{'a': 5, 'b': '+5'}]),
+              (Q2 + '--- &\nlit: {!|: [on, !str]}\n--- !lit\n"on"\n', None, ['on']),
+              (Q2 + '--- &\nz: {!|: [!null(|~), !str]}\nm: {!*: !z}\n--- !m\na:\nb: ~\nc: ""\n', None, [{'a': None, 'b': None, 'c': ''}]),
+              (Q2 + '--- &\nb: {!|: [!true(#t|yes), !str]}\nm: {!*: !b}\n--- !m\na: yes\nb: "#t"\n', None, [{'a': True, 'b': '#t'}]),
+              ('%YAML 2.0\n--- &\nb: {!|: [!true(#t|yes), !str]}\nm: {!*: !b}\n--- !m\na: yes\nb: "#t"\n', None, [{'a': True, 'b': True}]),
+              (Q2 + '--- &\nx: "80"\nn: {!|: [!int, !str]}\nm:\n  p: !n\n--- !m\np: *x\n', None, [{'p': '80'}]),
+              (Q2 + '--- &\nbase: {a: "1", b: 2}\nt: {!*: {!|: [!int, !str]}}\n--- !t\n<<: *base\n', None, [{'a': '1', 'b': 2}]),
+              ('%YAML 2.0\n' + U2 + '--- !n\n"1"\n...\n' + Q2 + U2 + '--- !n\n"1"\n...\n%YAML 2.0\n' + U2 + '--- !n\n"1"\n', None, [1, '1', 1]),
+              (Q2 + U2 + '--- !n\n"1"\n...\n---\n"1"\n', None, ['1', '1']),
+              (Q2 + U2 + '--- !n\n"1"\n--- !n\n1\n', None, ['1', 1]),
+              (Q2 + '---\n{"a": 1, "b": "1"}\n', None, [{'a': '1', 'b': '1'}]),
+              (Q2 + '---\nx: "1"\n', ('--- &\nr:\n  x: {!|: [!int, !str]}\n', 'r'), [{'x': '1'}]),
+              ('%YAML 2.0\n---\nx: "1"\n', ('%YAML 2.0 quotes\n--- &\nr:\n  x: {!|: [!int, !str]}\n', 'r'), [{'x': 1}])]
+    markednot = [Q2 + '--- &\nn: !int\n--- !n\n"3"\n', Q2 + "--- &\nn: !int\n--- !n\n'3'\n", Q2 + '--- &\nn: !int\n--- !n\n|-\n  3\n',
+                 Q2 + '--- &\nb: !bool\n--- !b\n"true"\n', Q2 + '--- &\nz: !null\n--- !z\n""\n', Q2 + '--- &\nz: !null\n--- !z\n"null"\n',
+                 Q2 + '--- &\nf: !float\n--- !f\n"1.5"\n', Q2 + '--- &\nd: !decimal\n--- !d\n"1.5"\n', Q2 + '--- &\nb: !bigint\n--- !b\n"1"\n',
+                 Q2 + '--- &\nt: !true(yes)\n--- !t\n"yes"\n', Q2 + '--- &\nt: !false\n--- !t\n\'false\'\n', Q2 + '--- &\nz: !null(~|)\n--- !z\n""\n',
+                 Q2 + '--- &\nb: !true(#t)\n--- !b\n"#t"\n', Q2 + '--- &\nq: !int(/[-+][0-9]+/)\n--- !q\n"+5"\n',
+                 Q2 + '--- &\nx: "80"\nm:\n  p: !int\n--- !m\np: *x\n', Q2 + '--- &\nn: [!int, ...]\n--- !n\n[1, "2"]\n',
+                 '%YAML 2.0\n---\na: 1\n...\n%YAML 2.0 quote\n---\nb: 2\n', '%YAML 2.0 Quotes\n---\na\n', '%YAML 2.0  json\n---\na\n', '%YAML 2.0 json quotes\n---\na\n']
+    # Section 3: under `%YAML 2.0 json`, a document that would stay strings is read with the standard `!json`;
+    # an application's schema, or a stamp the table has, still applies. Section 10: `json` is a standard name.
+    jsons = [(J2 + '---\n{"port": 8080, "id": "8080", "debug": null, "note": ""}\n', None, [{'port': 8080, 'id': '8080', 'debug': None, 'note': ''}]),
+             (J2 + '---\n{"a": "1", "b": "null", "c": 1, "d": null, "e": "true", "f": true, "g": 1.5, "h": "1.5", "i": [1, "1", {}], "j": {"k": []}}\n', None,
+              [{'a': '1', 'b': 'null', 'c': 1, 'd': None, 'e': 'true', 'f': True, 'g': 1.5, 'h': '1.5', 'i': [1, '1', {}], 'j': {'k': []}}]),
+             (J2 + '---\n"1"\n--- \n1\n---\n[]\n', None, ['1', 1, []]),
+             (J2 + '---\na: 1\nb: x\nc:\n', None, [{'a': 1, 'b': 'x', 'c': ''}]),
+             (J2 + '--- !nothere\n[1, "1"]\n', None, [[1, '1']]),
+             (J2 + '--- &\nn: [!int, ...]\n--- !n\n[1, 2]\n---\n[1, "2"]\n', None, [[1, 2], [1, '2']]),
+             (J2 + '--- &\njson: !str\n---\n5\n--- !json\n5\n', None, [5, '5']),
+             (J2 + '---\nx: 1\n', ('--- &\nr:\n  x: !str\n', 'r'), [{'x': '1'}]),
+             (J2 + '---\nx: "1"\n...\n%YAML 2.0\n---\nx: "1"\n', None, [{'x': '1'}, {'x': '1'}]),
+             ('%YAML 2.0\n--- &\ncfg:\n  extra: !json\n--- !cfg\nextra: {"a": "1", "b": [null]}\n', None, [{'extra': {'a': 1, 'b': [None]}}]),
+             (Q2 + '--- &\ncfg:\n  extra: !json\n--- !cfg\nextra: {"a": "1", "b": [null]}\n', None, [{'extra': {'a': '1', 'b': [None]}}]),
+             ('%YAML 2.0\n--- &\nj: {!|: [!json, !int]}\n--- !j\n7\n', None, [7])]
+    jsonsnot = [J2 + '---\n{"a": 1, "a": 2}\n', J2 + '--- &\nn: [!int, ...]\n--- !n\n[1, "2"]\n', J2 + '---\n1e999\n']
+    jsonschemas = ['a: !json(1..2)', 'a: !json(/x/)', 'a:\n  !json: !int', 'a:\n  !**: !json']
+    mk = 0
+    def gave(st, got, want):
+        if len(got) != len(want) or not all(same(x, y) for x, y in zip(got, want)): print('DIFFERS', repr(st), got, want); return 1
+        return 0
+    for st, app, want in marked:
+        try: mk += gave(st, typed(st, app), want)
+        except REFUSED as e: mk += 1; print('REFUSED', repr(st), e)
+    for st, app, want in jsons:
+        try: mk += gave(st, typed(st, app), want)
+        except REFUSED as e: mk += 1; print('REFUSED', repr(st), e)
+    for st in markednot:
+        try: typed(st); mk += 1; print('NOT REFUSED', repr(st))
+        except REFUSED: pass
+    for st in jsonsnot:
+        try: typed(st); mk += 1; print('NOT REFUSED', repr(st))
+        except REFUSED: pass
+    for sc_ in jsonschemas:
+        try: typed('--- &\n' + sc_ + '\n'); mk += 1; print('SCHEMA NOT REFUSED', sc_)
+        except REFUSED: pass
+    # Section 3.1: a published schema starts with `%YAML 2.0` alone.
+    Yw = b'%YAML 2.0 quotes\n--- &\nw: !int\n'; hw = hashlib.sha256(Yw).hexdigest()
+    try: typed(f'--- !x.example/w.yes#sha256={hw}\n1\n', store={hw: Yw}); mk += 1; print('NOT REFUSED: a published schema with a word')
+    except REFUSED: pass
+    f += mk; third_n += len(marked) + len(markednot) + len(jsons) + len(jsonsnot) + len(jsonschemas) + 1
     print(f'edge cases: {len(hard) + len(floats) + len(floatnot) + len(gone) + len(decs) + len(decnot) + len(more) + len(morenot) + len(bounds) + len(outside) + len(good) + len(emptyseq) + 2 * len(fulls) + 7 + len(no) + len(keyfaults) + len(schemas) + len(cycles) + len(ceiling) + len(typekeys) + len(typekeysok) + len(binds) + len(writes) + len(ints) + len(notints) + 1 + len(forms) + 1 + len(says) + 2 + len(unions) + len(star) + len(notstar) + len(badstar) + len(pub) + len(notpub) + 1 + 1 + len(reach) + len(nums) + len(nope) + third_n + typed_n} run, {f} fail')
     sys.exit(1 if bad or f else 0)

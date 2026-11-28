@@ -443,6 +443,14 @@ tests settled on, all proposals, left open for the core team:
   two-list `!bool` (2026-11-27): `{!|: [!true(yes|on), !false(no|off)]}` and `!null(~|null|)` replace
   the standard spelling, `!bool` is `{!|: [!true, !false]}`, and an emitter writes the first word
   (part 2, sections 4.1 and 13). Section 10's json schema writes `!null(null)`.
+  **Quotes come back as an option, 2026-11-28** (the user: "we will be bringing plain distinction back,
+  but in a more controlled manner. It won't be 'canonical' YAML 2, but an option nonetheless"). The
+  stream declares it, since @oylng's requote case needs a tool with no schema to see it: `%YAML 2.0
+  quotes`, and `%YAML 2.0 json`, which is `quotes` plus the standard `!json` for a document that would
+  stay strings (the user: "quotes alone, plus the json standard name"). In a marked stream, a value's
+  plain mark is data, and the types for numbers, booleans and null match plain only; `!str`, `!date`,
+  `!datetime`, `!binary` and `!any` take any scalar; keys never count. Plain `%YAML 2.0` keeps option 2.
+  @oylng checked the draft (seven lines added, plan unchanged). **In main `a7f2a1e`.**
 - **Universal matchers (the user chose this, 2026-11-05).** "any value matching `/[+-][0-9]+/` is an
   `!int`". The reach already existed: a recursive type (above), and since 2026-11-06 `!*`. What was missing was the claim, since
   only `!str` took a pattern. So `!int(/pattern/)` replaces the standard spelling with the pattern

@@ -32,6 +32,7 @@ class P:
         s.dheld = s.dfull = 0; s.maxlevels = maxlevels; s.lmemo = {}
         s.fr = []; s.part = 0; s.looked = 0; s.lines = {}; s.wmemo = {}
         s.raw = t; s.t = t.replace('\r\n', '\n'); s.i = 0; s.table = {}; s.docs = []; s.stopped = None; s.intable = False
+        s.word = ''; s.marks = []
     def nsize(s, v):
         """A node's size. A shared object counts in full at every use."""
         if isinstance(v, str): return 1 + len(v.encode('utf-8', 'surrogatepass'))
@@ -119,7 +120,7 @@ class P:
         assert not s.fr; s.part = 0
         s.tally(h, n)
         if not s.keep: s.deep(v)
-        s.docs.append((name, v))
+        s.docs.append((name, v)); s.marks.append(s.word)
     def offset(s):
         """Section 4.4's offset of the line after a stopping `...`: bytes of the stream as written."""
         if s.stopped is None: return None
@@ -173,16 +174,27 @@ class P:
         return k >= len(s.t) or s.t[k] in ' \t\n'
     def marker(s): return s.line_is('---')
     def dots(s): return s.line_is('...')
+    def directive(s):
+        """Section 4.1: `%YAML 2.0`, alone or with one space and `quotes` or `json`. Gives the word."""
+        if not s.t.startswith('%YAML 2.0', s.i): s.bad('no directive')
+        s.i += 9
+        for w in WORDS:
+            if s.t.startswith(' ' + w, s.i) and s.t[s.i + 1 + len(w):s.i + 2 + len(w)] in ('', ' ', '\t', '\n'):
+                s.i += 1 + len(w); s.eol(); return w
+        s.eol(); return ''
+    def unknown_word(s):
+        """Section 4.4: a `%YAML 2.0` line after `...` with a word this draft doesn't know."""
+        m = re.match(r'%YAML 2\.0 ([^ \t\n#][^ \t\n]*)', s.t[s.i:s.i + 100])
+        return bool(m) and m.group(1) not in WORDS
     def directive_then_marker(s):
         if not s.t.startswith('%YAML 2.0', s.i): return False
         j = s.i
         try:
-            s.i += 9; s.eol(); s.gap(); return s.marker()
+            s.directive(); s.gap(); return s.marker()
         except No: return False
         finally: s.i = j
     def stream(s):
-        if not s.t.startswith('%YAML 2.0'): s.bad('no directive')
-        s.i = 9; s.eol(); s.gap()
+        s.word = s.directive(); s.gap()
         while True:
             s.gap()
             if s.eof(): return s
@@ -194,13 +206,14 @@ class P:
                     if s.ch() == '\n': s.i += 1
                     else: s.i = j; break
                 if s.eof(): return s
+                if s.unknown_word(): s.bad('a word %YAML 2.0 does not take')
                 if not s.marker() and not s.directive_then_marker():
                     s.stopped = after; return s
                 if s.keep and s.together: s.dheld += s.theld
                 s.table = {}; s.tsize = {}; s.theld = 0
             if s.directive_then_marker():
                 if not ended: s.bad('%YAML 2.0 can only come again after ...')
-                s.i += 9; s.eol(); s.gap()
+                s.word = s.directive(); s.gap()
             if not s.marker(): s.bad('expected a marker')
             s.document()
     def document(s):
@@ -553,6 +566,13 @@ class P:
             v = v[k]
         return v
 
+WORDS = ('quotes', 'json')
+class Quoted(str):
+    """A scalar not written plain: quoted, or a block scalar. For a value in a stream marked `quotes` or
+    `json`, that is data (sections 4.1 and 5)."""
+for _f in ('double', 'single', 'block'):
+    def _wrap(orig): return lambda s, *a: Quoted(orig(s, *a))
+    setattr(P, _f, _wrap(getattr(P, _f)))
 def framed(t):
     """Add what the examples leave out: %YAML 2.0, and a plain --- if no marker comes first."""
     if t.startswith('%YAML'): return t
@@ -600,18 +620,19 @@ def unescape(t):
     return re.sub(MARKS[6] + '\n\\Z', '', t)
 def esc(v):
     return ''.join(NAMED.get(c) or (f'\\u{ord(c):04X}' if ESCAPED.match(c) else c) for c in v)
-def events(docs):
-    """The suite's event notation, without indentation."""
+def events(docs, marks=()):
+    """The suite's event notation, without indentation. In a marked stream, a value that isn't plain
+    is `=VAL "`, and a key is always `=VAL :`."""
     out = ['+STR']
-    def node(v):
-        if isinstance(v, str): out.append('=VAL :' + esc(v))
-        elif isinstance(v, list): out.append('+SEQ'); [node(x) for x in v]; out.append('-SEQ')
+    def node(v, marked, key=False):
+        if isinstance(v, str): out.append(('=VAL "' if marked and not key and isinstance(v, Quoted) else '=VAL :') + esc(v))
+        elif isinstance(v, list): out.append('+SEQ'); [node(x, marked) for x in v]; out.append('-SEQ')
         else:
             out.append('+MAP')
-            for k, x in v.items(): node(k); node(x)
+            for k, x in v.items(): node(k, marked, True); node(x, marked)
             out.append('-MAP')
-    for name, v in docs:
-        out.append('+DOC' + (' !' + esc(name) if name else '')); node(v); out.append('-DOC')
+    for i, (name, v) in enumerate(docs):
+        out.append('+DOC' + (' !' + esc(name) if name else '')); node(v, i < len(marks) and bool(marks[i])); out.append('-DOC')
     return '\n'.join(out + ['-STR']) + '\n'
 def ordered(v):
     """JSON that compares keys in order."""
@@ -649,7 +670,7 @@ for file, t in tests:
     if t.get('fail'): print(file, 'NOT REFUSED', t['name']); f += 1; continue
     if t.get('keep'): continue
     if 'tree' not in t or 'json' not in t: print(file, 'NO TREE OR JSON', t['name']); f += 1; continue
-    if events(r.docs) != re.sub('^[ \t]+', '', unescape(t['tree']), flags=re.M):
+    if events(r.docs, r.marks) != re.sub('^[ \t]+', '', unescape(t['tree']), flags=re.M):
         print(file, 'TREE', t['name']); f += 1
     if [ordered(json.loads(l)) for l in unescape(t['json']).splitlines()] != [ordered(d[1]) for d in r.docs]:
         print(file, 'JSON', t['name']); f += 1
