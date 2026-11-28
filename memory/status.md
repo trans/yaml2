@@ -98,7 +98,10 @@ part 2, 3's reason for running over what was read; part 2, 11's "how each scalar
 JSON Schema claim narrowed (keys and `a:` differ there); part 1, 13's Added list; part 1, 12's rules
 the grammar can't state (a table key starting with `!`); part 1, 5's wording; the `json` default
 following the line; part 2, 1's "except where they matter"; the README's 3,409 (files libyaml also
-reads). Still to do: the covering notes' 3,409, with the beta figures. Its counts, arithmetic, JSON
+reads). The covering notes (local, in Outtake/) now have the softened banner, the `json` line, 393 and
+1,051, the checker's 61, 393, 78 and 1,005, and the 3,409 wording; still to do there, Oyl NG's figures
+against the beta and the tag name. The short letter is 999 words outside code blocks (its target is
+under 1,000). Its counts, arithmetic, JSON
 figures and cross-references otherwise checked out.
 
 **Oyl NG against `v0.2.4`** (2026-11-28,
