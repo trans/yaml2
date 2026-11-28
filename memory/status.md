@@ -82,6 +82,15 @@ sense in crushing every minutiae now. Just so long as it works well in general."
 tag `v1.0.0-beta.1`, after the quotes option, a read of both specs for contradictions left by the
 changes of 2026-11-27 and 28, the headers (both say "Draft 1, 2026-11-07"; part 2 has a WORK IN
 PROGRESS banner), and Oyl NG passing it. Then the covering notes.
+**The read for contradictions: done, fixed in main `fd7c221`, not pushed** (2026-11-28). A fresh
+agent read both specs and the READMEs. Nine findings in the specs and one in the README, all checked and
+fixed: a global name stamping (part 1, 4.3 against part 2, 3); a pattern on `!null` left in part 2, 4.7;
+part 2, 3's reason for running over what was read; part 2, 11's "how each scalar was written"; the 1.2
+JSON Schema claim narrowed (keys and `a:` differ there); part 1, 13's Added list; part 1, 12's rules
+the grammar can't state (a table key starting with `!`); part 1, 5's wording; the `json` default
+following the line; part 2, 1's "except where they matter"; the README's 3,409 (files libyaml also
+reads). Still to do: the covering notes' 3,409, with the beta figures. Its counts, arithmetic, JSON
+figures and cross-references otherwise checked out.
 
 **Oyl NG against `v0.2.4`** (2026-11-28,
 `mail/received/20261128-001852Z-@oylng--the-engine-against-v0.2.4-373-and-959-of-984-0d0b6fbf.md`):
