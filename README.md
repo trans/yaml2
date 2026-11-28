@@ -78,12 +78,11 @@ from 1.2, and section 13.1 what they cost.
   examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 984 tests.
 - **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser,
   the tree and the emitter for part 1. For part 2 it types documents, binds application types, emits
-  typed data and looks up published schemas. Against this repo's `v0.1.0`, it passes all 373 of part
-  1's tests, and 801 of part 2's 850 with none failing. It skips the rest: 24 for typing with
-  references kept, which isn't built yet, and 25 for a parser that holds times differently. On
-  the 3,409 public files that read as written, by its own benchmark, it reads events 4.1 times as fast
-  as libyaml 0.2.5, and about as fast as Oyl, a 1.2 parser built the same way (0.92): most of the gap
-  is engineering, not the language.
+  typed data and looks up published schemas. Against this repo's `v0.2.4`, it passes all 373 of part
+  1's tests, and 959 of part 2's 984 with none failing. It skips the other 25, which are for a parser
+  that holds times differently. On the 3,409 public files that read as written, by its own benchmark,
+  it reads events 4.1 times as fast as libyaml 0.2.5, and about as fast as Oyl, a 1.2 parser built the
+  same way (0.92): most of the gap is engineering, not the language.
 - **Converter:** not written yet.
 
 ## Checking it
