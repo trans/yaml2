@@ -37,8 +37,13 @@ The user chose (2026-11-28) "quotes alone, plus the json standard name", and ask
 defined as `quotes` plus a default: a document the file doesn't stamp, and that the application gives
 no schema, is read with part 2's standard `!json` (section 10's one-line schema). It's a default, not a
 stamp, so an application's own schema still applies. A parser that does only part 1 reads `json` as
-`quotes`. The body may be any 2.0 syntax. **Waiting on the user** to confirm this, and the two words on
-`%YAML 2.0`, before drafting part 1, section 4.1 and part 2, sections 3, 4.1 and 10.
+`quotes`. The body may be any 2.0 syntax. The user confirmed and said "yes, draft it" (2026-11-28).
+**Drafted, not applied:** `Outtake/quotes-draft.md` (local) has new text for part 1, sections 4.1, 5, 11,
+12 and 13.1, and part 2, sections 3, 4.1 (and a `!json` row), 7, 9, 10 and 13, with eight choices for
+the user to check. One corrects the agent's earlier "every type except `!str` and `!any`": only the
+types for numbers, booleans and null match plain only, and `!date`, `!datetime` and `!binary` take any
+scalar, as before `v0.2.4`. The JSON figures (1,015 and 93) are from before `v0.2.4`, and are to be
+measured again. **Waiting on the user's review.**
 
 **Oyl NG against `v0.2.4`** (2026-11-28,
 `mail/received/20261128-001852Z-@oylng--the-engine-against-v0.2.4-373-and-959-of-984-0d0b6fbf.md`):
