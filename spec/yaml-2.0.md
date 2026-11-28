@@ -135,7 +135,8 @@ number 8080 and keeps the second as a string.
 
 The line may appear again after `...`, ahead of a marker line (section 4.4).
 Anywhere else it is refused, and so is any other version. Each line's word, or the lack of one,
-holds for the documents after it, up to the next line. So whoever joins files has to
+holds for the documents after it, up to the next line, and "a stream marked `quotes`" here and in
+part 2 means the documents under such a line. So whoever joins files has to
 choose. Independent files take `...` between them and keep their own words, and files sharing one
 table drop the line and use `---`, so they share the first line's word.
 
@@ -231,9 +232,9 @@ application.
 A name is delivered beside the data, not in it. A parser looks nothing up and never
 fetches anything, because reading a file must not touch the network, and to a parser a
 name isn't an address. A name alone is advisory: an application may refuse a name it
-didn't expect. A name that is an entry in the file's own table stamps the document with
-that entry, and YAML Easy Schema says what that means. YAML Easy Schema, section 3.1, also gives one
-form of global name that an application can choose to look up.
+didn't expect. A name with no `/` that is an entry in the file's own table stamps the
+document with that entry, and YAML Easy Schema says what that means. YAML Easy Schema, section
+3.1, also gives one form of global name that an application can choose to look up.
 
 ```yaml
 --- !github.com/actions/workflow/v1
@@ -335,8 +336,8 @@ characters can be written.
 In a stream marked `quotes` or `json` (section 4.1), a scalar value is also plain or not, and that
 is data. `42` is plain, and `"42"` and `'42'` are the same value, not plain, so a schema can read
 `42` as a number and keep `"42"` as a string (part 2, section 4.1). Only a plain scalar (section
-6.1) is plain, and a quoted or block scalar isn't. A key or item with no value, and an empty
-document, is plain, so `f:` and `f: ""` differ there. A document's keys are compared by their text
+6.1) is plain, and so is a key or item with no value and an empty document, while a quoted or block
+scalar isn't. So `f:` and `f: ""` differ there. A document's keys are compared by their text
 alone (section 7.4), so a key is neither.
 
 ```yaml
@@ -1143,7 +1144,8 @@ exactly `n` spaces, and `A - B` is A but not B. `[> x]` means x must follow, and
 consumed, `[!> x]` means it must not, and `[< x]` means x must come before. `EOF` is
 the end of the stream.
 
-Rules the grammar can't state: a `<<:` at the top of a table, a plain scalar starting with `!`
+Rules the grammar can't state: a `<<:` at the top of a table, a table key starting with `!`, a plain
+scalar starting with `!`
 outside a table, duplicate keys, reference resolution, and the size limit. A line starting with a
 marker or `...` is only matched by `document`, `table`, `later` and `finish`, and a
 line starting with `%` only by `directive`.
@@ -1303,6 +1305,7 @@ Added:
 - A required `%YAML 2.0`, and a required `---` after it.
 - The table, `--- &`, and references as paths, with `<...>` for literal keys.
 - Document names, `--- !name`.
+- `%YAML 2.0 quotes` and `%YAML 2.0 json`, under which whether a value is plain is data (section 4.1).
 - `<<:` as a defined part of the language, and `-<<`.
 - Guaranteed key order.
 - A size limit.

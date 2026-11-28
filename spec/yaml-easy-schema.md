@@ -115,7 +115,7 @@ are types, and `!name` names one. A schema adds nothing to the data but types: a
 is written in the file, as a merge (section 11).
 
 Each example shows a stream, then what it delivers, one line of JSON per document. Examples
-leave out `%YAML 2.0` and the plain `---` after it. An example marked `refused` must be refused.
+leave out `%YAML 2.0` and the plain `---` after it, except where they matter. An example marked `refused` must be refused.
 
 ## 2. Conformance
 
@@ -146,8 +146,8 @@ A document gets its schema in one of two ways:
   its names.
 
 A global name, one with a `/`, is never looked up in the table, so it stamps nothing. Nor does a
-name the table doesn't have. A document with neither stays strings, unless the stream is marked
-`json` (part 1, section 4.1). There, a document that would otherwise stay strings is read with the
+name the table doesn't have. A document with neither stays strings, unless it comes under a
+`%YAML 2.0 json` line (part 1, section 4.1). There, a document that would otherwise stay strings is read with the
 standard `!json` (section 10): one with no stamp, one whose stamp stamps nothing, and one whose
 stamp the application set aside. That is a default, not a stamp, so an application's own schema
 still applies, and quotes count under it as section 4.1 says. A table entry named `json` doesn't
@@ -174,8 +174,9 @@ and its full size is 1: a limit of 6 refuses it.
 A library may also let an application cut a time to the fraction digits its language holds, rather than
 refuse it (section 4.8). It is off unless the application turns it on.
 
-A schema sees how each scalar was written, and that isn't in the delivered data (part 1, section
-11). So it runs over what a parser read, not over what it delivered. A parser can type events as
+A schema needs what the delivered data leaves out (part 1, section 11): the table, where quoting
+tells a type from a literal (section 5), and references, where a parser keeps them (section 11). So
+it runs over what a parser read, not over what it delivered. A parser can type events as
 they arrive, or a tree once it is built. Under a union of mappings it holds a mapping's events until
 one alternative is left, which can be at the mapping's end. A `--- &` document holds both types and
 data, and a stream has one table: `!job` and `*defaults` look in the same place.
@@ -335,8 +336,8 @@ So `3` can be an integer, and `"3"` never is. A block scalar isn't plain. A valu
 plain, so under `!null`, `a:` is null and `a: ""` isn't. A word that can't be written plain, such as
 `#t`, never matches there. `!str`, `!date`, `!datetime`, `!binary` and `!any` take a scalar however
 it's written, since JSON has no dates or bytes and writes them quoted. A key is never plain or not,
-so a type key such as `!int` still takes `1` and `"1"` (section 7). This is what a YAML 1.2 parser
-with JSON Schema does today.
+so a type key such as `!int` still takes `1` and `"1"` (section 7). Typing only plain scalars as
+numbers, booleans and null is what YAML 1.2's JSON Schema does today.
 
 ```yaml
 %YAML 2.0 quotes
@@ -720,8 +721,8 @@ price: !decimal(5:2)
 A type can carry a precision, a limit and a pattern together, in one pair of parentheses, in that
 order, with one space between each. Each says something of its own: the pattern says which text is the
 type, the precision how many digits the value may have, and the limit which values are allowed. A
-precision goes on `!decimal` only, a limit on `!str` and the numbers, and a pattern on those and on
-`!null`.
+precision goes on `!decimal` only, and a limit and a pattern on `!str` and the numbers. `!true`,
+`!false` and `!null` take words instead (section 4.1).
 
 A type carries at most one of each, so each type has one spelling:
 `!int(/[-+][0-9]+/ 0..100)` is refused, and so is `!int(0..10 20..30)`. With the pattern last, it still
@@ -1272,7 +1273,7 @@ json: {!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}
 `json` is also a standard name, for this entry:
 `{!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}`. A table name wins over
 it (section 8), so the examples here, which write it out, mean the same. It types anything, in any
-stream, and a stream that starts with `%YAML 2.0 json` reads a document that would stay strings
+stream, and a document under a `%YAML 2.0 json` line that would otherwise stay strings is read
 through it (section 3).
 
 Under plain `%YAML 2.0`, quotes don't count for a type (section 4.1), so these schemas read a JSON string that looks like a
@@ -1465,8 +1466,9 @@ text: *port
 {"number": 80, "text": "80"}
 ```
 
-So a parser that keeps a reference as one shared node has to keep how each scalar was written,
-and it can't share a typed result between two types.
+So a parser that keeps a reference as one shared node has to keep each scalar's text, and in a
+stream marked `quotes` or `json` whether it is plain (section 4.1), and it can't share a typed result
+between two types.
 
 An interface that keeps references types each node once for each type and nearest `!**`. The `!**`
 is part of that because it can change what one type does to one node:
