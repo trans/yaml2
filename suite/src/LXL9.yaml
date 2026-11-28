@@ -1,0 +1,15 @@
+---
+- name: An empty document marked quotes is plain
+  from: part 1, section 5
+  tags: directive quotes empty
+  yaml: |
+    %YAML 2.0 quotes
+    ---
+  tree: |
+    +STR
+     +DOC
+      =VAL :
+     -DOC
+    -STR
+  json: |
+    ""

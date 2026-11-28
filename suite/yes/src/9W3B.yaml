@@ -1,0 +1,24 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `!m` on `p: *x`'
+  from: part 2, section 4.1
+  tags: str int union reference quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    x: "80"
+    n: {!|: [!int, !str]}
+    m:
+      p: !n
+    --- !m
+    p: *x
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :p
+       =VAL :80
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"p": "80"}

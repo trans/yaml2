@@ -1,0 +1,43 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `{!*: !u}` on `a: "1.5"; b: "true"; c: "null"; d: ""; …`'
+  from: part 2, section 4.1
+  tags: str float bool null union star quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    u: {!|: [!float, !bool, !null, !str]}
+    m: {!*: !u}
+    --- !m
+    a: "1.5"
+    b: "true"
+    c: "null"
+    d: ""
+    e:
+    f: 1.5
+    g: true
+    h: null
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :a
+       =VAL :1.5
+       =VAL :b
+       =VAL :true
+       =VAL :c
+       =VAL :null
+       =VAL :d
+       =VAL :
+       =VAL :e
+       =NULL
+       =VAL :f
+       =FLT :1.5
+       =VAL :g
+       =BOOL :true
+       =VAL :h
+       =NULL
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1.5", "b": "true", "c": "null", "d": "", "e": null, "f": 1.5, "g": true, "h": null}

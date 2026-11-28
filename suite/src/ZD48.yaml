@@ -1,0 +1,24 @@
+---
+- name: Documents sharing a table share the word
+  from: part 1, section 4.1
+  tags: directive quotes table
+  yaml: |
+    %YAML 2.0 json
+    --- &
+    x: 1
+    ---
+    "a"
+    ---
+    b
+  tree: |
+    +STR
+     +DOC
+      =VAL "a
+     -DOC
+     +DOC
+      =VAL :b
+     -DOC
+    -STR
+  json: |
+    "a"
+    "b"

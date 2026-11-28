@@ -1,0 +1,24 @@
+---
+- name: 'The standard json: `!str` on `5`'
+  from: part 2, section 10
+  tags: str json quotes
+  yaml: |
+    %YAML 2.0 json
+    --- &
+    json: !str
+    ---
+    5
+    --- !json
+    5
+  typed: |
+    +STR
+     +DOC
+      =INT :5
+     -DOC
+     +DOC !json
+      =VAL :5
+     -DOC
+    -STR
+  json: |
+    5
+    "5"

@@ -1,0 +1,26 @@
+---
+- name: A merge keeps whether each value is plain
+  from: part 1, section 9.1
+  tags: directive quotes table merge
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    base: {a: "1", b: 1}
+    ---
+    <<: *base
+    c: "2"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL "1
+       =VAL :b
+       =VAL :1
+       =VAL :c
+       =VAL "2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": "1", "c": "2"}

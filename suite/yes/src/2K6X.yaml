@@ -1,0 +1,25 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `{!*: !b}` on `a: yes; b: "#t"`'
+  from: part 2, section 4.1
+  tags: str true words union star quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    b: {!|: [!true(#t|yes), !str]}
+    m: {!*: !b}
+    --- !m
+    a: yes
+    b: "#t"
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :a
+       =BOOL :true
+       =VAL :b
+       =VAL :#t
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": true, "b": "#t"}

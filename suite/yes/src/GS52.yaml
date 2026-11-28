@@ -1,0 +1,25 @@
+---
+- name: Applying a schema, example 1
+  from: part 2, section 3
+  tags: spec json quotes
+  yaml: |
+    %YAML 2.0 json
+    ---
+    {"port": 8080, "id": "8080", "debug": null, "note": ""}
+  typed: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :port
+       =INT :8080
+       =VAL :id
+       =VAL :8080
+       =VAL :debug
+       =NULL
+       =VAL :note
+       =VAL :
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"port": 8080, "id": "8080", "debug": null, "note": ""}

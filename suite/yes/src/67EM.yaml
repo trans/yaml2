@@ -1,0 +1,15 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `!m` on `p: *x`'
+  from: part 2, section 4.1
+  tags: int reference quotes error
+  fail: true
+  refused: document
+  at: '/p'
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    x: "80"
+    m:
+      p: !int
+    --- !m
+    p: *x

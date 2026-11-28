@@ -1,0 +1,13 @@
+---
+- name: 'The standard json: `!a` on `x`'
+  from: part 2, section 10
+  tags: int json error
+  fail: true
+  refused: schema
+  yaml: |
+    %YAML 2.0
+    --- &
+    a:
+      !json: !int
+    --- !a
+    x

@@ -1,0 +1,24 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `{!*: {!|: [!int, !str]}}` on `<<: *base`'
+  from: part 2, section 4.1
+  tags: str int union star merge reference quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    base: {a: "1", b: 2}
+    t: {!*: {!|: [!int, !str]}}
+    --- !t
+    <<: *base
+  typed: |
+    +STR
+     +DOC !t
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :b
+       =INT :2
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": 2}

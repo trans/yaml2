@@ -1,0 +1,21 @@
+---
+- name: '%YAML 2.0 json, with a number and a string'
+  from: part 1, section 4.1
+  tags: spec directive quotes flow
+  yaml: |
+    %YAML 2.0 json
+    ---
+    {"port": 8080, "id": "8080"}
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :port
+       =VAL :8080
+       =VAL :id
+       =VAL "8080
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"port": "8080", "id": "8080"}

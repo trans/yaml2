@@ -1,0 +1,29 @@
+---
+- name: 'The standard json: `!cfg` on `extra: {"a": "1", "b": [null]}`'
+  from: part 2, section 10
+  tags: json
+  yaml: |
+    %YAML 2.0
+    --- &
+    cfg:
+      extra: !json
+    --- !cfg
+    extra: {"a": "1", "b": [null]}
+  typed: |
+    +STR
+     +DOC !cfg
+      +MAP
+       =VAL :extra
+       +MAP
+        =VAL :a
+        =INT :1
+        =VAL :b
+        +SEQ
+         =NULL
+        -SEQ
+       -MAP
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"extra": {"a": 1, "b": [null]}}

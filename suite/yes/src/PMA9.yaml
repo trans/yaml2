@@ -1,0 +1,23 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `[!port, ...]` on `- 8080; - "8080"`'
+  from: part 2, section 4.1
+  tags: str int union sequence
+  yaml: |
+    %YAML 2.0
+    --- &
+    port: {!|: [!int, !str]}
+    ports: [!port, ...]
+    --- !ports
+    - 8080
+    - "8080"
+  typed: |
+    +STR
+     +DOC !ports
+      +SEQ
+       =INT :8080
+       =INT :8080
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [8080, 8080]

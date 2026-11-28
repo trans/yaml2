@@ -146,7 +146,22 @@ A document gets its schema in one of two ways:
   its names.
 
 A global name, one with a `/`, is never looked up in the table, so it stamps nothing. Nor does a
-name the table doesn't have. A document with neither stays strings.
+name the table doesn't have. A document with neither stays strings, unless the stream is marked
+`json` (part 1, section 4.1). There, a document that would otherwise stay strings is read with the
+standard `!json` (section 10): one with no stamp, one whose stamp stamps nothing, and one whose
+stamp the application set aside. That is a default, not a stamp, so an application's own schema
+still applies, and quotes count under it as section 4.1 says. A table entry named `json` doesn't
+change the default, since nothing stamps the document with it.
+
+```yaml
+%YAML 2.0 json
+---
+{"port": 8080, "id": "8080", "debug": null, "note": ""}
+```
+
+```json
+{"port": 8080, "id": "8080", "debug": null, "note": ""}
+```
 
 A library may let an application ignore a file's schema and read the document as one with no stamp,
 or hand it the schema, which is YAML too.
@@ -186,8 +201,10 @@ retries: 3
 
 ### 3.1 Publishing a schema
 
-A schema can be published as a file anyone can use. The file is a table: `%YAML 2.0` and one
-`--- &`, with nothing after it, not even `...`. Its name ends in `.yes`, and the entry named like the
+A schema can be published as a file anyone can use. The file is a table: `%YAML 2.0` alone, with
+no word after it (part 1, section 4.1), and one `--- &`, with nothing after it, not even `...`. A
+word would change nothing in a schema, whose own quoting already says what is a literal (section
+5), and would give the same schema a second file and hash. Its name ends in `.yes`, and the entry named like the
 file, without `.yes`, is the root, so `address.yes` has an entry `address`, which types the document as
 a local stamp's entry does.
 
@@ -252,6 +269,7 @@ fixes uses an application's schema instead.
 | `!datetime` | an RFC 3339 date-time (section 4.8) | a date and time |
 | `!binary` | base64, RFC 4648 section 4, padded, with its pad bits zero, and with line feeds skipped | bytes |
 | `!any` | any node | that node, untyped |
+| `!json` | any JSON value: `null`, a boolean, a number, a string, or a mapping or sequence of them (section 10) | that value, typed |
 
 The spellings are exact, so `0755`, `+1`, `1.`, `True` and `yes` are not numbers or booleans. A
 pattern can change this for a number (section 4.5), and words can for `!true`, `!false` and
@@ -308,6 +326,40 @@ n: [!int, ...]
 
 ```json
 [3, -4]
+```
+
+In a stream marked `quotes` or `json` (part 1, section 4.1), whether a scalar value is plain is
+data, and the types for numbers, booleans and null read it. `!int`, `!bigint`, `!float`, `!decimal`,
+`!bool`, `!true`, `!false` and `!null` match plain scalars only, with or without a pattern or words.
+So `3` can be an integer, and `"3"` never is. A block scalar isn't plain. A value left out is
+plain, so under `!null`, `a:` is null and `a: ""` isn't. A word that can't be written plain, such as
+`#t`, never matches there. `!str`, `!date`, `!datetime`, `!binary` and `!any` take a scalar however
+it's written, since JSON has no dates or bytes and writes them quoted. A key is never plain or not,
+so a type key such as `!int` still takes `1` and `"1"` (section 7). This is what a YAML 1.2 parser
+with JSON Schema does today.
+
+```yaml
+%YAML 2.0 quotes
+--- &
+port: {!|: [!int, !str]}
+ports: [!port, ...]
+--- !ports
+- 8080
+- "8080"
+```
+
+```json
+[8080, "8080"]
+```
+
+Under plain `%YAML 2.0`, the same stream gives `[8080, 8080]`.
+
+```yaml refused
+%YAML 2.0 quotes
+--- &
+n: !int
+--- !n
+"3"
 ```
 
 `!binary` skips line feeds, because a `|` block of wrapped base64 is how a long value is usually
@@ -899,7 +951,7 @@ job:
 ```
 
 A key that is a type takes every key it fits that isn't named, tried in the order written. A
-key stays a string, and how it was written doesn't count, so `!int` as a key takes `1` and `"1"`.
+key stays a string, and how it was written doesn't count, so `!int` as a key takes `1` and `"1"`, in any stream (section 4.1).
 A key that a type key can't hold refuses the document, as a value does (section 4.4), so under
 `!float` as a key, `1e999` is refused, not passed to the next key.
 
@@ -1077,7 +1129,8 @@ limits: [!limit, ...]
 ```
 
 This puts a choice in the schema's hands. A schema that tries a number before a string reads
-`1.10` as 1.1, quoted or not, since quotes don't count (section 4.1). It only happens where a
+`1.10` as 1.1, quoted or not, since quotes don't count (section 4.1), except in a stream marked
+`quotes` or `json`. It only happens where a
 schema asks for it, and every parser gives the same result. Where `1.10` must stay as written,
 the schema says `!str`.
 
@@ -1100,6 +1153,10 @@ string `true`, and one that tries `!date` first can't hold the string `2001-02-0
 refuses to write them (section 13). Writing `!str` first reads all of them as strings instead,
 so the author chooses one. Words change which text `!null` takes (section 4.1), so
 `{!|: [!null(~), !str]}` holds the string `null`, and only `~` is null.
+
+In a stream marked `quotes` or `json` (section 4.1), a quoted `1.10` or `true` isn't a number or a
+boolean, so those unions hold them as strings, and an emitter quotes them (section 13). A union that
+tries `!date` first still can't hold the string `2001-02-03`, since `!date` takes quoted text.
 
 The block form is the same union. Here a step is a command, or a mapping written in place:
 
@@ -1212,7 +1269,13 @@ json: {!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}
 [1, "x", null, {"d": [true, {"e": 1.5}]}]
 ```
 
-Quotes don't count for a type (section 4.1), so these schemas read a JSON string that looks like a
+`json` is also a standard name, for this entry:
+`{!|: [!null(null), !bool, !int, !float, !str, {!*: !json}, [!json, ...]]}`. A table name wins over
+it (section 8), so the examples here, which write it out, mean the same. It types anything, in any
+stream, and a stream that starts with `%YAML 2.0 json` reads a document that would stay strings
+through it (section 3).
+
+Under plain `%YAML 2.0`, quotes don't count for a type (section 4.1), so these schemas read a JSON string that looks like a
 number, a boolean or null as one, and can't hold it as a string: `"1"` is the number 1, and
 `"null"` is null.
 
@@ -1234,6 +1297,21 @@ JSON Schema's `"type": "null"`. Others hold a string that reads as a float (85 f
 JSONTestSuite that every JSON parser must accept, it gave the same result on 92. 2 of the other 3
 are repeated keys, which part 1 refuses, and the third holds the string `"1"`. A schema that says
 where the strings are keeps them, as one written for a format does.
+
+In a stream marked `quotes` or `json`, a quoted string stays a string:
+
+```yaml
+%YAML 2.0 json
+---
+{"a": "1", "b": "null", "c": 1, "d": null}
+```
+
+```json
+{"a": "1", "b": "null", "c": 1, "d": null}
+```
+
+Under `%YAML 2.0 json`, `json` gave a JSON parser's result on all 1,015 files, and on 93 of the 95,
+the other 2 being repeated keys.
 
 An integer outside `!int`'s range refuses the document here. None of those 1,015 files holds one,
 as a number or as a string, and
@@ -1574,8 +1652,12 @@ such as `true` or `${{ expression }}`, is a named string and a few lines of code
 An emitter of typed data needs the same schema. It refuses a string that the type at that place
 would read as something else, or refuse, since quoting it wouldn't help (section 4.1): under
 `{!|: [!int, !str]}`, the string `3` is refused, and under `{!|: [!float, !str]}`, so is `1e999`,
-which reads as a float too large and refuses the document (section 4.4). It quotes a string only
-where part 1 needs it, as for `a: b`. It writes a number, a boolean, null or a time in its standard
+which reads as a float too large and refuses the document (section 4.4). In a stream marked
+`quotes` or `json` (part 1, section 4.1), it quotes such a string instead, where quoted it reads as a
+string: under `{!|: [!int, !str]}`, the string `3` is written `"3"`. Under `{!|: [!date, !str]}`,
+the string `2001-02-03` is still refused, since `!date` takes quoted text. Otherwise it quotes a
+string only where part 1 needs it, as for `a: b`. It writes `quotes` or `json` on the first line if
+the application asks for it. It writes a number, a boolean, null or a time in its standard
 spelling, a float as section 4.4 says, or in the text it was read from if the application kept it,
 and refuses if that wouldn't read back as the same type and value: under `!signed` (section 4.5), 5
 is refused, and a `+5` that was read and kept is written `+5`. Under `{!|: [!signed, !str]}`, 5 is
@@ -1583,7 +1665,9 @@ refused too, since `5` fits there only as a string. An application that wants `+
 `signed` to code that writes it (section 12). Null is written `null`. Under words (section 4.1), a
 boolean or null is written as the first word of its type's list: true as `yes` under
 `{!|: [!true(yes|on), !false(no|off)]}`, and null as `~` under `!null(~|null)`, or as `""` where that
-word is empty.
+word is empty. In a marked stream, a quoted word doesn't match, so it writes the first word that can
+be plain where it goes, an empty word as a value left out (`f:`), and refuses if none can: a value
+left out can't be an item of a flow sequence, and `#t` can't be plain anywhere.
 A bound value needs the way back too: the application gives code that turns a `Point` into the mapping its entry
 takes. An emitter can't compare the application's object with what reading gives, so it checks only that what
 the code writes reads back through the name the code was bound under. `+5` from `signed`'s code is written

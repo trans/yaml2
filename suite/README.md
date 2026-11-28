@@ -1,13 +1,14 @@
 # Test suite for part 1
 
 Tests for [the language](../spec/yaml-2.0.md), Draft 1, in the format of the YAML project's
-[yaml-test-suite](https://github.com/yaml/yaml-test-suite), with the changes below. There are 373:
+[yaml-test-suite](https://github.com/yaml/yaml-test-suite), with the changes below. There are 393:
 
-- the draft's 59 examples, tagged `spec`;
+- the draft's 61 examples, tagged `spec`;
 - 250 edge cases from the draft's checker;
-- 64 new ones: the size limit at each boundary and one under it, lookups through kept `<<:`
+- 82 new ones: the size limit at each boundary and one under it, lookups through kept `<<:`
   lines, 256 levels of nesting, CR LF line breaks, the stop offset, a tab after a reference, key
-  order, a fragment in a name, and a table name that starts with `!`.
+  order, a fragment in a name, a table name that starts with `!`, and the words `quotes` and
+  `json` on `%YAML 2.0` (section 4.1), tagged `quotes` where a stream has one.
 
 ## Files
 
@@ -40,7 +41,10 @@ skip by tag. It needs PyYAML.
 - `+STR` and `-STR` hold the stream, `+DOC` and `-DOC` a document, `+MAP` and `-MAP` a mapping,
   `+SEQ` and `-SEQ` a sequence, and `=VAL :` a string. There are no anchors, aliases, tags or
   styles. Every string is written `=VAL :`, as 1.2 writes a plain scalar, because the way a scalar
-  was written isn't data. The `:` only marks where the string starts.
+  was written isn't data. The `:` only marks where the string starts. The one exception is a stream
+  marked `quotes` or `json` (section 4.1), where whether a value is plain is data: a value that isn't
+  plain is `=VAL "`, whether it was in single or double quotes or a block, and a key is still
+  `=VAL :`.
 - A named document is `+DOC !name`. `+DOC` and `-DOC` don't show `---` or `...`: every document
   has a marker, and how a document ended isn't data, apart from a stop, which `rest` shows.
 - Keys keep their order. A harness must compare the objects in `json` in order.

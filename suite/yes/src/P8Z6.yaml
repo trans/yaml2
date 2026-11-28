@@ -1,0 +1,9 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `%YAML 2.0 Quotes; ---; a`'
+  from: part 2, section 4.1
+  tags: schema error
+  fail: true
+  yaml: |
+    %YAML 2.0 Quotes
+    ---
+    a

@@ -1,0 +1,25 @@
+---
+- name: Wherever this occurs, example 4
+  from: part 2, section 10
+  tags: spec json quotes
+  yaml: |
+    %YAML 2.0 json
+    ---
+    {"a": "1", "b": "null", "c": 1, "d": null}
+  typed: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :b
+       =VAL :null
+       =VAL :c
+       =INT :1
+       =VAL :d
+       =NULL
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": "null", "c": 1, "d": null}

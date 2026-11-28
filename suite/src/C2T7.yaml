@@ -1,0 +1,13 @@
+---
+- name: 'A word %YAML 2.0 does not take, after ...'
+  from: part 1, section 4.4
+  tags: spec directive ending error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a: 1
+    ...
+    %YAML 2.0 strict
+    ---
+    b: 2

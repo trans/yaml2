@@ -1,0 +1,39 @@
+---
+- name: Plain or not, in a stream marked quotes
+  from: part 1, section 5
+  tags: directive quotes double single literal folded empty
+  yaml: |
+    %YAML 2.0 quotes
+    ---
+    a: 1
+    "b": "1"
+    c: '1'
+    d: |-
+      1
+    e: >-
+      1
+    f:
+    g: ""
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+       =VAL :b
+       =VAL "1
+       =VAL :c
+       =VAL "1
+       =VAL :d
+       =VAL "1
+       =VAL :e
+       =VAL "1
+       =VAL :f
+       =VAL :
+       =VAL :g
+       =VAL "
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1", "b": "1", "c": "1", "d": "1", "e": "1", "f": "", "g": ""}

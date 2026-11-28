@@ -1,0 +1,41 @@
+---
+- name: 'Each %YAML 2.0 line sets its word'
+  from: part 1, section 4.1
+  tags: directive quotes ending
+  yaml: |
+    %YAML 2.0
+    ---
+    a: "1"
+    ...
+    %YAML 2.0 quotes
+    ---
+    b: "1"
+    ...
+    %YAML 2.0
+    ---
+    c: "1"
+  tree: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :a
+       =VAL :1
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :b
+       =VAL "1
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :c
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": "1"}
+    {"b": "1"}
+    {"c": "1"}

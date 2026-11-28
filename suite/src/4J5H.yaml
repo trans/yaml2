@@ -1,0 +1,22 @@
+---
+- name: A reference keeps whether its value is plain
+  from: part 1, section 8.2
+  tags: directive quotes table reference flow
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    x: "80"
+    y: 80
+    ---
+    [*x, *y]
+  tree: |
+    +STR
+     +DOC
+      +SEQ
+       =VAL "80
+       =VAL :80
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["80", "80"]

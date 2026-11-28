@@ -1,0 +1,13 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `!true(yes)` on `"yes"`'
+  from: part 2, section 4.1
+  tags: true words quotes error
+  fail: true
+  refused: document
+  at: '/'
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    t: !true(yes)
+    --- !t
+    "yes"

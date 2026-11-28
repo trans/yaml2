@@ -1,0 +1,15 @@
+---
+- name: 'A published schema starts with %YAML 2.0 alone: `!x.example/w.yes#sha256=fb3340…` on `1`'
+  from: part 2, section 3.1
+  tags: int published error
+  fail: true
+  refused: schema
+  store:
+    'fb3340de7e601f31986530fcc5eccb3ac38ebd1de842a9efd177842a48acbddc': |
+      %YAML 2.0 quotes
+      --- &
+      w: !int
+  yaml: |
+    %YAML 2.0
+    --- !x.example/w.yes#sha256=fb3340de7e601f31986530fcc5eccb3ac38ebd1de842a9efd177842a48acbddc
+    1

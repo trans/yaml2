@@ -1,0 +1,30 @@
+---
+- name: 'The standard json: `%YAML 2.0 json; ---; x: "1"; ...; %YAML 2.0; ---; x: "1"`'
+  from: part 2, section 10
+  tags: json quotes
+  yaml: |
+    %YAML 2.0 json
+    ---
+    x: "1"
+    ...
+    %YAML 2.0
+    ---
+    x: "1"
+  typed: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :x
+       =VAL :1
+      -MAP
+     -DOC
+     +DOC
+      +MAP
+       =VAL :x
+       =VAL :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": "1"}
+    {"x": "1"}

@@ -2,10 +2,10 @@
 
 Tests for [YAML Easy Schema (YES)](../../spec/yaml-easy-schema.md), part 2 of the proposal, in the
 format of [part 1's suite](../README.md), with the additions below. Part 2 is a work in progress, and
-these tests will change with it. There are 984:
+these tests will change with it. There are 1,051:
 
-- the draft's 73 examples, tagged `spec`;
-- 874 edge cases from the draft's checker, 33 of them for the code an application binds (section 12),
+- the draft's 77 examples, tagged `spec`;
+- 937 edge cases from the draft's checker, 33 of them for the code an application binds (section 12),
   8 for what that code writes (section 13), and 26 for typing a merge read with references kept
   (section 11);
 - 15 tests of section 11's typed count, and 22 of section 9's full size, at limits a parser can reach
@@ -52,8 +52,10 @@ read. It can't tell `2` from `2.0`, or a date from a string, so a harness compar
   in `yaml`, as they are written there. Read back with the same schema and settings, the result gives
   the same typed events. A harness compares a time with `T` and `Z` in capitals, since lowercase is
   the same time (section 4.8): test `U268`'s `2001-02-03t04:05:06z` may come back as
-  `2001-02-03T04:05:06Z`. Where a test has `emit: refused`, the emitter refuses instead. Of those 30,
-  26 have a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
+  `2001-02-03T04:05:06Z`. In a stream marked `quotes` or `json` (part 1, section 4.1), a harness asks
+  the emitter for the word on the first line of `yaml`, so that it writes the stream the same way.
+  Where a test has `emit: refused`, the emitter refuses instead. Of those 31,
+  27 have a value under a pattern that its standard spelling doesn't match, such as 5 read from `+5`
   under `!int(/[-+][0-9]+/)`. The other 4 have code that writes what doesn't read back through the name
   it was bound under. The suite doesn't fix how the YAML is laid out or quoted.
 - **`writes`.** An emitter writes a value that bound code made through that code, and checks only that
@@ -92,13 +94,16 @@ since a key is always a string.
 
 ### Tags
 
-Each test is tagged with the standard types its roots reach. It also has a tag for each of the
-following that it uses, so that a parser that does only part of the draft can skip the rest:
+Each test is tagged with the standard types its roots reach, `json` among them where the standard
+one is meant (section 10) or `%YAML 2.0 json` reads a document with it (section 3). It also has a tag
+for each of the following that it uses, so that a parser that does only part of the draft can skip
+the rest:
 
 | Tag | What the test uses |
 |---|---|
 | `pattern` | a pattern (sections 4.3 and 4.5) |
 | `words` | words on `!true`, `!false` or `!null` (section 4.1) |
+| `quotes` | a stream marked `quotes` or `json`, where whether a value is plain is data (section 4.1, and part 1, section 4.1) |
 | `range` | a limit such as `0..10` (section 4.2) |
 | `precision` | precision and scale on `!decimal` (section 4.6) |
 | `union` | a union (section 9), or ` \| ` in a plain scalar, which section 14 refuses |
@@ -158,7 +163,7 @@ The checker takes three shortcuts, and the suite doesn't:
   full size passes what the text holds: about 1,010 against 510. Each is set at its full size, where
   it loads, and at one less.
 
-The suite also leaves out 3 tests over 200 KB, and 12 that repeat another test.
+The suite also leaves out 3 tests over 200 KB, and 15 that repeat another test.
 
 ## Not covered yet
 

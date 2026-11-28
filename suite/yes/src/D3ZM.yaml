@@ -1,0 +1,19 @@
+---
+- name: 'The standard json: `!nothere` on `[1, "1"]`'
+  from: part 2, section 10
+  tags: json quotes
+  yaml: |
+    %YAML 2.0 json
+    --- !nothere
+    [1, "1"]
+  typed: |
+    +STR
+     +DOC !nothere
+      +SEQ
+       =INT :1
+       =VAL :1
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    [1, "1"]

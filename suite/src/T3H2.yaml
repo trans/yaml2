@@ -1,0 +1,22 @@
+---
+- name: '%YAML 2.0 quotes after ... with no marker is a stop'
+  from: part 1, section 4.4
+  tags: directive quotes ending
+  yaml: |
+    %YAML 2.0
+    ---
+    a
+    ...
+    %YAML 2.0 quotes
+    body
+  tree: |
+    +STR
+     +DOC
+      =VAL :a
+     -DOC
+    -STR
+  json: |
+    "a"
+  rest: |
+    %YAML 2.0 quotes
+    body

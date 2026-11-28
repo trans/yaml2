@@ -1,0 +1,25 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `%YAML 2.0; ---; x: "1"`'
+  from: part 2, section 4.1
+  tags: str int union application
+  schema: |
+    %YAML 2.0 quotes
+    --- &
+    r:
+      x: {!|: [!int, !str]}
+  root: 'r'
+  yaml: |
+    %YAML 2.0
+    ---
+    x: "1"
+  typed: |
+    +STR
+     +DOC
+      +MAP
+       =VAL :x
+       =INT :1
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"x": 1}

@@ -1,0 +1,13 @@
+---
+- name: 'The standard json: `[!int, ...]` on `[1, "2"]`'
+  from: part 2, section 10
+  tags: int json sequence quotes error
+  fail: true
+  refused: document
+  at: '/1'
+  yaml: |
+    %YAML 2.0 json
+    --- &
+    n: [!int, ...]
+    --- !n
+    [1, "2"]

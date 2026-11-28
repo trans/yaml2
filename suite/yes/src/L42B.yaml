@@ -1,0 +1,23 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `[!d, ...]` on `- "2001-02-03"; - 2001-02-03`'
+  from: part 2, section 4.1
+  tags: str date union sequence quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    d: {!|: [!date, !str]}
+    s: [!d, ...]
+    --- !s
+    - "2001-02-03"
+    - 2001-02-03
+  typed: |
+    +STR
+     +DOC !s
+      +SEQ
+       =DATE :2001-02-03
+       =DATE :2001-02-03
+      -SEQ
+     -DOC
+    -STR
+  json: |
+    ["2001-02-03", "2001-02-03"]

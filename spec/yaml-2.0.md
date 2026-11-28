@@ -110,15 +110,34 @@ Neither is data, and section 11 says how tools can keep comments.
 
 ### 4.1 The directive
 
-The first line of a stream must be `%YAML 2.0`. Without it, or with any other version
-there, including a later 2.x, a stream isn't 2.0: a 2.0 parser must refuse it, or pass
-it to a parser for that version if its caller asked for that. It must never read it as
-2.0. Any other directive is refused.
+The first line of a stream must be `%YAML 2.0`, alone or followed by one space and `quotes` or
+`json`. Without it, or with any other version there, including a later 2.x, a stream isn't 2.0: a
+2.0 parser must refuse it, or pass it to a parser for that version if its caller asked for that. It
+must never read it as 2.0. Any other directive is refused, and so is any other word after `2.0`.
+
+`quotes` makes whether a scalar is plain part of the data (section 5), so that a schema can tell `3`
+from `"3"` (part 2, section 4.1). `json` is `quotes`, and part 2 also reads a document that has no
+schema with its standard type `!json` (part 2, section 3), so JSON with these two lines on top reads
+as a JSON parser reads it (section 13.1). A parser that does only this part reads `json` as `quotes`:
+
+```yaml
+%YAML 2.0 json
+---
+{"port": 8080, "id": "8080"}
+```
+
+```json
+{"port": "8080", "id": "8080"}
+```
+
+Both values are the string `8080`, but only the first is plain, so part 2's `!json` reads it as the
+number 8080 and keeps the second as a string.
 
 The line may appear again after `...`, ahead of a marker line (section 4.4).
-Anywhere else it is refused, and so is any other version. So whoever joins files has to
-choose. Independent files take `...` between them, and files sharing one table drop the
-line and use `---`.
+Anywhere else it is refused, and so is any other version. Each line's word, or the lack of one,
+holds for the documents after it, up to the next line. So whoever joins files has to
+choose. Independent files take `...` between them and keep their own words, and files sharing one
+table drop the line and use `---`, so they share the first line's word.
 
 ```yaml refused
 %YAML 2.0
@@ -241,9 +260,20 @@ scalar can't start with `!` (section 6.1).
 
 A line starting with `...`, followed by a space, a tab or the end of the line, ends
 the YAML, unless the next non-blank line is a marker, in which case another document
-starts. If that line is `%YAML 2.0` and a marker follows, the same happens: the line counts as
-part of that marker, the table starts empty again (section 8.1), and blank lines and comments
-between it and the marker are skipped.
+starts. If that line is `%YAML 2.0`, with or without a word (section 4.1), and a marker follows,
+the same happens: the line counts as part of that marker, the table starts empty again (section
+8.1), and blank lines and comments between it and the marker are skipped. A `%YAML 2.0` line there
+with any other word is refused, so that a word this draft doesn't know can't cut a stream short.
+
+```yaml refused
+%YAML 2.0
+---
+a: 1
+...
+%YAML 2.0 strict
+---
+b: 2
+```
 
 A parser stops at any other `...`, and reads nothing after it. It reports the offset
 of the line after the `...`, in bytes from the start of the stream with a CR LF counted as two,
@@ -301,6 +331,13 @@ The value of a scalar doesn't depend on how it is written. `42`, `"42"` and `'42
 same string, so a file alone can't say "this is really a number": that takes a schema
 (section 11), and the schema reads all three the same way. Quotes only decide which
 characters can be written.
+
+In a stream marked `quotes` or `json` (section 4.1), a scalar value is also plain or not, and that
+is data. `42` is plain, and `"42"` and `'42'` are the same value, not plain, so a schema can read
+`42` as a number and keep `"42"` as a string (part 2, section 4.1). Only a plain scalar (section
+6.1) is plain, and a quoted or block scalar isn't. A key or item with no value, and an empty
+document, is plain, so `f:` and `f: ""` differ there. A document's keys are compared by their text
+alone (section 7.4), so a key is neither.
 
 ```yaml
 a: no
@@ -1074,7 +1111,10 @@ the caller's choice.
 The table, `<<`, `-<<`, comments and the way a scalar was written are not data, and no
 interface that delivers data may show them, so an application can't behave differently
 because of a comment. That holds for a schema too: `1` and `"1"` are the same value, and
-a schema reads them the same way (part 2, section 4.1).
+a schema reads them the same way (part 2, section 4.1). The one exception is a stream marked
+`quotes` or `json` (section 4.1). There, an interface delivers whether each scalar value is plain,
+and a schema reads it. It still doesn't show which quotes were used, or whether a scalar was a
+block.
 
 A parser may also offer a syntax tree that keeps all of them, with their exact
 positions, for tools that edit files. It isn't required, and it is separate from the
@@ -1090,8 +1130,11 @@ blank line comes between. Any other comment belongs to no node.
 An emitter writes `%YAML 2.0` first and never sorts keys. It writes a shared node in full
 at each place, because which nodes are shared isn't data. An emitter of typed data needs
 the same schema, so that it can refuse a string the schema would read as something else,
-since quoting it wouldn't help (part 2, section 13). Changing how a scalar is quoted is
-always safe, with a schema or without.
+since quoting it wouldn't help, or in a marked stream quote it (part 2, section 13). In a stream
+without a word, changing how a scalar is quoted is always safe, with a schema or without. In a
+stream marked `quotes` or `json`, a tool may change `"` for `'` or for a block, but must keep the
+word and keep each value plain or not, as it was. Where it can't, as with `x: a, b` moved into a
+flow collection, where `a, b` can't be plain, it refuses.
 
 ## 12. Grammar
 
@@ -1123,7 +1166,7 @@ gap        ::= (space* comment? break)* (space* comment? EOF)?
 
 ```ebnf
 stream     ::= directive gap ((document | table) gap later*)? finish?
-directive  ::= "%YAML 2.0" eol
+directive  ::= "%YAML 2.0" (space ("quotes" | "json"))? eol
 later      ::= ("..." eol blank* (directive gap)?)? (document | table) gap
 finish     ::= "..." eol
 document   ::= "---" (ws "!" name)? (ws line-node(0) | eol gap node(-1)?)
@@ -1283,13 +1326,14 @@ Existing files need converting. Of 4,651 public files, 3,418 read as written onc
 JSON is a subset of 2.0 once `%YAML 2.0` and `---` are on top, apart from repeated keys, which YAML
 1.2 forbids too, a lone CR between tokens, a tab before the value or on a line after it, and a `\u`
 escape for a lone surrogate, which names no character. Without a schema, numbers, `true`, `false`
-and `null` are text. A schema gives them their types, but quotes don't count for a type, so a
-small schema for all of JSON also reads a string that looks like a number, a boolean or null as
-one: `"1"` is the number 1. Part 2's (section 10) gave a JSON parser's result exactly on 565 of
-1,015 real JSON files. Of the 450 others, 333 hold the string `"null"`, mostly JSON Schema's
-`"type": "null"`. It did on 92 of the 95 files in JSONTestSuite that every JSON parser must
-accept, where 2 of the other 3 are repeated keys. A schema that says where the strings are keeps
-them, as one written for a format does.
+and `null` are text. With `%YAML 2.0 json` on top instead of `%YAML 2.0`, a JSON file reads as a
+JSON parser reads it: part 2's `!json` types it, and a quoted string stays a string (section 4.1).
+That gave a JSON parser's result exactly on all 1,015 real JSON files from SchemaStore, and on 93 of
+the 95 files in JSONTestSuite that every JSON parser must accept, the other 2 being repeated keys.
+Under plain `%YAML 2.0`, quotes don't count for a type, so `!json` reads `"1"` as the number 1. It
+gave a JSON parser's result there on 565 of the 1,015 files and 92 of the 95. Of the 450 others,
+333 hold the string `"null"`, mostly JSON Schema's `"type": "null"`. A schema that says where the
+strings are keeps them, as one written for a format does.
 
 A tool that turns YAML into JSON and decodes the result into typed structures, as
 `sigs.k8s.io/yaml` does for Kubernetes, gets `replicas: 3` as a string unless it applies

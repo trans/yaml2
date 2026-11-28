@@ -1,0 +1,29 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `{!*: !q}` on `a: +5; b: "+5"`'
+  from: part 2, section 4.1
+  tags: str int pattern union star quotes
+  emit: refused
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    q:
+      !|:
+        - !int(/[-+][0-9]+/)
+        - !str
+    m: {!*: !q}
+    --- !m
+    a: +5
+    b: "+5"
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :a
+       =INT :5
+       =VAL :b
+       =VAL :+5
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": 5, "b": "+5"}

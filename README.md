@@ -51,8 +51,9 @@ job:
 - **One size limit** stops a small file from expanding into a huge one.
 - **JSON is a subset** once `%YAML 2.0` and `---` are on top, apart from repeated keys, a lone CR
   between tokens, a tab before the value or on a line after it, and a lone surrogate escape. Its
-  numbers, `true`, `false` and `null` are text until a schema types them, and a schema reads `1` and
-  `"1"` the same way.
+  numbers, `true`, `false` and `null` are text until a schema types them. Under `%YAML 2.0`, a schema
+  reads `1` and `"1"` the same way. With `%YAML 2.0 json` on top instead, a JSON file reads as a JSON
+  parser reads it, which gave `json.loads`'s result on all 1,015 SchemaStore files measured.
 - **A schema is a shadow of the data**, and it is optional. Its base form is the data's keys and
   structure with a type where each value would be. Table definitions, recursion and the key globs
   `!*` and `!**` compress that form.
@@ -74,8 +75,8 @@ from 1.2, and section 13.1 what they cost.
 - **YAML Easy Schema (YES), part 2:** **Work in progress.** Draft 1 is in
   [`spec/yaml-easy-schema.md`](spec/yaml-easy-schema.md). Its rules are still changing, and section
   15 lists what is open.
-- **Test suite:** part 1's is in [`suite/`](suite/), 373 tests in yaml-test-suite's format, the draft's
-  examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 984 tests.
+- **Test suite:** part 1's is in [`suite/`](suite/), 393 tests in yaml-test-suite's format, the draft's
+  examples among them. Part 2's is in [`suite/yes/`](suite/yes/), 1,051 tests.
 - **Reference parser:** [Oyl NG](https://github.com/trans/oylng), a C library, has the event parser,
   the tree and the emitter for part 1. For part 2 it types documents, binds application types, emits
   typed data and looks up published schemas. Against this repo's `v0.2.4`, it passes all 373 of part

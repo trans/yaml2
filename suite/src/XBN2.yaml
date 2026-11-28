@@ -1,0 +1,16 @@
+---
+- name: A comment after the word
+  from: part 1, section 4.1
+  tags: directive quotes comment
+  yaml: |
+    %YAML 2.0 quotes # a comment
+    ---
+    "a"
+  tree: |
+    +STR
+     +DOC
+      =VAL "a
+     -DOC
+    -STR
+  json: |
+    "a"

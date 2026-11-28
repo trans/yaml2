@@ -1,0 +1,13 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `[!int, ...]` on `[1, "2"]`'
+  from: part 2, section 4.1
+  tags: int sequence quotes error
+  fail: true
+  refused: document
+  at: '/1'
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    n: [!int, ...]
+    --- !n
+    [1, "2"]

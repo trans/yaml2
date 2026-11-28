@@ -1,0 +1,12 @@
+---
+- name: 'A word %YAML 2.0 does not take after ..., with no marker'
+  from: part 1, section 4.4
+  tags: directive ending error
+  fail: true
+  yaml: |
+    %YAML 2.0
+    ---
+    a
+    ...
+    %YAML 2.0 nope
+    body

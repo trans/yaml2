@@ -1,0 +1,19 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `{!|: [!int, !str]}` on `|-;   1`'
+  from: part 2, section 4.1
+  tags: str int union quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    n: {!|: [!int, !str]}
+    --- !n
+    |-
+      1
+  typed: |
+    +STR
+     +DOC !n
+      =VAL :1
+     -DOC
+    -STR
+  json: |
+    "1"

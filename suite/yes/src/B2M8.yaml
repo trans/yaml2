@@ -1,0 +1,31 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `{!*: !z}` on `a: ~; b: "~"; c:; d: ""`'
+  from: part 2, section 4.1
+  tags: str null words union star quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    z: {!|: [!null(~|), !str]}
+    m: {!*: !z}
+    --- !m
+    a: ~
+    b: "~"
+    c:
+    d: ""
+  typed: |
+    +STR
+     +DOC !m
+      +MAP
+       =VAL :a
+       =NULL
+       =VAL :b
+       =VAL :~
+       =VAL :c
+       =NULL
+       =VAL :d
+       =VAL :
+      -MAP
+     -DOC
+    -STR
+  json: |
+    {"a": null, "b": "~", "c": null, "d": ""}

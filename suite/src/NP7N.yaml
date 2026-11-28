@@ -1,0 +1,9 @@
+---
+- name: '%YAML 2.0 with two spaces before quotes'
+  from: part 1, section 4.1
+  tags: directive whitespace error
+  fail: true
+  yaml: |
+    %YAML 2.0  quotes
+    ---
+    a

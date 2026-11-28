@@ -1,0 +1,18 @@
+---
+- name: 'Quotes in a stream marked quotes or json: `!binary` on `"aGk="`'
+  from: part 2, section 4.1
+  tags: binary quotes
+  yaml: |
+    %YAML 2.0 quotes
+    --- &
+    x: !binary
+    --- !x
+    "aGk="
+  typed: |
+    +STR
+     +DOC !x
+      =BIN :6869
+     -DOC
+    -STR
+  json: |
+    "aGk="

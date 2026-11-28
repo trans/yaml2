@@ -1,0 +1,9 @@
+---
+- name: 'The standard json: `%YAML 2.0 json; ---; {"a": 1, "a": 2}`'
+  from: part 2, section 10
+  tags: json quotes error
+  fail: true
+  yaml: |
+    %YAML 2.0 json
+    ---
+    {"a": 1, "a": 2}

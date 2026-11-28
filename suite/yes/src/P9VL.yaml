@@ -1,5 +1,5 @@
 ---
-- name: Applying a schema, example 1
+- name: Applying a schema, example 2
   from: part 2, section 3
   tags: spec str int merge reference
   yaml: |
