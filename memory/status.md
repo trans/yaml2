@@ -82,6 +82,13 @@ sense in crushing every minutiae now. Just so long as it works well in general."
 tag `v1.0.0-beta.1`, after the quotes option, a read of both specs for contradictions left by the
 changes of 2026-11-27 and 28, the headers (both say "Draft 1, 2026-11-07"; part 2 has a WORK IN
 PROGRESS banner), and Oyl NG passing it. Then the covering notes.
+**The tag and the banner, the user's choices (2026-11-28):** "v1.0.0-beta.1 is fine (also you can
+tag it β1; it works too), and yet soften the banner." In main `37c1353`, not pushed: both specs read
+"Draft 1, β1, 2026-11-28", part 2's banner is now "This part is less settled than part 1, and its rules
+may still change", and the READMEs match. The tag waits on Oyl NG's figures against these suites, then
+the user's go-ahead to push. The user also asked whether narrowing the 1.2 JSON Schema claim means JSON
+support missed something; the agent's answer: no, both differences (keys typed, `a:` not null) never
+occur in a JSON file, and the measurement stands.
 **The read for contradictions: done, fixed in main `fd7c221`, not pushed** (2026-11-28). A fresh
 agent read both specs and the READMEs. Nine findings in the specs and one in the README, all checked and
 fixed: a global name stamping (part 1, 4.3 against part 2, 3); a pattern on `!null` left in part 2, 4.7;
