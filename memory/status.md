@@ -16,6 +16,25 @@ sentence, with the same tests and results. `v0.2.4` is on main `961fd4c` (2026-1
 `!false` and words; part 2's suite at 984. @oylng told (2026-11-27, mail f9f3e7ed, and a correction:
 G6JA is now 8Y5W). `v0.2.5` is on main `48ded98` (2026-11-28, the user: "yes, commit, tag and push"): the
 README's Oyl NG figure against `v0.2.4`, with the same spec and suites as `v0.2.4`.
+**Quotes counting as an option, declared in the stream. Open: in design, nothing drafted.** The user,
+2026-11-28: "we will be bringing plain distinction back, but in a more controlled manner. It won't be
+'canonical' YAML 2, but an option nonetheless, so YAML 2 can still handle JSON seamlessly." The agent's
+proposal, which the user accepted as the direction ("that seems like a good idea. works for me"):
+- The stream turns it on, with a second directive or a word on `%YAML 2.0` (spelling open; example
+  `%YAML 2.0 quotes`). It can't be only a schema setting: @oylng's requote case needs a tool with no
+  schema to see it. Part 1 already refuses any other directive, so a parser without the option
+  refuses such a file.
+- In such a stream, part 1 makes tools keep a scalar plain or not plain (`"` and `'` may still swap).
+  Part 2 applies option 1: every standard type except `!str` and `!any` matches plain only. The
+  emitter quotes a string that plain would read as another type. Keys don't change.
+- JSON under section 10's schema with the option: 1,015 of 1,015 and 93 of 95, as measured before
+  `v0.2.4`.
+The user asked (2026-11-28) whether `quotes` is the same as JSON. The agent's answer: no. It only lets a
+schema see plain against quoted, and with no schema a stream is still strings. The JSON reading still
+comes from a schema, which an application supplies, since a JSON file has no table to stamp from.
+Next: the user's answer on a separate `json` form, then spellings, then a draft for part 1, section 4.1
+and part 2, section 4.1, to show the user before anything goes into main.
+
 **Oyl NG against `v0.2.4`** (2026-11-28,
 `mail/received/20261128-001852Z-@oylng--the-engine-against-v0.2.4-373-and-959-of-984-0d0b6fbf.md`):
 - **Part 1:** 373 of 373 pass.
